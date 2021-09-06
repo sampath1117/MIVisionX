@@ -29,7 +29,14 @@ THE SOFTWARE.
 
 
 typedef  struct { float l; float t; float r; float b; } BoundingBoxCord;
+typedef struct {
+    float x; //x-coordinate of keypoint
+    float y; //y-coordinate of keypoint
+    float v; //visibility of keypoint can be 0/1/2
+} KeyPoint;
 typedef  std::vector<BoundingBoxCord> BoundingBoxCords;
+typedef std::vector<KeyPoint> KeyPoints;
+typedef std::vector<KeyPoints> ImageKeyPoints;        //add change
 typedef  std::vector<int> BoundingBoxLabels;
 typedef  struct { int w; int h; } ImgSize;
 typedef  std::vector<ImgSize> ImgSizes;
@@ -40,9 +47,11 @@ struct MetaData
     BoundingBoxCords& get_bb_cords() { return _bb_cords; }
     BoundingBoxLabels& get_bb_labels() { return _bb_label_ids; }
     ImgSizes& get_img_sizes() {return _img_sizes; }
+    ImageKeyPoints& get_image_key_points() { return _image_key_points; }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
     BoundingBoxLabels _bb_label_ids = {};// For bb use
+    ImageKeyPoints _image_key_points; // For key points
     ImgSizes _img_sizes = {};
     int _label_id = -1; // For label use only
 };
@@ -67,9 +76,17 @@ struct BoundingBox : public MetaData
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
     }
+    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageKeyPoints image_key_points)
+    {
+        _bb_cords =std::move(bb_cords);
+        _bb_label_ids = std::move(bb_label_ids);
+        _img_sizes = std::move(img_sizes);
+        _image_key_points = std::move(image_key_points);
+    }
     void set_bb_cords(BoundingBoxCords bb_cords) { _bb_cords =std::move(bb_cords); }
     void set_bb_labels(BoundingBoxLabels bb_label_ids) {_bb_label_ids = std::move(bb_label_ids); }
     void set_img_sizes(ImgSizes img_sizes) { _img_sizes =std::move(img_sizes); }
+    void set_img_key_points(ImageKeyPoints image_key_points) {_image_key_points = std::move(image_key_points); }
 };
 
 struct MetaDataBatch
@@ -89,11 +106,13 @@ struct MetaDataBatch
     std::vector<BoundingBoxCords>& get_bb_cords_batch() { return _bb_cords; }
     std::vector<BoundingBoxLabels>& get_bb_labels_batch() { return _bb_label_ids; }
     std::vector<ImgSizes>& get_img_sizes_batch() { return _img_sizes; }
+    std::vector<ImageKeyPoints>& get_img_key_points_batch() { return _img_key_points; }
 protected:
     std::vector<int> _label_id = {}; // For label use only
     std::vector<BoundingBoxCords> _bb_cords = {};
     std::vector<BoundingBoxLabels> _bb_label_ids = {};
     std::vector<ImgSizes> _img_sizes = {};
+    std::vector<ImageKeyPoints>  _img_key_points = {};
 };
 
 struct LabelBatch : public MetaDataBatch
@@ -159,4 +178,5 @@ struct BoundingBoxBatch: public MetaDataBatch
 using ImageNameBatch = std::vector<std::string>;
 using pMetaData = std::shared_ptr<Label>;
 using pMetaDataBox = std::shared_ptr<BoundingBox>;
+using pMetaDataKeyPoints = std::shared_ptr<KeyPoint>;
 using pMetaDataBatch = std::shared_ptr<MetaDataBatch>;

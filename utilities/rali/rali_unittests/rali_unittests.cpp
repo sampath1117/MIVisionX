@@ -37,7 +37,7 @@ THE SOFTWARE.
 using namespace cv;
 
 //#define PARTIAL_DECODE
-// #define COCO_READER
+#define COCO_READER
 //#define COCO_READER_PARTIAL
 // #define TF_READER
 // #define TF_READER_DETECTION
@@ -151,13 +151,15 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #endif
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
-    char *json_path = "";
+    const char *json_path = "/home/amd/sampath/simple-HRNet/datasets/COCO/annotations/person_keypoints_val2017.json";
     if (strcmp(json_path, "") == 0)
     {
         std::cout << "\n json_path has to be set in rali_unit test manually";
         exit(0);
     }
+    std::cout<<"Entered block for creating ralicocoreader"<<std::endl;
     meta_data = raliCreateCOCOReader(handle, json_path, true);
+    std::cout<<"Extracted meta data from coco"<<std::endl;
 #elif defined CAFFE_READER
     meta_data = raliCreateCaffeLMDBLabelReader(handle, path);
 #elif defined CAFFE_READER_DETECTION
@@ -178,7 +180,8 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     raliRandomBBoxCrop(handle, all_boxes_overlap, no_crop);
 #endif
 
-    RaliImage input1;
+RaliImage input1;
+    
     // The jpeg file loader can automatically select the best size to decode all images to that size
     // User can alternatively set the size or change the policy that is used to automatically find the size
 #ifdef PARTIAL_DECODE
