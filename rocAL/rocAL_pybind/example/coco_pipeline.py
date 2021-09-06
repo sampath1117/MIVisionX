@@ -160,108 +160,33 @@ class RALICOCOIterator(object):
             self.loader.copyToTensorNHWC(
                 self.out, self.multiplier, self.offset, self.reverse_channels, int(self.tensor_dtype))
 
-        self.img_names_length = np.empty(self.bs, dtype="int32")
-        self.img_names_size = self.loader.GetImageNameLen(
-            self.img_names_length)
-        print("Image name length:", self.img_names_size)
-# Images names of a batch
-        self.Img_name = self.loader.GetImageName(self.img_names_size)
-        print("Image names in a batch ", self.Img_name)
+#Image id of a batch of images
+        self.image_id = np.zeros(self.bs, dtype="int32")
+        self.loader.GetImageId(self.image_id)
 # Count of labels/ bboxes in a batch
         self.bboxes_label_count = np.zeros(self.bs, dtype="int32")
         self.count_batch = self.loader.GetBoundingBoxCount(
             self.bboxes_label_count)
         print("Count Batch:", self.count_batch)
-# 1D labels array in a batch
-        self.labels = np.zeros(self.count_batch, dtype="int32")
-        self.loader.GetBBLabels(self.labels)
-        print(self.labels)
-# 1D bboxes array in a batch
-        self.bboxes = np.zeros((self.count_batch*4), dtype="float32")
-        self.loader.GetBBCords(self.bboxes)
-        print(self.bboxes)
+# 1D labels & bboxes array
+        self.encoded_bboxes = np.zeros((self.count_batch*4), dtype="float32")
+        self.encoded_labels = np.zeros(self.count_batch, dtype="int32")
+        self.loader.copyEncodedBoxesAndLables(
+            self.encoded_bboxes, self.encoded_labels)
 # Image sizes of a batch
         self.img_size = np.zeros((self.bs * 2), dtype="int32")
         self.loader.GetImgSizes(self.img_size)
         print("Image sizes:", self.img_size)
-        count = 0
-        sum_count = 0
-        for i in range(self.bs):
-            count = self.bboxes_label_count[i]
-            print("labels:", self.labels[sum_count: sum_count+count])
-            print("bboxes:", self.bboxes[sum_count*4: (sum_count+count)*4])
-            print("Image w & h:", self.img_size[i*2:(i*2)+2])
-            print("Image names:", self.Img_name[i*16:(i*16)+12])
-            self.img_name = self.Img_name[i*16:(i*16)+12]
-            self.img_name = self.img_name.decode('utf_8')
-            self.img_name = np.char.lstrip(self.img_name, chars='0')
-            print("Image names:", self.img_name)
-            self.label_2d_numpy = (self.labels[sum_count: sum_count+count])
-            if(self.loader._BoxEncoder != True):
-                self.label_2d_numpy = np.reshape(
-                    self.label_2d_numpy, (-1, 1)).tolist()
-            self.bb_2d_numpy = (self.bboxes[sum_count*4: (sum_count+count)*4])
-            self.bb_2d_numpy = np.reshape(self.bb_2d_numpy, (-1, 4)).tolist()
-            # Draw images: make sure to revert the mean and std to 0 and 1 for displaying original images without normalization
-            if self.display:
-               img = torch.from_numpy(self.out)
-               draw_patches(img[i], self.img_name, self.bb_2d_numpy)
-            if(self.loader._BoxEncoder == True):
-                
-                # Converting from "xywh" to "ltrb" format ,
-                # where the values of l, t, r, b always lie between 0 & 1
-                # Box Encoder input & output:
-                # input : N x 4 , "xywh" format
-                # output : 8732 x 4 , "xywh" format and normalized
-                htot, wtot = 1, 1
-                bbox_sizes = []
-                i=0
-                for (l,t,r,b) in self.bb_2d_numpy:
-                    
 
-                    bbox_size = (l/wtot, t/htot, r/wtot, b/htot)
-                    bbox_sizes.append(bbox_size)
-                    i=i+1
-
-                encoded_bboxes, encodded_labels = self.loader.encode(bboxes_in=bbox_sizes, labels_in=self.label_2d_numpy)
-                if(self.loader._castLabels == True):
-                    encodded_labels = encodded_labels.type(torch.FloatTensor)
-                self.lis.append(encoded_bboxes)
-                self.lis_lab.append(encodded_labels)
-            else:
-                self.lis_lab.append(self.label_2d_numpy)
-                self.lis.append(self.bb_2d_numpy)
-            sum_count = sum_count + count
-
-        if (self.loader._BoxEncoder != True):
-            self.target = self.lis
-            self.target1 = self.lis_lab
-
-            max_cols = max([len(row) for batch in self.target for row in batch])
-            max_rows = max([len(batch) for batch in self.target])
-            self.bb_padded = [
-                batch + [[0] * (max_cols)] * (max_rows - len(batch)) for batch in self.target]
-            self.bb_padded = torch.FloatTensor(
-                [row + [0] * (max_cols - len(row)) for batch in self.bb_padded for row in batch])
-            self.bb_padded = self.bb_padded.view(-1, max_rows, max_cols)
-            # print(self.bb_padded)
-
-            max_cols1 = max([len(row) for batch in self.target1 for row in batch])
-            max_rows1 = max([len(batch) for batch in self.target1])
-            self.labels_padded = [
-                batch + [[0] * (max_cols1)] * (max_rows1 - len(batch)) for batch in self.target1]
-            self.labels_padded = torch.LongTensor(
-                [row + [0] * (max_cols1 - len(row)) for batch in self.labels_padded for row in batch])
-            self.labels_padded = self.labels_padded.view(-1, max_rows1, max_cols1)
-            # print(self.labels_padded)
-        else:
-            self.bb_padded = torch.stack(self.lis)
-            self.labels_padded = torch.stack(self.lis_lab)
+        encoded_bboxes_tensor = torch.tensor(self.encoded_bboxes).view(self.bs, -1, 4).contiguous()
+        encodded_labels_tensor=  torch.tensor(self.encoded_labels).long().view(self.bs, -1)
+        image_id_tensor = torch.tensor(self.image_id)
+        image_size_tensor = torch.tensor(self.img_size).view(-1, self.bs, 2)
 
         if self.tensor_dtype == types.FLOAT:
-            return torch.from_numpy(self.out), self.bb_padded, self.labels_padded
+            return torch.from_numpy(self.out), encoded_bboxes_tensor, encodded_labels_tensor, image_id_tensor, image_size_tensor
         elif self.tensor_dtype == types.FLOAT16:
-            return torch.from_numpy(self.out.astype(np.float16)), self.bb_padded, self.labels_padded
+            return torch.from_numpy(self.out.astype(np.float16)), encoded_bboxes_tensor, encodded_labels_tensor, image_id_tensor, image_size_tensor
 
     def reset(self):
         self.loader.raliResetLoaders()
@@ -277,9 +202,11 @@ def draw_patches(img,idx, bboxes):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR )
  
     _,htot ,wtot = img.shape
-    
-    for (l, t ,r,b) in bboxes:
-        
+    for (xc, yc ,w,h) in bboxes:
+        l = xc - 0.5*(w)
+        t = yc - 0.5*(h)
+        r = xc + 0.5*(w)
+        b = yc + 0.5*(h)
         loc_ = [l, t ,r, b]
         color = (255, 0, 0)
         thickness = 2
@@ -300,6 +227,10 @@ def main():
         _rali_cpu = False
     bs = int(sys.argv[4])
     display = sys.argv[5]
+
+    if display == "True":
+        print(f'\n Display support yet to be added \n Please use Display as False for time being\n ')
+        exit(0)
     nt = 1
     di = 0
     crop_size = 300
@@ -340,15 +271,13 @@ def main():
         dboxes_ltrb[:, 3] = dboxes[:, 1] + 0.5 * dboxes[:, 3]
         
         return dboxes_ltrb
-
-    dboxes = coco_anchors()
-
+    dboxes = coco_anchors().numpy().flatten().tolist()
     pipe = COCOPipeline(batch_size=bs, num_threads=nt, device_id=di,seed = random_seed,
                         data_dir=image_path, ann_dir=ann_path, crop=crop_size, rali_cpu=_rali_cpu, default_boxes=dboxes, display=display)
     pipe.build()
     data_loader = RALICOCOIterator(
         pipe, multiplier=pipe._multiplier, offset=pipe._offset,display=display)
-    epochs = 5
+    epochs = 2
     for epoch in range(int(epochs)):
         print("EPOCH:::::",epoch)
         for i, it in enumerate(data_loader, 0):
@@ -356,6 +285,8 @@ def main():
             print("**************starts*******************")
             print("\nBBOXES:\n", it[1])
             print("\nLABELS:\n", it[2])
+            print("\nIMAGE ID's:\n", it[3])
+            print("\nIMAGE SIZES:\n", it[4])
             print("**************ends*******************")
             print("**************", i, "*******************")
         data_loader.reset()
