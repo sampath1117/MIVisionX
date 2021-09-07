@@ -151,15 +151,15 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #endif
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
-    const char *json_path = "/home/amd/sampath/simple-HRNet/datasets/COCO/annotations/person_keypoints_val2017.json";
+    const char *json_path = "/home/amd/sampath/simple-HRNet/datasets/COCO/annotations/person_keypoints_val2017.json"; 
     if (strcmp(json_path, "") == 0)
     {
         std::cout << "\n json_path has to be set in rali_unit test manually";
         exit(0);
     }
-    std::cout<<"Entered block for creating ralicocoreader"<<std::endl;
+    //std::cout<<"Entered block for creating ralicocoreader"<<std::endl;
     meta_data = raliCreateCOCOReader(handle, json_path, true);
-    std::cout<<"Extracted meta data from coco"<<std::endl;
+    //std::cout<<"Extracted meta data from coco"<<std::endl;
 #elif defined CAFFE_READER
     meta_data = raliCreateCaffeLMDBLabelReader(handle, path);
 #elif defined CAFFE_READER_DETECTION

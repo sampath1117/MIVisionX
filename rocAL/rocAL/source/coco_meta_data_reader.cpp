@@ -63,19 +63,6 @@ void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
     }
 }
 
-void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size) //add change
-{
-    if (exists(image_name))
-    {
-        auto it = _map_content.find(image_name);
-        it->second->get_bb_cords().push_back(bb_coords[0]);
-        it->second->get_bb_labels().push_back(bb_labels[0]);
-        return;
-    }
-    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size);
-    _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
-}
-
 void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size,ImageKeyPoints image_key_points) //add change
 {
     if (exists(image_name))
@@ -154,7 +141,6 @@ void COCOMetaDataReader::read_all(const std::string &path)
     size_t num_keypoints=17;
     KeyPoints key_points(num_keypoints);
     
-    int key_point_exist=0; //flag for keypoint existence
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
     parser.EnterObject();
     while (const char *key = parser.NextObjectKey())
@@ -232,7 +218,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
             {
                 int id = 1, label = 0;
                 std::array<float, 4> bbox;
-                std::array<float,51> keypoint;   //new change
+                std::array<float,51> keypoint{};   //new change
                 if (parser.PeekType() != kObjectType)
                 {
                     continue;
@@ -261,7 +247,6 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     }
                     else if (0 == std::strcmp(internal_key, "keypoints")) //add change
                     {
-                        key_point_exist=1;
                         RAPIDJSON_ASSERT(parser.PeekType() == kArrayType);
                         parser.EnterArray(); 
                         int i = 0;
@@ -292,33 +277,26 @@ void COCOMetaDataReader::read_all(const std::string &path)
                 bb_coords.push_back(box);
                 bb_labels.push_back(label);
                 
-                if(key_point_exist)
+               
+                //Store the 1-D keypoint array into 17x3 Keypoint array
+                unsigned int j=0;  //new change
+                for(unsigned int i = 0; i < num_keypoints; i++)
                 {
-                    //Store the 1-D keypoint array into 17x3 Keypoint array
-                    unsigned int j=0;  //new change
-                    for(unsigned int i = 0; i < 17; i++)
-                    {
-                        //std::cout<<"Index:"<<j<<std::endl;
-                        //std::cout<<"Keypoint value:"<<keypoint[j]<<std::endl;
-                        key_points[i].x = keypoint[j];
-                        key_points[i].y = keypoint[j+1];
-                        key_points[i].v = keypoint[j+2];
-                        j=j+3;
-                    }
-                    //std::cout<<"Completed setting keypoint values"<<std::endl;
-                    image_key_points.push_back(key_points);
-                    //std::cout<<"Pushed keypoint values to the keypoint vector"<<std::endl;
-                    add(file_name, bb_coords, bb_labels, image_size,image_key_points);
-                    image_key_points.clear();
-                    key_point_exist=0;
+                    //std::cout<<"Index:"<<j<<std::endl;
+                    //std::cout<<"Keypoint value:"<<keypoint[j]<<std::endl;
+                    key_points[i].x = keypoint[j];
+                    key_points[i].y = keypoint[j+1];
+                    key_points[i].v = keypoint[j+2];
+                    j=j+3;
                 }
-                else
-                {
-                    add(file_name, bb_coords, bb_labels, image_size);
-                }
+                //std::cout<<"Completed setting keypoint values"<<std::endl;
+                image_key_points.push_back(key_points);
+                //std::cout<<"Pushed keypoint values to the keypoint vector"<<std::endl;
+                add(file_name, bb_coords, bb_labels, image_size,image_key_points);
                 bb_coords.clear();
                 bb_labels.clear();
-            }
+                image_key_points.clear();
+            }   
         }
         else
         {
