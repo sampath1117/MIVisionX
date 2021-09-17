@@ -96,7 +96,7 @@ int main(int argc, const char **argv)
 int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height, int num_of_classes, int display_all)
 {
     size_t num_threads = 1;
-    unsigned int inputBatchSize = 2;
+    unsigned int inputBatchSize = 1;
     int decode_max_width = width;
     int decode_max_height = height;
     std::cout << ">>> test case " << test_case << std::endl;
@@ -151,7 +151,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #endif
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
-    const char *json_path = "/home/amd/sampath/simple-HRNet/datasets/COCO/annotations/person_keypoints_val2017.json"; 
+    const char *json_path = "/media/simple-HRNet/datasets/COCO_small/annotations/person_keypoints_val2017.json"; 
     if (strcmp(json_path, "") == 0)
     {
         std::cout << "\n json_path has to be set in rali_unit test manually";
@@ -281,7 +281,7 @@ RaliImage input1;
     {
         std::cout << ">>>>>>> Running "
                   << "raliFlip" << std::endl;
-        image1 = raliFlip(handle, image0, true);
+        image1 = raliFlip(handle, image0,true,0);
     }
     break;
     case 7:
@@ -489,7 +489,13 @@ RaliImage input1;
     {
         std::cout << ">>>>>>> Running "
                   << "raliWarpAffineFixed" << std::endl;
-        image1 = raliWarpAffineFixed(handle, image0, 0.25, 0.25, 1, 1, 5, 5, true);
+        float x0=0.734;
+        float x1=0.0;
+        float y0=0;
+        float y1=0.0;
+        float t0=0.734;
+        float t1=0.0;
+        image1 = raliWarpAffineFixed(handle, image0, x0,y0,x1,y1,t0,t1, true,288,384);
     }
     break;
     case 38:

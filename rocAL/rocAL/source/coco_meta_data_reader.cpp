@@ -63,17 +63,17 @@ void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
     }
 }
 
-void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size,ImageKeyPoints image_key_points) //add change
+void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size,ImageKeyPoints img_key_points) //add change
 {
     if (exists(image_name))
     {
         auto it = _map_content.find(image_name);
         it->second->get_bb_cords().push_back(bb_coords[0]);
         it->second->get_bb_labels().push_back(bb_labels[0]);
-        it->second->get_image_key_points().push_back(image_key_points[0]);
+        it->second->get_img_key_points().push_back(img_key_points[0]);
         return;
     }
-    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size,image_key_points);
+    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size,img_key_points);
     _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
 }
 
@@ -92,7 +92,7 @@ void COCOMetaDataReader::print_map_contents()
         bb_coords = elem.second->get_bb_cords();
         bb_labels = elem.second->get_bb_labels();
         img_sizes = elem.second->get_img_sizes();
-        img_key_points=elem.second->get_image_key_points();
+        img_key_points=elem.second->get_img_key_points();
         std::cout << "<wxh, num of bboxes>: " << img_sizes[0].w << " X " << img_sizes[0].h << " , " << bb_coords.size() << std::endl;
         for (unsigned int i = 0; i < bb_coords.size(); i++)
         {
@@ -134,7 +134,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
     BoundingBoxCords bb_coords;
     BoundingBoxLabels bb_labels;
     ImgSizes img_sizes;
-    ImageKeyPoints image_key_points;
+    ImageKeyPoints img_key_points;
 
     BoundingBoxCord box;
     ImgSize img_size;
@@ -290,12 +290,12 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     j=j+3;
                 }
                 //std::cout<<"Completed setting keypoint values"<<std::endl;
-                image_key_points.push_back(key_points);
+                img_key_points.push_back(key_points);
                 //std::cout<<"Pushed keypoint values to the keypoint vector"<<std::endl;
-                add(file_name, bb_coords, bb_labels, image_size,image_key_points);
+                add(file_name, bb_coords, bb_labels, image_size,img_key_points);
                 bb_coords.clear();
                 bb_labels.clear();
-                image_key_points.clear();
+                img_key_points.clear();
             }   
         }
         else

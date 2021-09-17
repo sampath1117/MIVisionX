@@ -180,10 +180,12 @@ std::shared_ptr<T> MasterGraph::add_node(const std::vector<Image *> &inputs, con
 template <typename T, typename M>
 std::shared_ptr<T> MasterGraph::meta_add_node(std::shared_ptr<M> node)
 {
+    std::cout<<"Add flip meta node to master graph"<<std::endl;
     auto meta_node = std::make_shared<T>();
     _meta_data_graph->_meta_nodes.push_back(meta_node);
     meta_node->_node = node;
     meta_node->_batch_size = _user_batch_size;
+    std::cout<<"Success! flip meta node added to master graph"<<std::endl;
     return meta_node;
 }
 

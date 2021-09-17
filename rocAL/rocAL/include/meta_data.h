@@ -47,11 +47,11 @@ struct MetaData
     BoundingBoxCords& get_bb_cords() { return _bb_cords; }
     BoundingBoxLabels& get_bb_labels() { return _bb_label_ids; }
     ImgSizes& get_img_sizes() {return _img_sizes; }
-    ImageKeyPoints& get_image_key_points() { return _image_key_points; }
+    ImageKeyPoints& get_img_key_points() { return _img_key_points; }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
     BoundingBoxLabels _bb_label_ids = {};// For bb use
-    ImageKeyPoints _image_key_points; // For key points
+    ImageKeyPoints _img_key_points; // For key points
     ImgSizes _img_sizes = {};
     int _label_id = -1; // For label use only
 };
@@ -76,17 +76,17 @@ struct BoundingBox : public MetaData
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
     }
-    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageKeyPoints image_key_points)
+    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageKeyPoints img_key_points)
     {
         _bb_cords =std::move(bb_cords);
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
-        _image_key_points = std::move(image_key_points);
+        _img_key_points = std::move(img_key_points);
     }
     void set_bb_cords(BoundingBoxCords bb_cords) { _bb_cords =std::move(bb_cords); }
     void set_bb_labels(BoundingBoxLabels bb_label_ids) {_bb_label_ids = std::move(bb_label_ids); }
     void set_img_sizes(ImgSizes img_sizes) { _img_sizes =std::move(img_sizes); }
-    void set_img_key_points(ImageKeyPoints image_key_points) {_image_key_points = std::move(image_key_points); }
+    void set_img_key_points(ImageKeyPoints img_key_points) {_img_key_points = std::move(img_key_points); }
 };
 
 struct MetaDataBatch
@@ -152,12 +152,14 @@ struct BoundingBoxBatch: public MetaDataBatch
         _bb_cords.clear();
         _bb_label_ids.clear();
         _img_sizes.clear();
+        _img_key_points.clear();
     }
     MetaDataBatch&  operator += (MetaDataBatch& other) override
     {
         _bb_cords.insert(_bb_cords.end(),other.get_bb_cords_batch().begin(), other.get_bb_cords_batch().end());
         _bb_label_ids.insert(_bb_label_ids.end(), other.get_bb_labels_batch().begin(), other.get_bb_labels_batch().end());
         _img_sizes.insert(_img_sizes.end(),other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
+        _img_key_points.insert(_img_key_points.end(),other.get_img_key_points_batch().begin(),other.get_img_key_points_batch().end());
         return *this;
     }
     void resize(int batch_size) override
@@ -165,6 +167,7 @@ struct BoundingBoxBatch: public MetaDataBatch
         _bb_cords.resize(batch_size);
         _bb_label_ids.resize(batch_size);
         _img_sizes.resize(batch_size);
+        _img_key_points.resize(batch_size);
     }
     int size() override
     {
@@ -178,5 +181,4 @@ struct BoundingBoxBatch: public MetaDataBatch
 using ImageNameBatch = std::vector<std::string>;
 using pMetaData = std::shared_ptr<Label>;
 using pMetaDataBox = std::shared_ptr<BoundingBox>;
-using pMetaDataKeyPoints = std::shared_ptr<KeyPoint>;
 using pMetaDataBatch = std::shared_ptr<MetaDataBatch>;

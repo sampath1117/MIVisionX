@@ -174,7 +174,14 @@ raliFlip(
         output = context->master_graph->create_image(input->info(), is_output);
         std::shared_ptr<FlipNode> flip_node =  context->master_graph->add_node<FlipNode>({input}, {output});
         if (context->master_graph->meta_data_graph())
+        {
+            std::cout<<"adding original meta node for flip"<<std::endl;
             context->master_graph->meta_add_node<FlipMetaNode,FlipNode>(flip_node);
+        }
+        else
+        {
+            std::cout<<"Meta node not added"<<std::endl;
+        }
     }
     catch(const std::exception& e)
     {
@@ -946,7 +953,16 @@ raliFlip(
 
         output = context->master_graph->create_image(input->info(), is_output);
 
-        context->master_graph->add_node<FlipNode>({input}, {output})->init(flip_axis);
+        std::shared_ptr<FlipNode> flip_node =  context->master_graph->add_node<FlipNode>({input}, {output});
+        if (context->master_graph->meta_data_graph())
+        {
+            std::cout<<"adding meta node for flip"<<std::endl;
+            context->master_graph->meta_add_node<FlipMetaNode,FlipNode>(flip_node);
+        }
+        else
+        {
+            std::cout<<"Meta node not added"<<std::endl;
+        }
     }
     catch(const std::exception& e)
     {
