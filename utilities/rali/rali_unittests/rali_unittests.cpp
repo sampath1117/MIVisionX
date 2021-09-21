@@ -151,7 +151,9 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #endif
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
-    const char *json_path = "/media/simple-HRNet/datasets/COCO_small/annotations/person_keypoints_val2017.json"; 
+    //const char *json_path = "/media/simple-HRNet/datasets/COCO_small/annotations/person_keypoints_val2017.json"; 
+    const char *json_path = "/media/MLPerf-mGPU-dev/datasets/COCO/val2017_person_10_img/annotations/person_keypoints_val2017.json"; 
+
     if (strcmp(json_path, "") == 0)
     {
         std::cout << "\n json_path has to be set in rali_unit test manually";
@@ -670,6 +672,14 @@ RaliImage input1;
         raliGetBoundingBoxLabel(handle, bb_labels);
         float bb_coords[size * 4];
         raliGetBoundingBoxCords(handle, bb_coords);
+
+        float img_key_points[size*17*3];
+        raliGetImageKeyPoints(handle, img_key_points);
+        for (int k = 0; k < size*17*3; k=k+3)
+        {
+         std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points[k+2]<<std::endl;
+        }
+
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);
         for (int i = 0; i < inputBatchSize; i++)

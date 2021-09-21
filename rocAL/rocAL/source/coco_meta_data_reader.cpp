@@ -42,7 +42,6 @@ bool COCOMetaDataReader::exists(const std::string &image_name)
 
 void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
 {
-
     if (image_names.empty())
     {
         WRN("No image names passed")
@@ -60,6 +59,7 @@ void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
         _output->get_bb_cords_batch()[i] = it->second->get_bb_cords();
         _output->get_bb_labels_batch()[i] = it->second->get_bb_labels();
         _output->get_img_sizes_batch()[i] = it->second->get_img_sizes();
+        _output->get_img_key_points_batch()[i] = it->second->get_img_key_points();
     }
 }
 
@@ -99,8 +99,8 @@ void COCOMetaDataReader::print_map_contents()
             std::cout << " l : " << bb_coords[i].l << " t: :" << bb_coords[i].t << " r : " << bb_coords[i].r << " b: :" << bb_coords[i].b << "Label Id : " << bb_labels[i] << std::endl;
         }
 
-        //std::cout<<"Entering keypoint loop:"<<std::endl;
-        //std::cout<<"Size of image key points is:"<<img_key_points.size()<<std::endl;
+       
+        //std::cout<<"New Detection:"<<std::endl;
         for (unsigned int i = 0; i < img_key_points.size(); i++)
         {
             //std::cout<<"Size of key points index is:"<<img_key_points[i].size()<<std::endl;
@@ -110,6 +110,7 @@ void COCOMetaDataReader::print_map_contents()
                 std::cout << " x : " << img_key_points[i][j].x << " , y: " << img_key_points[i][j].y << " , v : " << img_key_points[i][j].v  << std::endl;
             }
         }
+        
     }
 }
 
@@ -282,8 +283,6 @@ void COCOMetaDataReader::read_all(const std::string &path)
                 unsigned int j=0;  //new change
                 for(unsigned int i = 0; i < num_keypoints; i++)
                 {
-                    //std::cout<<"Index:"<<j<<std::endl;
-                    //std::cout<<"Keypoint value:"<<keypoint[j]<<std::endl;
                     key_points[i].x = keypoint[j];
                     key_points[i].y = keypoint[j+1];
                     key_points[i].v = keypoint[j+2];
