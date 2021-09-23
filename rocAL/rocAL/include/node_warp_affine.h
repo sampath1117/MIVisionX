@@ -33,6 +33,10 @@ public:
     WarpAffineNode() = delete;
     void init(float x0, float x1, float y0, float y1, float o0, float o1);
     void init(FloatParam* x0, FloatParam* x1, FloatParam* y0, FloatParam* y1, FloatParam* o0, FloatParam* o1);
+    vx_array get_src_width() { return _src_roi_width; }
+    vx_array get_src_height() { return _src_roi_height; }
+    vx_array get_affine_array(){return _affine_array; }
+    
 protected:
     void create_node() override;
     void update_node() override;

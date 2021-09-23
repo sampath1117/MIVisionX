@@ -79,12 +79,15 @@ void WarpAffineNode::update_affine_array()
 {
     for (uint i = 0; i < _batch_size; i++ )
     {
+        //std::cout<<"Original array:"<<std::endl;
         _affine[i*6 + 0] = _x0.renew();
         _affine[i*6 + 1] = _y0.renew();
         _affine[i*6 + 2] = _x1.renew();
         _affine[i*6 + 3] = _y1.renew();
         _affine[i*6 + 4] = _o0.renew();
         _affine[i*6 + 5] = _o1.renew();
+        //std::cout<<_affine[i*6 + 0]<<" "<<_affine[i*6 + 1]<<" "<<_affine[i*6 + 2]<<std::endl;
+        //std::cout<<_affine[i*6 + 3]<<" "<<_affine[i*6 + 4]<<" "<<_affine[i*6 + 5]<<std::endl;
     }
     vx_status affine_status;
     affine_status = vxCopyArrayRange((vx_array)_affine_array, 0, _batch_size * 6, sizeof(vx_float32), _affine.data(), VX_WRITE_ONLY, VX_MEMORY_TYPE_HOST); //vxAddArrayItems(_width_array,_batch_size, _width, sizeof(vx_uint32));
@@ -116,3 +119,4 @@ void WarpAffineNode::update_node()
 {
     update_affine_array();
 }
+

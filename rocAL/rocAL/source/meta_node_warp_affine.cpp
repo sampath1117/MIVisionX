@@ -20,17 +20,16 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-#include "meta_node_flip.h"
-void FlipMetaNode::initialize()
+#include "meta_node_warp_affine.h"
+void WarpAffineMetaNode::initialize()
 {
-    //std::cout<<"Initialize called:"<<std::endl;
     _src_height_val.resize(_batch_size);
     _src_width_val.resize(_batch_size);
-    _flip_axis_val.resize(_batch_size);
+    _affine_val.resize(6*_batch_size);
 }
-void FlipMetaNode::update_parameters(MetaDataBatch* input_meta_data)
+void WarpAffineMetaNode::update_parameters(MetaDataBatch* input_meta_data)
 {
-    //std::cout<<"flip meta node is called:"<<std::endl;
+    //std::cout<<"Warp affine meta node is called:"<<std::endl;
 
     initialize();
     
@@ -38,94 +37,81 @@ void FlipMetaNode::update_parameters(MetaDataBatch* input_meta_data)
     {
         _batch_size = input_meta_data->size();
     }
+
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
-    _flip_axis = _node->get_flip_axis();
-    
+    _affine_array=_node->get_affine_array();
+
     vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint),_src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint),_src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyArrayRange((vx_array)_flip_axis, 0, _batch_size, sizeof(int),_flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_affine_array, 0, (6*_batch_size) , sizeof(float) ,_affine_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     
-
     for(int i = 0; i < _batch_size; i++)
     {
-        float img_width=input_meta_data->get_img_sizes_batch()[i].data()->w;
-        //std::cout<<"src_width:"<<img_width<<std::endl;
-
         auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();        
         int labels_buf[bb_count];
         float coords_buf[bb_count*4];
         
         memcpy(labels_buf, input_meta_data->get_bb_labels_batch()[i].data(),  sizeof(int)*bb_count);
         memcpy(coords_buf, input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
+        
+        //memcpy(keypoint_buf, input_meta_data->get_img_key_points_batch()[i][0].data(), sizeof(float) * input_meta_data->get_img_key_points_batch()[i][0].size());
+        //std::cout<<"Copied keypoints to buffer:"<<std::endl;
+
+        //std::cout<<"Keypoint values"<<std::endl;
+        //for(uint i=0;i<9;i++)
+        //{
+            //std::cout<<keypoint_buf[i]<<std::endl;
+        //}
 
         BoundingBoxCords bb_coords;
         BoundingBoxLabels bb_labels;
         ImageKeyPoints img_key_points;
-        
         unsigned int num_keypoints=17;
+        
         //Update Keypoints
         for (unsigned int object_index = 0; object_index < bb_count; object_index++)
         {
             KeyPoints key_points;
-            KeyPoint key_point0;
 
-            key_point0=input_meta_data->get_img_key_points_batch()[i][object_index][0];
-            key_point0.x=(img_width-key_point0.x-1)*(!(!key_point0.v));
-            key_points.push_back(key_point0);
-            //std::cout<<"Difference:"<<key_point0.x<<std::endl;
-    
-            for (unsigned int keypoint_index = 1; keypoint_index < num_keypoints; keypoint_index = keypoint_index + 2)
+            for (unsigned int keypoint_index = 0; keypoint_index < num_keypoints; keypoint_index++)
             {
-                //std::cout<<"Flipping keypoints: "<< keypoint_index<<" "<<keypoint_index+1<<std::endl;
-                KeyPoint key_point1,key_point2;
-                key_point1=input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index];
-                key_point2=input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index+1];
-                key_point1.x=(img_width-key_point1.x-1)*(!(!key_point1.v));
-                key_point2.x=(img_width-key_point2.x-1)*(!(!key_point2.v));
-
-                key_points.push_back(key_point2);
-                key_points.push_back(key_point1);
+                KeyPoint key_point;
+                float temp_x,temp_y;
+                key_point=input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index];
+            
+                //Matrix multiplication of Affine matrix with keypoint values
+                temp_x = (_affine_val[i*6+0]*key_point.x)+(_affine_val[i*6+1]*key_point.y)+(_affine_val[i*6+2]*1);
+                temp_y = (_affine_val[i*6+3]*key_point.x)+(_affine_val[i*6+4]*key_point.y)+(_affine_val[i*6+5]*1);
+                key_point.x=temp_x;
+                key_point.y=temp_y;
+                key_points.push_back(key_point);
             }
             img_key_points.push_back(key_points);
         }
-        input_meta_data->get_img_key_points_batch()[i] = img_key_points;
-        /*
-        std::cout<<"Flipped keypoints are:"<<std::endl;
-        for (unsigned int object_index = 0; object_index < bb_count; object_index++)
-        {   
-            std::cout<<"Flip Detection:"<<std::endl;
-            for (unsigned int keypoint_index = 0; keypoint_index < num_keypoints; keypoint_index=keypoint_index+1)
-            {
-                unsigned px = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index].x;
-                unsigned py = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index].y;
-                unsigned pv = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index].v;
-                std::cout<<"x : "<<px<<" , y : "<<py<<" , v : "<<pv<<std::endl;
-            }
-        }
-        */
+        input_meta_data->get_img_key_points_batch()[i] = img_key_points; 
+
         for(uint j = 0, m = 0; j < bb_count; j++)
         {
+            //std::cout<<"Computing BBox dot product:"<<std::endl;
             BoundingBoxCord box;
+            float temp_l,temp_t,temp_r,temp_b;
             box.l = coords_buf[m++];
             box.t = coords_buf[m++];
             box.r = coords_buf[m++];
             box.b = coords_buf[m++];
-            //std::cout<<"l:"<<box.l<<" t:"<<box.t<<" r:"<<box.r<<" b:"<<box.b<<std::endl;
 
-            if(_flip_axis_val[i] == 0)
-            {
-                float l = 1 - box.r;
-                box.r = 1 - box.l;
-                box.l = l;     
-            }
-            else if(_flip_axis_val[i] == 1)
-            {
-                float t = 1 - box.b;
-                box.b = 1 - box.t;
-                box.t = t;
-            }
+            //Matrix multiplication of Afifine matrix with ltrb values
+            temp_l = (_affine_val[i*6+0]*box.l)+(_affine_val[i*6+1]*box.t)+(_affine_val[i*6+2]*1);
+            temp_t = (_affine_val[i*6+3]*box.l)+(_affine_val[i*6+4]*box.t)+(_affine_val[i*6+5]*1);
+            temp_r = (_affine_val[i*6+0]*box.r)+(_affine_val[i*6+1]*box.b)+(_affine_val[i*6+2]*1);
+            temp_b = (_affine_val[i*6+3]*box.r)+(_affine_val[i*6+4]*box.b)+(_affine_val[i*6+5]*1);
             
+            box.l = temp_l;
+            box.t = temp_t;
+            box.r = temp_r;
+            box.b = temp_b;
+
             bb_coords.push_back(box);
             bb_labels.push_back(labels_buf[j]);
         }
@@ -139,5 +125,6 @@ void FlipMetaNode::update_parameters(MetaDataBatch* input_meta_data)
         }
         input_meta_data->get_bb_cords_batch()[i] = bb_coords;
         input_meta_data->get_bb_labels_batch()[i] = bb_labels;
-    }
+           
+    }    
 }

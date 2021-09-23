@@ -104,7 +104,6 @@ void COCOMetaDataReader::print_map_contents()
         for (unsigned int i = 0; i < img_key_points.size(); i++)
         {
             //std::cout<<"Size of key points index is:"<<img_key_points[i].size()<<std::endl;
-            //std::cout<<"Entered keypoint printing loop:"<<std::endl;
             for (unsigned int j = 0; j < num_keypoints; j++)
             {
                 std::cout << " x : " << img_key_points[i][j].x << " , y: " << img_key_points[i][j].y << " , v : " << img_key_points[i][j].v  << std::endl;

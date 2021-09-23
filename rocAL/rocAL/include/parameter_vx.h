@@ -57,7 +57,7 @@ public:
     }
     void create_array(std::shared_ptr<Graph> graph, vx_enum data_type, unsigned batch_size)
     {
-        // _arrVal = (T*)malloc(sizeof(T) * _batch_size);
+        //_arrVal = (T*)malloc(sizeof(T) * _batch_size);
         _batch_size = batch_size;
         _arrVal.resize(_batch_size);
         _array = vxCreateArray(vxGetContext((vx_reference)graph->get()), data_type,_batch_size);

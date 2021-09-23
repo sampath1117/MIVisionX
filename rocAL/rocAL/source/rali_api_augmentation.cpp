@@ -60,6 +60,7 @@ THE SOFTWARE.
 #include "meta_node_rotate.h"
 #include "meta_node_ssd_random_crop.h"
 #include "meta_node_flip.h"
+#include "meta_node_warp_affine.h"
 
 #include "commons.h"
 #include "context.h"
@@ -685,8 +686,22 @@ raliWarpAffine(
         // If the user has provided the output size the dimension of all the images after this node will be fixed and equal to that size
         if(dest_width != 0 && dest_height != 0)
             output->reset_image_roi();
-
-        context->master_graph->add_node<WarpAffineNode>({input}, {output})->init(x0, x1, y0, y1, o0, o1);
+        
+        std::shared_ptr<WarpAffineNode> warp_node = context->master_graph->add_node<WarpAffineNode>({input}, {output});
+        
+        //Init values for the warp node
+        warp_node->init(x0,x1,y0,y1,o0,o1);
+        
+        if (context->master_graph->meta_data_graph())
+        {
+            //std::cout<<"adding meta node for Warp"<<std::endl;
+            context->master_graph->meta_add_node<WarpAffineMetaNode,WarpAffineNode>(warp_node);
+            //std::cout<<"Succces! added meta node for Warp"<<std::endl;
+        }
+        else
+        {
+            std::cout<<"Meta node for warp not added"<<std::endl;
+        }
     }
     catch(const std::exception& e)
     {
@@ -731,7 +746,20 @@ raliWarpAffineFixed(
         if(dest_width != 0 && dest_height != 0)
             output->reset_image_roi();
 
-        context->master_graph->add_node<WarpAffineNode>({input}, {output})->init(x0, x1, y0, y1, o0, o1);
+        //context->master_graph->add_node<WarpAffineNode>({input}, {output})->init(x0, x1, y0, y1, o0, o1);
+        std::shared_ptr<WarpAffineNode> warp_node = context->master_graph->add_node<WarpAffineNode>({input}, {output});
+        warp_node->init(x0, x1, y0, y1, o0, o1);
+        
+        if (context->master_graph->meta_data_graph())
+        {
+            //std::cout<<"adding meta node for Warp"<<std::endl;
+            context->master_graph->meta_add_node<WarpAffineMetaNode,WarpAffineNode>(warp_node);
+            //std::cout<<"Succces! added meta node for Warp"<<std::endl;
+        }
+        else
+        {
+            std::cout<<"Meta node for warp not added"<<std::endl;
+        }
     }
     catch(const std::exception& e)
     {
@@ -954,6 +982,8 @@ raliFlip(
         output = context->master_graph->create_image(input->info(), is_output);
 
         std::shared_ptr<FlipNode> flip_node =  context->master_graph->add_node<FlipNode>({input}, {output});
+        flip_node->init(flip_axis);
+        
         if (context->master_graph->meta_data_graph())
         {
             std::cout<<"adding meta node for flip"<<std::endl;

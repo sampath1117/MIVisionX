@@ -491,12 +491,15 @@ RaliImage input1;
     {
         std::cout << ">>>>>>> Running "
                   << "raliWarpAffineFixed" << std::endl;
-        float x0=0.734;
-        float x1=0.0;
-        float y0=0;
-        float y1=0.0;
-        float t0=0.734;
-        float t1=0.0;
+        float x0=0.5;
+        float x1=0.25;
+        float y0=10.0;
+        float y1=0.25;
+        float t0=0.5;
+        float t1=10.0;
+        // std::cout<<"Affine matrix for warp affine:"<<std::endl;
+        // std::cout<<x0<<" "<<x1<<" "<<y0<<std::endl;
+        // std::cout<<y1<<" "<<t0<<" "<<t1<<std::endl;
         image1 = raliWarpAffineFixed(handle, image0, x0,y0,x1,y1,t0,t1, true,288,384);
     }
     break;
@@ -663,16 +666,21 @@ RaliImage input1;
         int img_size = raliGetImageNameLen(handle, image_name_length);
         char img_name[img_size];
         raliGetImageName(handle, img_name);
-        std::cerr << "\nPrinting image names of batch: " << img_name;
+        std::cerr << "\nPrinting image names of batch: " << img_name<<std::endl;
         int bb_label_count[inputBatchSize];
         int size = raliGetBoundingBoxCount(handle, bb_label_count);
         for (int i = 0; i < inputBatchSize; i++)
-            std::cerr << "\n Number of box:  " << bb_label_count[i];
+            std::cerr << "\n Number of box:  " << bb_label_count[i]<<std::endl;
         int bb_labels[size];
         raliGetBoundingBoxLabel(handle, bb_labels);
         float bb_coords[size * 4];
         raliGetBoundingBoxCords(handle, bb_coords);
-
+        //Display Bounding Boxes
+        for (int k = 0; k < size; k++)
+        {
+         std::cout<<"l : "<<bb_coords[k*4]<<" , t : "<<bb_coords[k*4+1]<<" , r : "<<bb_coords[k*4+2]<<" , b : "<<bb_coords[k*4+3]<<std::endl;
+        }
+        //Display KeyPoints
         float img_key_points[size*17*3];
         raliGetImageKeyPoints(handle, img_key_points);
         for (int k = 0; k < size*17*3; k=k+3)
@@ -684,8 +692,8 @@ RaliImage input1;
         raliGetImageSizes(handle, img_sizes_batch);
         for (int i = 0; i < inputBatchSize; i++)
         {
-            std::cout<<"\nwidth:"<<img_sizes_batch[i*2];
-            std::cout<<"\nHeight:"<<img_sizes_batch[(i*2)+1];
+            std::cout<<"\nwidth:"<<img_sizes_batch[i*2]<<std::endl;
+            std::cout<<"\nHeight:"<<img_sizes_batch[(i*2)+1]<<std::endl;
         }
 
 #else
