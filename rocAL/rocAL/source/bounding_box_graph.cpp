@@ -56,8 +56,8 @@ void BoundingBoxGraph::update_meta_data(MetaDataBatch *input_meta_data, decoded_
             float temp_l, temp_t;
             temp_l = (coords_buf[m++] * _dst_to_src_width_ratio);
             temp_t = (coords_buf[m++] * _dst_to_src_height_ratio);
-            box.l = std::max(temp_l,0.0f);
-            box.t = std::max(temp_t,0.0f);
+            box.l = std::max(temp_l, 0.0f);
+            box.t = std::max(temp_t, 0.0f);
             box.r = (coords_buf[m++] * _dst_to_src_width_ratio);
             box.b = (coords_buf[m++] * _dst_to_src_height_ratio);
             bb_coords.push_back(box);
@@ -162,7 +162,7 @@ inline void calculate_ious_for_box(float *ious, BoundingBoxCord box, std::vector
     _anchor.t = anchors[1];
     _anchor.r = anchors[2];
     _anchor.b = anchors[3];
-    ious[0] = ssd_BBoxIntersectionOverUnion(box, _anchor,true);
+    ious[0] = ssd_BBoxIntersectionOverUnion(box, _anchor, true);
     int best_idx = 0;
     float best_iou = ious[0];
 
@@ -204,7 +204,7 @@ inline int find_best_box_for_anchor(unsigned anchor_idx, const std::vector<float
 
 void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, pMetaDataBatch full_batch_meta_data, float criteria, bool offset, float scale, std::vector<float> means, std::vector<float> stds)
 {
-    #pragma omp parallel for 
+#pragma omp parallel for
     for (int i = 0; i < full_batch_meta_data->size(); i++)
     {
         auto bb_count = full_batch_meta_data->get_bb_labels_batch()[i].size();
@@ -238,7 +238,7 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
             bb_coords[bb_idx] = box;
             bb_labels[bb_idx] = labels_buf[bb_idx];
         }
-        
+
         // Depending on the matches ->place the best bbox instead of the corresponding anchor_idx in anchor
         for (unsigned anchor_idx = 0; anchor_idx < anchors_size; anchor_idx++)
         {
@@ -253,10 +253,10 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
             if (ious[(best_idx * anchors_size) + anchor_idx] > criteria) //Its a match
             {
                 //YTD: Need to add a new structure for xc,yc,w,h similar to l,t,r,b as a part of metadata
-                    box_bestidx.l = 0.5 * (bb_coords.at(best_idx).l + bb_coords.at(best_idx).r); //xc
-                    box_bestidx.t = 0.5 * (bb_coords.at(best_idx).t + bb_coords.at(best_idx).b); //yc
-                    box_bestidx.r = (-bb_coords.at(best_idx).l + bb_coords.at(best_idx).r);      //w
-                    box_bestidx.b = (-bb_coords.at(best_idx).t + bb_coords.at(best_idx).b);      //h
+                box_bestidx.l = 0.5 * (bb_coords.at(best_idx).l + bb_coords.at(best_idx).r); //xc
+                box_bestidx.t = 0.5 * (bb_coords.at(best_idx).t + bb_coords.at(best_idx).b); //yc
+                box_bestidx.r = (-bb_coords.at(best_idx).l + bb_coords.at(best_idx).r);      //w
+                box_bestidx.b = (-bb_coords.at(best_idx).t + bb_coords.at(best_idx).b);      //h
 
                 if (offset)
                 {
@@ -287,7 +287,7 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
             {
                 if (offset)
                 {
-                    _anchor_xcyxwh.l =_anchor_xcyxwh.t = _anchor_xcyxwh.r = _anchor_xcyxwh.b = 0;
+                    _anchor_xcyxwh.l = _anchor_xcyxwh.t = _anchor_xcyxwh.r = _anchor_xcyxwh.b = 0;
                     encoded_bb[anchor_idx] = _anchor_xcyxwh;
                     encoded_labels[anchor_idx] = 0;
                 }
@@ -309,5 +309,140 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
         full_batch_meta_data->get_bb_labels_batch()[i] = encoded_labels;
         encoded_bb.clear();
         encoded_labels.clear();
+    }
+}
+
+void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data)
+{
+    output_width = 288;
+    output_height = 384;
+    sigma = 3;
+
+    std::cout << "Entered heat map function" << std::endl;
+    //Generate gaussians
+    int tmp_size = sigma * 3;
+    int gauss_size = 2 * tmp_size + 1;
+
+    float x[gauss_size];
+    for (int i = 0; i < gauss_size; i++)
+    {
+        x[i] = i;
+    }
+
+    float g[gauss_size][gauss_size];
+    for (int i = 0; i < gauss_size; i++)
+    {
+        for (int j = 0; j < gauss_size; j++)
+        {
+            g[i][j] = exp(-(pow((x[i] - tmp_size), 2) + pow((x[j] - tmp_size), 2)) / (2 * tmp_size));
+        }
+    }
+
+    auto kps = 17;
+    auto target_width = output_width / 4;
+    auto target_height = output_height / 4;
+
+    std::cout << "Target Width:" << target_width << std::endl;
+    std::cout << "Target Height:" << target_height << std::endl;
+
+    //Loop through all the keypoints and generate heat maps
+    for (int i = 0; i < full_batch_meta_data->size(); i++)
+    {
+        std::cout << "New batch member" << std::endl;
+        auto bb_count = full_batch_meta_data->get_bb_labels_batch()[i].size();
+        
+        //Resize the Target, Target_Weight
+        std::vector<std::vector<std::vector<float>>> _Target(kps * bb_count, std::vector<std::vector<float>>(target_height, std::vector<float>(target_width, 0)));
+        std::vector<float> _Target_Weight(kps * bb_count,1);
+        float feat_stride[2] = {output_width / target_width, output_height / target_height};
+
+        //std::cout<<"Stride x:"<<feat_stride[0]<<std::endl;
+        //std::cout<<"Stride y:"<<feat_stride[1]<<std::endl;
+        
+        for (int j = 0; j < bb_count; j++)
+        {
+            std::cout << "New BBox" << std::endl;
+            for (int k = 0; k < kps; k++)
+            {
+                KeyPoint key_point;
+                key_point = full_batch_meta_data->get_img_key_points_batch()[i][j][k];
+
+                int mu_x = (key_point.x / feat_stride[0]) + 0.5;
+                int mu_y = (key_point.y / feat_stride[1]) + 0.5;
+                
+                int ul[2] = {mu_x - tmp_size , mu_y - tmp_size};
+                int br[2] = {mu_x + tmp_size + 1 , mu_y + tmp_size + 1};
+
+                // std::cout << "keypoint x:" << key_point.x << std::endl;
+                // std::cout << "keypoint y:" << key_point.y << std::endl;
+                // std::cout << "mu_x:" << mu_x << std::endl;
+                // std::cout << "mu_y:" << mu_y << std::endl;
+
+
+                if (ul[0] >= target_width || ul[1] >= target_height || br[0] < 0 || br[1] < 0)
+                {
+                    // std::cout << "Invalid condition:" << std::endl;
+                    // std::cout << "keypoint x:" << key_point.x << std::endl;
+                    // std::cout << "keypoint y:" << key_point.y << std::endl;
+
+                    // std::cout << "UL:" << ul[0] << " " << ul[1] << std::endl;
+                    // std::cout << "BR:" << br[0] << " " << br[1] << std::endl;
+                    _Target_Weight[j * kps + k] = 0;
+                    continue;
+                }
+
+                //Gaussian range
+                int g_x[2] = {std::max(0, -ul[0]), std::min(br[0], target_width) - ul[0]};
+                int g_y[2] = {std::max(0, -ul[1]), std::min(br[1], target_height) - ul[1]};
+
+                //Image range
+                int img_x[2] = {std::max(0, ul[0]), std::min(br[0], target_width)};
+                int img_y[2] = {std::max(0, ul[1]), std::min(br[1], target_height)};
+
+                
+                // std::cout << "Computed range" << std::endl;
+                // std::cout << "UL:" << ul[0] << " " << ul[1] << std::endl;
+                // std::cout << "BR:" << br[0] << " " << br[1] << std::endl;
+
+                // std::cout << "Image X range:" << img_x[0] << " " << img_x[1] << std::endl;
+                // std::cout << "Image Y range:" << img_y[0] << " " << img_y[1] << std::endl;
+
+                // std::cout << "Gaussian X range:" << g_x[0] << " " << g_x[1] << std::endl;
+                // std::cout << "Gaussian Y range:" << g_y[0] << " " << g_y[1] << std::endl;
+                
+                if (_Target_Weight[j * kps + k] > 0.5)
+                {
+                    int y_range = img_y[1] - img_y[0];
+                    int x_range = img_x[1] - img_x[0];
+                    std::cout << "Entering gauss copy condition:" << std::endl;
+                    std::cout << "keypoint :" << key_point.x <<" "<<key_point.y<<std::endl;
+                    for (int y = 0; y < y_range; y++)
+                    {
+                        for (int x = 0; x < x_range; x++)
+                        {
+                            _Target[j * kps + k][img_y[0] + y][img_x[0] + x] = g[g_y[0] + y][g_x[0] + x];
+                        }
+                    }
+                }
+                else
+                {
+                    std::cout << "Invalid Weight:" << _Target_Weight[j * kps + k] << std::endl;
+                }
+                // }
+                //Print Target values
+                // if (key_point.x == 220 && key_point.y == 108)
+                // {
+                    std::cout << "Target Heat map for keypoint:" << j * kps + k<<std::endl;
+                    for (int y = 0; y < target_height; y++)
+                    {
+                        for (int x = 0; x < target_width; x++)
+                        {
+                            //std::cout << _Target[j * kps + k][y][x] << " ";
+                        }
+                        //std::cout << std::endl;
+                    }
+                // }
+            }
+        }
     }
 }

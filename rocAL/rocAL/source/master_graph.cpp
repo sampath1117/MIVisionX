@@ -25,6 +25,7 @@ THE SOFTWARE.
 #include <vx_ext_amd.h>
 #include <VX/vx_types.h>
 #include <cstring>
+#include<cmath>
 #include <sched.h>
 #include <half.hpp>
 #include "master_graph.h"
@@ -924,6 +925,14 @@ void MasterGraph::output_routine()
             {
                 _meta_data_graph->update_box_encoder_meta_data(_anchors, full_batch_meta_data, _criteria, _offset, _scale, _means, _stds);
             }
+            std::cout<<"Checking for Keypoint:"<<is_keypoint_target<<std::endl;
+            if(!is_keypoint_target)
+            {
+                std::cout<<"Entered keypoint condition"<<std::endl;
+                int output_width = MasterGraph::output_width();
+                int output_height = MasterGraph::output_height();
+                _meta_data_graph->update_keypoint_target_meta_data(_gaussian_sigma, output_width, output_height , full_batch_meta_data);
+            }
             _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data);
             _ring_buffer.push(); // Image data and metadata is now stored in output the ring_buffer, increases it's level by 1
         }
@@ -1041,6 +1050,14 @@ void MasterGraph::box_encoder(std::vector<float> anchors, float criteria,std::ve
     _stds = stds;
 
 }
+
+void MasterGraph::keypoint_target(float sigma)
+{
+    std::cout<<"Comes here to target generation function"<<std::endl;
+    is_keypoint_target = true;
+    _gaussian_sigma = sigma;
+}
+
 
 MetaDataBatch * MasterGraph::create_caffe2_lmdb_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type , MetaDataType label_type)
 {

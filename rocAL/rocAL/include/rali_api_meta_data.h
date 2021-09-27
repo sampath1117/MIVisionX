@@ -111,7 +111,7 @@ extern "C" unsigned RALI_API_CALL raliGetBoundingBoxCount(RaliContext rali_conte
 extern "C" void RALI_API_CALL raliGetBoundingBoxLabel(RaliContext rali_context, int* buf);
 extern "C" void RALI_API_CALL raliGetBoundingBoxCords(RaliContext rali_context, float* buf);
 
-extern "C" void RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf);
+extern "C" void RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1, float* buf2);
 extern "C" void RALI_API_CALL raliGetImageSizes(RaliContext rali_context, int* buf);
 
 ///
@@ -145,5 +145,10 @@ extern "C" void RALI_API_CALL raliCopyEncodedBoxesAndLables(RaliContext p_contex
 /// \param rali_context
 /// \param buf The user's buffer that will be filled with image id info for the images in the output batch. 
 extern "C" void RALI_API_CALL raliGetImageId(RaliContext p_context,  int* buf);
+
+///
+/// \param rali_context
+/// \param buf The user's buffer that will be filled with image id info for the images in the output batch. 
+extern "C" void RALI_API_CALL raliKeyPointTarget(RaliContext p_context, std::vector<std::vector<std::vector<float> > > key_points);
 
 #endif //MIVISIONX_RALI_API_META_DATA_H

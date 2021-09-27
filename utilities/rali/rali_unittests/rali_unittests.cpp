@@ -681,11 +681,13 @@ RaliImage input1;
          std::cout<<"l : "<<bb_coords[k*4]<<" , t : "<<bb_coords[k*4+1]<<" , r : "<<bb_coords[k*4+2]<<" , b : "<<bb_coords[k*4+3]<<std::endl;
         }
         //Display KeyPoints
-        float img_key_points[size*17*3];
-        raliGetImageKeyPoints(handle, img_key_points);
-        for (int k = 0; k < size*17*3; k=k+3)
+        float img_key_points[size*17*2];
+        float img_key_points_vis[size*17*2];
+        raliGetImageKeyPoints(handle, img_key_points, img_key_points_vis);
+        for (int k = 0; k < size*17*2; k=k+2)
         {
-         std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points[k+2]<<std::endl;
+         //std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
+        //std::cout<<"v : "<<img_key_points_vis[k]<<std::endl;
         }
 
         int img_sizes_batch[inputBatchSize * 2];

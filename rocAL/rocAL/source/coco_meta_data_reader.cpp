@@ -60,10 +60,13 @@ void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
         _output->get_bb_labels_batch()[i] = it->second->get_bb_labels();
         _output->get_img_sizes_batch()[i] = it->second->get_img_sizes();
         _output->get_img_key_points_batch()[i] = it->second->get_img_key_points();
+        _output->get_img_key_points_visibility_batch()[i] = it->second->get_img_key_points_visibility();
+        _output->get_bb_centers_batch()[i] = it->second->get_bb_centers();
+        _output->get_bb_scales_batch()[i] = it->second->get_bb_scales();
     }
 }
 
-void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size,ImageKeyPoints img_key_points) //add change
+void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size, ImageKeyPoints img_key_points, ImageKeyPointsVisibility img_key_points_visibility, BoundingBoxCenters bb_centers, BoundingBoxScales bb_scales) //add change
 {
     if (exists(image_name))
     {
@@ -71,9 +74,10 @@ void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords,
         it->second->get_bb_cords().push_back(bb_coords[0]);
         it->second->get_bb_labels().push_back(bb_labels[0]);
         it->second->get_img_key_points().push_back(img_key_points[0]);
+        it->second->get_img_key_points_visibility().push_back(img_key_points_visibility[0]);
         return;
     }
-    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size,img_key_points);
+    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size,img_key_points,img_key_points_visibility,bb_centers,bb_scales);
     _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
 }
 
@@ -81,8 +85,11 @@ void COCOMetaDataReader::print_map_contents()
 {
     BoundingBoxCords bb_coords;
     BoundingBoxLabels bb_labels;
+    BoundingBoxCenters bb_centers;
+    BoundingBoxScales bb_scales;
     ImgSizes img_sizes;
     ImageKeyPoints img_key_points;
+    ImageKeyPointsVisibility img_key_points_visibility;
     size_t num_keypoints=17;
 
     std::cout << "\nBBox Annotations List: \n";
@@ -91,12 +98,17 @@ void COCOMetaDataReader::print_map_contents()
         std::cout << "\nName :\t " << elem.first;
         bb_coords = elem.second->get_bb_cords();
         bb_labels = elem.second->get_bb_labels();
+        bb_centers = elem.second->get_bb_centers();
+        bb_scales = elem.second->get_bb_scales();
         img_sizes = elem.second->get_img_sizes();
-        img_key_points=elem.second->get_img_key_points();
+        img_key_points = elem.second->get_img_key_points();
+        img_key_points_visibility = elem.second->get_img_key_points_visibility();
         std::cout << "<wxh, num of bboxes>: " << img_sizes[0].w << " X " << img_sizes[0].h << " , " << bb_coords.size() << std::endl;
         for (unsigned int i = 0; i < bb_coords.size(); i++)
         {
             std::cout << " l : " << bb_coords[i].l << " t: :" << bb_coords[i].t << " r : " << bb_coords[i].r << " b: :" << bb_coords[i].b << "Label Id : " << bb_labels[i] << std::endl;
+            std::cout << " center (x,y) : " << bb_centers[i].x << " " << bb_centers[i].y <<std::endl;
+            std::cout << " scale (x,y) : " << bb_scales[i].x << " " << bb_scales[i].y <<std::endl;
         }
 
        
@@ -106,7 +118,7 @@ void COCOMetaDataReader::print_map_contents()
             //std::cout<<"Size of key points index is:"<<img_key_points[i].size()<<std::endl;
             for (unsigned int j = 0; j < num_keypoints; j++)
             {
-                std::cout << " x : " << img_key_points[i][j].x << " , y: " << img_key_points[i][j].y << " , v : " << img_key_points[i][j].v  << std::endl;
+                std::cout << " x : " << img_key_points[i][j].x << " , y: " << img_key_points[i][j].y << " , v : " << img_key_points_visibility[i][j].v1 << std::endl;
             }
         }
         
@@ -133,13 +145,21 @@ void COCOMetaDataReader::read_all(const std::string &path)
 
     BoundingBoxCords bb_coords;
     BoundingBoxLabels bb_labels;
+    BoundingBoxCenters bb_centers;
+    BoundingBoxScales bb_scales;
     ImgSizes img_sizes;
     ImageKeyPoints img_key_points;
+    ImageKeyPointsVisibility img_key_points_visibility;
 
     BoundingBoxCord box;
+    BoundingBoxCenter box_center;
+    BoundingBoxScale box_scale;
     ImgSize img_size;
     size_t num_keypoints=17;
     KeyPoints key_points(num_keypoints);
+    KeyPointsVisibility key_points_visibility(num_keypoints);
+    float pixel_std = 200.0;
+    float scale_constant = 1.25;
     
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
     parser.EnterObject();
@@ -276,24 +296,55 @@ void COCOMetaDataReader::read_all(const std::string &path)
 
                 bb_coords.push_back(box);
                 bb_labels.push_back(label);
+
+                //Calculate the bbox center,scale values
+                box_center.x = bbox[0] + bbox[2] * 0.5;
+                box_center.y = bbox[1] + bbox[3] * 0.5;
                 
-               
-                //Store the 1-D keypoint array into 17x3 Keypoint array
+                float aspect_ratio = 288*1.0 /384;
+                if (bbox[2] >  aspect_ratio * bbox[3])
+                {
+                     bbox[3] = bbox[2] * 1.0 / aspect_ratio;
+                }
+                else if (bbox[2] <  aspect_ratio * bbox[3])
+                {
+                    bbox[2]  = aspect_ratio * bbox[3];
+                }
+
+                box_scale.x = bbox[2]*1.0 /pixel_std;
+                box_scale.y = bbox[3]*1.0 /pixel_std;
+
+                if(box_center.x != -1)
+                {
+                    box_scale.x = scale_constant * box_scale.x;
+                    box_scale.y = scale_constant * box_scale.y;
+                }
+                
+                bb_centers.push_back(box_center);
+                bb_scales.push_back(box_scale);
+
+                //Store the keypoint values in Joints, Joints Visibility
                 unsigned int j=0;  //new change
                 for(unsigned int i = 0; i < num_keypoints; i++)
                 {
                     key_points[i].x = keypoint[j];
                     key_points[i].y = keypoint[j+1];
-                    key_points[i].v = keypoint[j+2];
+                    key_points_visibility[i].v1 = !(!keypoint[j+2]);
+                    key_points_visibility[i].v2 = !(!keypoint[j+2]);
                     j=j+3;
                 }
                 //std::cout<<"Completed setting keypoint values"<<std::endl;
                 img_key_points.push_back(key_points);
+                img_key_points_visibility.push_back(key_points_visibility);
+
                 //std::cout<<"Pushed keypoint values to the keypoint vector"<<std::endl;
-                add(file_name, bb_coords, bb_labels, image_size,img_key_points);
+                add(file_name, bb_coords, bb_labels, image_size,img_key_points,img_key_points_visibility,bb_centers,bb_scales);
                 bb_coords.clear();
                 bb_labels.clear();
+                bb_centers.clear();
+                bb_scales.clear();
                 img_key_points.clear();
+                img_key_points_visibility.clear();
             }   
         }
         else

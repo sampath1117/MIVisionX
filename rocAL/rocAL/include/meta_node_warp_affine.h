@@ -42,18 +42,6 @@ class WarpAffineMetaNode:public MetaNode
         std::vector<uint> _src_width_val, _src_height_val;
         vx_array _affine_array;
         std::vector<float> _affine_val;
-        // vx_array _affine_x0;
-        // vx_array _affine_x1;
-        // vx_array _affine_y0;
-        // vx_array _affine_y1;
-        // vx_array _affine_o0;
-        // vx_array _affine_o1;
-        // std::vector<float> _affine_x0_val;
-        // std::vector<float>_affine_x1_val;
-        // std::vector<float>_affine_y0_val;
-        // std::vector<float>_affine_y1_val;
-        // std::vector<float>_affine_o0_val;
-        // std::vector<float>_affine_o1_val;
         // vx_array _affine_x0, _affine_x1, _affine_y0,_affine_y1,_affine_o0,_affine_o1;
         // std::vector<uint> _affine_x0_val, _affine_x1_val, _affine_y0_val, _affine_y1_val,_affine_o0_val,_affine_o1_val;
 };

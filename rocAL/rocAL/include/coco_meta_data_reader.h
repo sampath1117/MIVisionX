@@ -44,7 +44,8 @@ private:
     BoundingBoxBatch* _output;
     std::string _path;
     int meta_data_reader_type;
-    void add(std::string image_name, BoundingBoxCords bbox, BoundingBoxLabels b_labels, ImgSizes image_size, ImageKeyPoints img_key_points);
+    void add(std::string image_name, BoundingBoxCords bbox, BoundingBoxLabels b_labels, ImgSizes image_size, ImageKeyPoints img_key_points, 
+    ImageKeyPointsVisibility img_key_points_visibility,BoundingBoxCenters b_centers, BoundingBoxScales b_scales);
     bool exists(const std::string &image_name);
     std::map<std::string, std::shared_ptr<BoundingBox>> _map_content;
     std::map<std::string, std::shared_ptr<BoundingBox>>::iterator _itr;

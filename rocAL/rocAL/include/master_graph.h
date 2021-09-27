@@ -88,6 +88,7 @@ public:
     std::shared_ptr<MetaDataGraph> meta_data_graph() { return _meta_data_graph; }
     std::shared_ptr<MetaDataReader> meta_data_reader() { return _meta_data_reader; }
     bool is_random_bbox_crop() {return _is_random_bbox_crop; }
+    void keypoint_target(float sigma);
 private:
     Status update_node_parameters();
     Status allocate_output_tensor();
@@ -114,6 +115,8 @@ private:
     std::list<std::shared_ptr<Node>> _root_nodes;//!< List of all root nodes (image/video loaders)
     std::list<std::shared_ptr<Node>> _meta_data_nodes;//!< List of nodes where meta data has to be updated after augmentation
     std::map<Image*, std::shared_ptr<Node>> _image_map;//!< key: image, value : Parent node
+    std::vector<std::vector<std::vector<float> > >_Target;
+    std::vector<float>_Target_Weight;
 #if ENABLE_HIP
     void * _output_tensor;//!< In the GPU processing case , is used to convert the U8 samples to float32 before they are being transfered back to host
     DeviceManagerHip   _device;//!< Keeps the device related constructs needed for running on GPU
@@ -153,6 +156,9 @@ private:
     float _scale;
     bool _offset;
     std::vector<float> _means, _stds;
+    //Keypoint Target/Heatmap
+    bool is_keypoint_target = false;
+    float _gaussian_sigma;
 };
 
 template <typename T>

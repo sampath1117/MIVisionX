@@ -311,14 +311,14 @@ RALI_API_CALL raliGetBoundingBoxCords(RaliContext p_context, float* buf)
 }
 
 void
-RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf)
+RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *buf2)
 {
     if (!p_context)
         THROW("Invalid rali context passed to raliGetBoundingBoxCords")
     auto context = static_cast<Context*>(p_context);
     auto meta_data = context->master_graph->meta_data();
     size_t meta_data_batch_size = meta_data.second->get_img_key_points_batch().size();
-    //std::cout<<"meta data size is:"<<meta_data_batch_size<<std::endl;
+    //std::cout<<"meta_data_vis_size :"<<meta_data_vis_size<<std::endl;
 
     if(context->user_batch_size() != meta_data_batch_size)
         THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
@@ -328,13 +328,17 @@ RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf)
         return;
     }
     unsigned int num_keypoints=17;
-    for(unsigned i = 0; i < meta_data_batch_size; i++)
+    for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
         unsigned annotation_size = meta_data.second->get_img_key_points_batch()[i].size();
+        std::cout<<"annotation size:"<<annotation_size<<std::endl;
         for(unsigned j = 0; j < annotation_size ; j++)
         {
-            memcpy(buf, meta_data.second->get_img_key_points_batch()[i][j].data(), annotation_size * num_keypoints * sizeof(KeyPoint));
-            buf += (annotation_size * num_keypoints * 3);
+            memcpy(buf1, meta_data.second->get_img_key_points_batch()[i][j].data() , annotation_size * num_keypoints * sizeof(KeyPoint));
+            memcpy(buf2, meta_data.second->get_img_key_points_visibility_batch()[i][j].data(), annotation_size * num_keypoints * sizeof(KeyPointVisibility));
+
+            buf1 += (annotation_size * num_keypoints * 2);
+            buf2 += (annotation_size * num_keypoints * 2);
         }
     }
 }
@@ -405,4 +409,13 @@ RALI_API_CALL raliCopyEncodedBoxesAndLables(RaliContext p_context, float* boxes_
         memcpy(boxes_buf, meta_data.second->get_bb_cords_batch()[i].data(), sizeof(BoundingBoxCord) * bb_count);
         boxes_buf += (bb_count * 4);
     }
+}
+
+void 
+RALI_API_CALL raliKeyPointTarget(RaliContext p_context, float sigma)
+{
+    if (!p_context)
+        THROW("Invalid rali context passed to raliBoxEncoder")
+    auto context = static_cast<Context *>(p_context);
+    context->master_graph->keypoint_target(sigma); 
 }

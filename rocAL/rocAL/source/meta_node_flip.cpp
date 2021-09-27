@@ -28,116 +28,128 @@ void FlipMetaNode::initialize()
     _src_width_val.resize(_batch_size);
     _flip_axis_val.resize(_batch_size);
 }
-void FlipMetaNode::update_parameters(MetaDataBatch* input_meta_data)
+void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data)
 {
     //std::cout<<"flip meta node is called:"<<std::endl;
 
     initialize();
-    
-    if(_batch_size != input_meta_data->size())
+
+    if (_batch_size != input_meta_data->size())
     {
         _batch_size = input_meta_data->size();
     }
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
     _flip_axis = _node->get_flip_axis();
-    
-    vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint),_src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint),_src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyArrayRange((vx_array)_flip_axis, 0, _batch_size, sizeof(int),_flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    
 
-    for(int i = 0; i < _batch_size; i++)
+    vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint), _src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint), _src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_flip_axis, 0, _batch_size, sizeof(int), _flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+
+    auto is_keypoint_target = 1;
+
+    for (int i = 0; i < _batch_size; i++)
     {
-        float img_width=input_meta_data->get_img_sizes_batch()[i].data()->w;
+        float img_width = input_meta_data->get_img_sizes_batch()[i].data()->w;
         //std::cout<<"src_width:"<<img_width<<std::endl;
 
-        auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();        
-        int labels_buf[bb_count];
-        float coords_buf[bb_count*4];
-        
-        memcpy(labels_buf, input_meta_data->get_bb_labels_batch()[i].data(),  sizeof(int)*bb_count);
+        auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();
+        //int labels_buf[bb_count];
+        float coords_buf[bb_count * 4];
+
+        //memcpy(labels_buf, input_meta_data->get_bb_labels_batch()[i].data(),  sizeof(int)*bb_count);
         memcpy(coords_buf, input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
 
         BoundingBoxCords bb_coords;
-        BoundingBoxLabels bb_labels;
+        //BoundingBoxLabels bb_labels;
         ImageKeyPoints img_key_points;
-        
-        unsigned int num_keypoints=17;
-        //Update Keypoints
-        for (unsigned int object_index = 0; object_index < bb_count; object_index++)
-        {
-            KeyPoints key_points;
-            KeyPoint key_point0;
+        ImageKeyPointsVisibility img_key_points_visibility;
+        BoundingBoxCenters bb_centers;
 
-            key_point0=input_meta_data->get_img_key_points_batch()[i][object_index][0];
-            key_point0.x=(img_width-key_point0.x-1)*(!(!key_point0.v));
-            key_points.push_back(key_point0);
-            //std::cout<<"Difference:"<<key_point0.x<<std::endl;
-    
-            for (unsigned int keypoint_index = 1; keypoint_index < num_keypoints; keypoint_index = keypoint_index + 2)
-            {
-                //std::cout<<"Flipping keypoints: "<< keypoint_index<<" "<<keypoint_index+1<<std::endl;
-                KeyPoint key_point1,key_point2;
-                key_point1=input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index];
-                key_point2=input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index+1];
-                key_point1.x=(img_width-key_point1.x-1)*(!(!key_point1.v));
-                key_point2.x=(img_width-key_point2.x-1)*(!(!key_point2.v));
-
-                key_points.push_back(key_point2);
-                key_points.push_back(key_point1);
-            }
-            img_key_points.push_back(key_points);
-        }
-        input_meta_data->get_img_key_points_batch()[i] = img_key_points;
-        /*
-        std::cout<<"Flipped keypoints are:"<<std::endl;
-        for (unsigned int object_index = 0; object_index < bb_count; object_index++)
-        {   
-            std::cout<<"Flip Detection:"<<std::endl;
-            for (unsigned int keypoint_index = 0; keypoint_index < num_keypoints; keypoint_index=keypoint_index+1)
-            {
-                unsigned px = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index].x;
-                unsigned py = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index].y;
-                unsigned pv = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index].v;
-                std::cout<<"x : "<<px<<" , y : "<<py<<" , v : "<<pv<<std::endl;
-            }
-        }
-        */
-        for(uint j = 0, m = 0; j < bb_count; j++)
+        if (is_keypoint_target)
         {
-            BoundingBoxCord box;
-            box.l = coords_buf[m++];
-            box.t = coords_buf[m++];
-            box.r = coords_buf[m++];
-            box.b = coords_buf[m++];
-            //std::cout<<"l:"<<box.l<<" t:"<<box.t<<" r:"<<box.r<<" b:"<<box.b<<std::endl;
+            unsigned int num_keypoints = 17;
 
-            if(_flip_axis_val[i] == 0)
+            for (unsigned int object_index = 0; object_index < bb_count; object_index++)
             {
-                float l = 1 - box.r;
-                box.r = 1 - box.l;
-                box.l = l;     
+                KeyPoints key_points;
+                KeyPointsVisibility key_points_visibility;
+                KeyPoint key_point0;
+                KeyPointVisibility key_point0_vis;
+                BoundingBoxCenter bb_center;
+                
+                key_point0 = input_meta_data->get_img_key_points_batch()[i][object_index][0];
+                key_point0_vis = input_meta_data->get_img_key_points_visibility_batch()[i][object_index][0];
+                key_point0.x = (img_width - key_point0.x - 1) * (key_point0_vis.v1);
+                bb_center = input_meta_data->get_bb_centers_batch()[i][object_index];
+                bb_center.x = img_width - bb_center.x - 1;
+                
+                key_points.push_back(key_point0);
+                key_points_visibility.push_back(key_point0_vis);
+                bb_centers.push_back(bb_center);
+                //std::cout<<"Difference:"<<key_point0.x<<std::endl;
+
+                for (unsigned int keypoint_index = 1; keypoint_index < num_keypoints; keypoint_index = keypoint_index + 2)
+                {
+                    //std::cout<<"Flipping keypoints: "<< keypoint_index<<" "<<keypoint_index+1<<std::endl;
+                    KeyPoint key_point1, key_point2;
+                    KeyPointVisibility key_point1_vis,key_point2_vis;
+                    key_point1 = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index];
+                    key_point2 = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index + 1];
+                    key_point1_vis = input_meta_data->get_img_key_points_visibility_batch()[i][object_index][keypoint_index];
+                    key_point2_vis = input_meta_data->get_img_key_points_visibility_batch()[i][object_index][keypoint_index+1];
+                    
+                    //Update the keypoint co-ordinates
+                    key_point1.x = (img_width - key_point1.x - 1) * (key_point1_vis.v1);
+                    key_point2.x = (img_width - key_point2.x - 1) * (key_point2_vis.v2);
+
+                    key_points.push_back(key_point2);
+                    key_points.push_back(key_point1);
+                    key_points_visibility.push_back(key_point2_vis);
+                    key_points_visibility.push_back(key_point1_vis);   
+                }
+                img_key_points.push_back(key_points);
+                img_key_points_visibility.push_back(key_points_visibility);
             }
-            else if(_flip_axis_val[i] == 1)
+            input_meta_data->get_img_key_points_batch()[i] = img_key_points;
+            input_meta_data->get_img_key_points_visibility_batch()[i] = img_key_points_visibility;
+            input_meta_data->get_bb_centers_batch()[i] = bb_centers;
+        }
+
+            for (uint j = 0, m = 0; j < bb_count; j++)
             {
-                float t = 1 - box.b;
-                box.b = 1 - box.t;
-                box.t = t;
+                BoundingBoxCord box;
+                box.l = coords_buf[m++];
+                box.t = coords_buf[m++];
+                box.r = coords_buf[m++];
+                box.b = coords_buf[m++];
+                //std::cout<<"l:"<<box.l<<" t:"<<box.t<<" r:"<<box.r<<" b:"<<box.b<<std::endl;
+
+                if (_flip_axis_val[i] == 0)
+                {
+                    float l = 1 - box.r;
+                    box.r = 1 - box.l;
+                    box.l = l;
+                }
+                else if (_flip_axis_val[i] == 1)
+                {
+                    float t = 1 - box.b;
+                    box.b = 1 - box.t;
+                    box.t = t;
+                }
+
+                bb_coords.push_back(box);
+                //bb_labels.push_back(labels_buf[j]);
             }
-            
-            bb_coords.push_back(box);
-            bb_labels.push_back(labels_buf[j]);
+            if (bb_coords.size() == 0)
+            {
+                BoundingBoxCord temp_box;
+                temp_box.l = temp_box.t = 0;
+                temp_box.r = temp_box.b = 1;
+                bb_coords.push_back(temp_box);
+                //bb_labels.push_back(0);
+            }
+            input_meta_data->get_bb_cords_batch()[i] = bb_coords;
+            //input_meta_data->get_bb_labels_batch()[i] = bb_labels;
         }
-        if(bb_coords.size() == 0)
-        {
-            BoundingBoxCord temp_box;
-            temp_box.l = temp_box.t = 0;
-            temp_box.r = temp_box.b = 1;
-            bb_coords.push_back(temp_box);
-            bb_labels.push_back(0);
-        }
-        input_meta_data->get_bb_cords_batch()[i] = bb_coords;
-        input_meta_data->get_bb_labels_batch()[i] = bb_labels;
     }
-}

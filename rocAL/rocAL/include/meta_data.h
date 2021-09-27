@@ -27,16 +27,28 @@ THE SOFTWARE.
 #include <memory>
 #include "commons.h"
 
-
 typedef  struct { float l; float t; float r; float b; } BoundingBoxCord;
+typedef struct { float x; float y; } BoundingBoxCenter;
+typedef struct { float x; float y; } BoundingBoxScale;
 typedef struct {
     float x; //x-coordinate of keypoint
     float y; //y-coordinate of keypoint
-    float v; //visibility of keypoint can be 0/1/2
 } KeyPoint;
+typedef struct
+{
+    float v1; //Visibility of keypoint
+    float v2; //Visibility of keypoint
+}KeyPointVisibility;
+
 typedef  std::vector<BoundingBoxCord> BoundingBoxCords;
+typedef  std::vector<BoundingBoxCenter> BoundingBoxCenters;
+typedef  std::vector<BoundingBoxScale> BoundingBoxScales;
+
 typedef std::vector<KeyPoint> KeyPoints;
 typedef std::vector<KeyPoints> ImageKeyPoints;        //add change
+typedef std::vector<KeyPointVisibility> KeyPointsVisibility;
+typedef std::vector<KeyPointsVisibility> ImageKeyPointsVisibility;
+
 typedef  std::vector<int> BoundingBoxLabels;
 typedef  struct { int w; int h; } ImgSize;
 typedef  std::vector<ImgSize> ImgSizes;
@@ -46,12 +58,18 @@ struct MetaData
     int& get_label() { return _label_id; }
     BoundingBoxCords& get_bb_cords() { return _bb_cords; }
     BoundingBoxLabels& get_bb_labels() { return _bb_label_ids; }
+    BoundingBoxCenters& get_bb_centers() { return _bb_centers; }
+    BoundingBoxScales& get_bb_scales() { return _bb_scales; }
     ImgSizes& get_img_sizes() {return _img_sizes; }
     ImageKeyPoints& get_img_key_points() { return _img_key_points; }
+    ImageKeyPointsVisibility& get_img_key_points_visibility() { return _img_key_points_visibility; }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
-    BoundingBoxLabels _bb_label_ids = {};// For bb use
-    ImageKeyPoints _img_key_points; // For key points
+    BoundingBoxLabels _bb_label_ids = {}; // For bb use
+    BoundingBoxCenters _bb_centers = {}; //For bb use
+    BoundingBoxScales _bb_scales = {}; //For bb use
+    ImageKeyPoints _img_key_points = {}; // For key points
+    ImageKeyPointsVisibility _img_key_points_visibility = {}; //for keypoint visibility use
     ImgSizes _img_sizes = {};
     int _label_id = -1; // For label use only
 };
@@ -76,17 +94,23 @@ struct BoundingBox : public MetaData
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
     }
-    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageKeyPoints img_key_points)
+    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageKeyPoints img_key_points, ImageKeyPointsVisibility img_key_points_visibility, BoundingBoxCenters bb_centers, BoundingBoxScales bb_scales)
     {
         _bb_cords =std::move(bb_cords);
         _bb_label_ids = std::move(bb_label_ids);
+        _bb_centers = std::move(bb_centers);
+        _bb_scales = std::move(bb_scales);
         _img_sizes = std::move(img_sizes);
         _img_key_points = std::move(img_key_points);
+        _img_key_points_visibility = std::move(img_key_points_visibility);
     }
     void set_bb_cords(BoundingBoxCords bb_cords) { _bb_cords =std::move(bb_cords); }
     void set_bb_labels(BoundingBoxLabels bb_label_ids) {_bb_label_ids = std::move(bb_label_ids); }
+    void set_bb_centers(BoundingBoxCenters bb_centers) { _bb_centers =std::move(bb_centers); }
+    void set_bb_scales(BoundingBoxScales bb_scales) { _bb_scales =std::move(bb_scales); }
     void set_img_sizes(ImgSizes img_sizes) { _img_sizes =std::move(img_sizes); }
     void set_img_key_points(ImageKeyPoints img_key_points) {_img_key_points = std::move(img_key_points); }
+    void set_img_key_points_visibility(ImageKeyPointsVisibility img_key_points_visibility) {_img_key_points_visibility = std::move(img_key_points_visibility); }
 };
 
 struct MetaDataBatch
@@ -105,14 +129,20 @@ struct MetaDataBatch
     std::vector<int>& get_label_batch() { return _label_id; }
     std::vector<BoundingBoxCords>& get_bb_cords_batch() { return _bb_cords; }
     std::vector<BoundingBoxLabels>& get_bb_labels_batch() { return _bb_label_ids; }
+    std::vector<BoundingBoxCenters>& get_bb_centers_batch() { return _bb_centers; }
+    std::vector<BoundingBoxScales>& get_bb_scales_batch() { return _bb_scales; }
     std::vector<ImgSizes>& get_img_sizes_batch() { return _img_sizes; }
     std::vector<ImageKeyPoints>& get_img_key_points_batch() { return _img_key_points; }
+    std::vector<ImageKeyPointsVisibility>& get_img_key_points_visibility_batch() { return _img_key_points_visibility; }
 protected:
     std::vector<int> _label_id = {}; // For label use only
     std::vector<BoundingBoxCords> _bb_cords = {};
     std::vector<BoundingBoxLabels> _bb_label_ids = {};
+    std::vector<BoundingBoxCenters> _bb_centers = {};
+    std::vector<BoundingBoxScales> _bb_scales = {};
     std::vector<ImgSizes> _img_sizes = {};
     std::vector<ImageKeyPoints>  _img_key_points = {};
+    std::vector<ImageKeyPointsVisibility> _img_key_points_visibility = {};
 };
 
 struct LabelBatch : public MetaDataBatch
@@ -151,23 +181,32 @@ struct BoundingBoxBatch: public MetaDataBatch
     {
         _bb_cords.clear();
         _bb_label_ids.clear();
+        _bb_centers.clear();
+        _bb_scales.clear();
         _img_sizes.clear();
         _img_key_points.clear();
+        _img_key_points_visibility.clear();
     }
     MetaDataBatch&  operator += (MetaDataBatch& other) override
     {
         _bb_cords.insert(_bb_cords.end(),other.get_bb_cords_batch().begin(), other.get_bb_cords_batch().end());
         _bb_label_ids.insert(_bb_label_ids.end(), other.get_bb_labels_batch().begin(), other.get_bb_labels_batch().end());
+        _bb_centers.insert(_bb_centers.end(),other.get_bb_centers_batch().begin(), other.get_bb_centers_batch().end());
+        _bb_scales.insert( _bb_scales.end(),other.get_bb_scales_batch().begin(), other.get_bb_scales_batch().end());
         _img_sizes.insert(_img_sizes.end(),other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
         _img_key_points.insert(_img_key_points.end(),other.get_img_key_points_batch().begin(),other.get_img_key_points_batch().end());
+        _img_key_points_visibility.insert(_img_key_points_visibility.end(),other.get_img_key_points_visibility_batch().begin(),other.get_img_key_points_visibility_batch().end());
         return *this;
     }
     void resize(int batch_size) override
     {
         _bb_cords.resize(batch_size);
         _bb_label_ids.resize(batch_size);
+        _bb_centers.resize(batch_size);
+        _bb_scales.resize(batch_size);
         _img_sizes.resize(batch_size);
         _img_key_points.resize(batch_size);
+        _img_key_points_visibility.resize(batch_size);
     }
     int size() override
     {
