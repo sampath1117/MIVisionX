@@ -99,6 +99,9 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     unsigned int inputBatchSize = 1;
     int decode_max_width = width;
     int decode_max_height = height;
+    float sigma = 3.0;
+    float pose_output_width = 288.0;
+    float pose_output_height = 384.0;
     std::cout << ">>> test case " << test_case << std::endl;
     std::cout << ">>> Running on " << (gpu ? "GPU" : "CPU") << " , " << (rgb ? " Color " : " Grayscale ") << std::endl;
 
@@ -160,7 +163,8 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         exit(0);
     }
     //std::cout<<"Entered block for creating ralicocoreader"<<std::endl;
-    meta_data = raliCreateCOCOReader(handle, json_path, true);
+    //raliKeyPointPose(handle , sigma , pose_output_width , pose_output_height);
+    meta_data = raliCreateCOCOReader(handle, json_path, true, sigma, pose_output_width, pose_output_height);
     //std::cout<<"Extracted meta data from coco"<<std::endl;
 #elif defined CAFFE_READER
     meta_data = raliCreateCaffeLMDBLabelReader(handle, path);
@@ -208,6 +212,7 @@ RaliImage input1;
                                     RALI_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
 #elif defined COCO_READER
     if (decode_max_height <= 0 || decode_max_width <= 0)
+    
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false);
     else
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false,
@@ -497,9 +502,9 @@ RaliImage input1;
         float y1=0.25;
         float t0=0.5;
         float t1=10.0;
-        // std::cout<<"Affine matrix for warp affine:"<<std::endl;
-        // std::cout<<x0<<" "<<x1<<" "<<y0<<std::endl;
-        // std::cout<<y1<<" "<<t0<<" "<<t1<<std::endl;
+        std::cout<<"Affine matrix for warp affine:"<<std::endl;
+        std::cout<<x0<<" "<<x1<<" "<<y0<<std::endl;
+        std::cout<<y1<<" "<<t0<<" "<<t1<<std::endl;
         image1 = raliWarpAffineFixed(handle, image0, x0,y0,x1,y1,t0,t1, true,288,384);
     }
     break;
@@ -678,7 +683,7 @@ RaliImage input1;
         //Display Bounding Boxes
         for (int k = 0; k < size; k++)
         {
-         std::cout<<"l : "<<bb_coords[k*4]<<" , t : "<<bb_coords[k*4+1]<<" , r : "<<bb_coords[k*4+2]<<" , b : "<<bb_coords[k*4+3]<<std::endl;
+         //std::cout<<"l : "<<bb_coords[k*4]<<" , t : "<<bb_coords[k*4+1]<<" , r : "<<bb_coords[k*4+2]<<" , b : "<<bb_coords[k*4+3]<<std::endl;
         }
         //Display KeyPoints
         float img_key_points[size*17*2];
@@ -686,16 +691,34 @@ RaliImage input1;
         raliGetImageKeyPoints(handle, img_key_points, img_key_points_vis);
         for (int k = 0; k < size*17*2; k=k+2)
         {
-         //std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
+         std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
         //std::cout<<"v : "<<img_key_points_vis[k]<<std::endl;
         }
+
+        // float img_targets[size*17*96*72];
+        // float img_targets_weight[size*17*96*72];
+        // raliGetImageTargets(handle, img_targets, img_targets_weight);
+        // int cnt=0;
+        // // for (int k = 0; k < size*17; k=k+96*72)
+        // // {
+        //     std::cout<<"Unittest Heat map:"<<std::endl;
+        //     for(int i = 0; i < 96 ; i++)
+        //     {
+        //         for(int j = 0; j < 72 ; j++)
+        //         {
+        //             cnt++;
+        //             std::cout<<img_targets[cnt]<<" ";
+        //         }
+        //         std::cout<<std::endl;
+        //     }
+        // }
 
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);
         for (int i = 0; i < inputBatchSize; i++)
         {
-            std::cout<<"\nwidth:"<<img_sizes_batch[i*2]<<std::endl;
-            std::cout<<"\nHeight:"<<img_sizes_batch[(i*2)+1]<<std::endl;
+            //std::cout<<"\nwidth:"<<img_sizes_batch[i*2]<<std::endl;
+            //std::cout<<"\nHeight:"<<img_sizes_batch[(i*2)+1]<<std::endl;
         }
 
 #else

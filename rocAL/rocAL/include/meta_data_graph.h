@@ -38,6 +38,12 @@ public:
     virtual void update_random_bbox_meta_data(MetaDataBatch* meta_data, decoded_image_info decoded_image_info,crop_image_info crop_image_info) = 0;
     virtual void update_box_encoder_meta_data(std::vector<float> anchors, pMetaDataBatch full_batch_meta_data ,float criteria, bool offset , float scale, std::vector<float> means, std::vector<float> stds) = 0;
     virtual void update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data) = 0;
+    //virtual void update_center_scale_meta_data(pMetaDataBatch full_batch_meta_data, int upper_joint_ids[], int lower_joint_ids[]) = 0;
+    virtual bool is_pose_estimation() = 0;
+    virtual void set_pose_estimation(bool pose_estimation) = 0;
     std::list<std::shared_ptr<MetaNode>> _meta_nodes;
+    std::vector<int> UPPER_BODY_IDS = { 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 };
+    std::vector<int> LOWER_BODY_IDS = { 11 , 12 , 13 , 14 , 15 , 16 };
+    bool _is_pose_estimation;
 };
 

@@ -34,7 +34,7 @@ class WarpAffineMetaNode:public MetaNode
 {
     public:
         WarpAffineMetaNode() {};
-        void update_parameters(MetaDataBatch* input_meta_data)override;
+        void update_parameters(MetaDataBatch* input_meta_data, bool pose_estimation)override;
         std::shared_ptr<WarpAffineNode> _node = nullptr;
     private:
         void initialize();
@@ -42,6 +42,7 @@ class WarpAffineMetaNode:public MetaNode
         std::vector<uint> _src_width_val, _src_height_val;
         vx_array _affine_array;
         std::vector<float> _affine_val;
+        MetaDataGraph *input_meta_graph;
         // vx_array _affine_x0, _affine_x1, _affine_y0,_affine_y1,_affine_o0,_affine_o1;
         // std::vector<uint> _affine_x0_val, _affine_x1_val, _affine_y0_val, _affine_y1_val,_affine_o0_val,_affine_o1_val;
 };

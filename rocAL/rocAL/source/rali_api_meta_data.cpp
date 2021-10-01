@@ -67,12 +67,12 @@ RALI_API_CALL raliCreateLabelReader(RaliContext p_context, const char* source_pa
 }
 
 RaliMetaData
-RALI_API_CALL raliCreateCOCOReader(RaliContext p_context, const char* source_path, bool is_output){
+RALI_API_CALL raliCreateCOCOReader(RaliContext p_context, const char* source_path, bool is_output, float sigma , float pose_output_width , float pose_output_height){
     if (!p_context)
         THROW("Invalid rali context passed to raliCreateCOCOReader")
     auto context = static_cast<Context*>(p_context);
 
-    return context->master_graph->create_coco_meta_data_reader(source_path, is_output);
+    return context->master_graph->create_coco_meta_data_reader(source_path, is_output, sigma , pose_output_width , pose_output_height);
 
 }
 
@@ -310,38 +310,6 @@ RALI_API_CALL raliGetBoundingBoxCords(RaliContext p_context, float* buf)
     }
 }
 
-void
-RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *buf2)
-{
-    if (!p_context)
-        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
-    auto context = static_cast<Context*>(p_context);
-    auto meta_data = context->master_graph->meta_data();
-    size_t meta_data_batch_size = meta_data.second->get_img_key_points_batch().size();
-    //std::cout<<"meta_data_vis_size :"<<meta_data_vis_size<<std::endl;
-
-    if(context->user_batch_size() != meta_data_batch_size)
-        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
-    if(!meta_data.second)
-    {
-        WRN("No label has been loaded for this output image")
-        return;
-    }
-    unsigned int num_keypoints=17;
-    for(unsigned i = 0; i < meta_data_batch_size ; i++)
-    { 
-        unsigned annotation_size = meta_data.second->get_img_key_points_batch()[i].size();
-        std::cout<<"annotation size:"<<annotation_size<<std::endl;
-        for(unsigned j = 0; j < annotation_size ; j++)
-        {
-            memcpy(buf1, meta_data.second->get_img_key_points_batch()[i][j].data() , annotation_size * num_keypoints * sizeof(KeyPoint));
-            memcpy(buf2, meta_data.second->get_img_key_points_visibility_batch()[i][j].data(), annotation_size * num_keypoints * sizeof(KeyPointVisibility));
-
-            buf1 += (annotation_size * num_keypoints * 2);
-            buf2 += (annotation_size * num_keypoints * 2);
-        }
-    }
-}
 
 void
 RALI_API_CALL raliGetImageSizes(RaliContext p_context, int* buf)
@@ -411,11 +379,114 @@ RALI_API_CALL raliCopyEncodedBoxesAndLables(RaliContext p_context, float* boxes_
     }
 }
 
-void 
-RALI_API_CALL raliKeyPointTarget(RaliContext p_context, float sigma)
+void
+RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *buf2)
 {
     if (!p_context)
-        THROW("Invalid rali context passed to raliBoxEncoder")
-    auto context = static_cast<Context *>(p_context);
-    context->master_graph->keypoint_target(sigma); 
+        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+    auto context = static_cast<Context*>(p_context);
+    auto meta_data = context->master_graph->meta_data();
+    
+    size_t meta_data_batch_size = meta_data.second->get_img_joints_data_batch().size();
+    //std::cout<<"meta_data_vis_size :"<<meta_data_vis_size<<std::endl;
+
+    if(context->user_batch_size() != meta_data_batch_size)
+        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+    if(!meta_data.second)
+    {
+        WRN("No label has been loaded for this output image")
+        return;
+    }
+
+    auto num_keypoints = NUMBER_OF_KEYPOINTS;
+
+    for(unsigned i = 0; i < meta_data_batch_size ; i++)
+    { 
+        unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
+        std::cout<<"annotation size:"<<annotation_size<<std::endl;
+        meta_data.second->get_bb_cords_batch()[i];
+        for(unsigned j = 0; j < annotation_size ; j++)
+        {
+            memcpy(buf1, meta_data.second->get_img_joints_data_batch()[i][j].joints.data() , annotation_size * num_keypoints * sizeof(KeyPoint));
+            memcpy(buf2, meta_data.second->get_img_joints_data_batch()[i][j].joints_visility.data(), annotation_size * num_keypoints * sizeof(KeyPointVisibility));
+
+            buf1 += (annotation_size * num_keypoints * 2);
+            buf2 += (annotation_size * num_keypoints * 2);
+        }
+    }
 }
+
+void
+RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2)
+{
+    if (!p_context)
+        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+    auto context = static_cast<Context*>(p_context);
+    auto meta_data = context->master_graph->meta_data();
+    size_t meta_data_batch_size = meta_data.second->get_img_targets_batch().size();
+
+    if(context->user_batch_size() != meta_data_batch_size)
+        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+    if(!meta_data.second)
+    {
+        WRN("No label has been loaded for this output image")
+        return;
+    }
+
+    auto num_keypoints = NUMBER_OF_KEYPOINTS;
+
+    for(unsigned i = 0; i < meta_data_batch_size ; i++)
+    { 
+        unsigned annotation_size = meta_data.second->get_img_targets_batch()[i].size();
+        std::cout<<"annotation size:"<<annotation_size<<std::endl;
+        std::cout<<"size of keypoint"<<sizeof(KeyPoint)<<std::endl;
+        
+        for(unsigned j = 0; j < annotation_size ; j++)
+        {
+            // unsigned target_size = meta_data.second->get_img_targets_batch()[i][j].size();
+            // std::cout<<"Number of Targets:"<<target_size<<std::endl;
+           
+            memcpy(buf1, meta_data.second->get_img_targets_batch()[i][j].data() , annotation_size * num_keypoints * 96 * 72 * sizeof(float));
+            //memcpy(buf2, meta_data.second->get_img_targets_weight_batch()[i][j].data(), annotation_size * num_keypoints * sizeof(TargetsWeight));
+            buf1 += (annotation_size * num_keypoints * 96 * 72);
+            //buf2 += (annotation_size * num_keypoints * 2);
+        }
+    }
+}
+
+void
+RALI_API_CALL raliGetJointsData(RaliContext p_context, int* buf)
+{  
+    if (!p_context)
+        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+    auto context = static_cast<Context*>(p_context);
+    auto meta_data = context->master_graph->meta_data();
+    size_t meta_data_batch_size = meta_data.second->get_img_joints_data_batch().size();
+
+    if(context->user_batch_size() != meta_data_batch_size)
+        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+    if(!meta_data.second)
+    {
+        WRN("No label has been loaded for this output image")
+        return;
+    }
+
+    for(unsigned i = 0; i < meta_data_batch_size ; i++)
+    { 
+        unsigned annotation_size = meta_data.second->get_img_targets_batch()[i].size();
+        // std::cout<<"annotation size:"<<annotation_size<<std::endl;
+        for(unsigned j = 0; j < annotation_size ; j++)
+        {
+            //memcpy(buf, meta_data.second->get_img_joints_data_batch()[i][j].center , annotation_size * sizeof(JointsData));
+            buf += (annotation_size * sizeof(JointsData));
+        }
+    }
+}
+// void 
+// RALI_API_CALL raliKeyPointPose(RaliContext p_context, float sigma, float output_width, float output_height)
+// {
+//     if (!p_context)
+//         THROW("Invalid rali context passed to raliKeyPointTarget")
+//     auto context = static_cast<Context *>(p_context);
+//     context->master_graph->keypoint_pose(sigma , output_width , output_height); 
+// }

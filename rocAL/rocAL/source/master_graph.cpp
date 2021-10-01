@@ -902,6 +902,7 @@ void MasterGraph::output_routine()
                     {
                         if(_is_random_bbox_crop)
                         {
+                            decoded_image_info decode_image_info;
                             _meta_data_graph->update_random_bbox_meta_data(_augmented_meta_data, decode_image_info, crop_image_info);
                         }
                         /*
@@ -925,13 +926,11 @@ void MasterGraph::output_routine()
             {
                 _meta_data_graph->update_box_encoder_meta_data(_anchors, full_batch_meta_data, _criteria, _offset, _scale, _means, _stds);
             }
-            std::cout<<"Checking for Keypoint:"<<is_keypoint_target<<std::endl;
-            if(!is_keypoint_target)
+
+            bool is_pose_estimation = _meta_data_graph->is_pose_estimation();
+            if(is_pose_estimation)
             {
-                std::cout<<"Entered keypoint condition"<<std::endl;
-                int output_width = MasterGraph::output_width();
-                int output_height = MasterGraph::output_height();
-                _meta_data_graph->update_keypoint_target_meta_data(_gaussian_sigma, output_width, output_height , full_batch_meta_data);
+                _meta_data_graph->update_keypoint_target_meta_data(_gaussian_sigma, _output_image_width_pose, _output_image_height_pose, full_batch_meta_data);
             }
             _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data);
             _ring_buffer.push(); // Image data and metadata is now stored in output the ring_buffer, increases it's level by 1
@@ -974,7 +973,7 @@ void MasterGraph::stop_processing()
         _output_thread.join();
 }
 
-MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output)
+MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, float sigma , float pose_output_width , float pose_output_height)
 {
     if( _meta_data_reader)
         THROW("A metadata reader has already been created")
@@ -983,6 +982,8 @@ MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_pat
     _meta_data_reader = create_meta_data_reader(config);
     _meta_data_reader->init(config);
     _meta_data_reader->read_all(source_path);
+    //Set the variables required for keypoints
+    MasterGraph::keypoint_pose(sigma , pose_output_width , pose_output_height);
     if(is_output)
     {
         if (_augmented_meta_data)
@@ -1051,11 +1052,13 @@ void MasterGraph::box_encoder(std::vector<float> anchors, float criteria,std::ve
 
 }
 
-void MasterGraph::keypoint_target(float sigma)
+void MasterGraph::keypoint_pose(float sigma,float output_width,float output_height)
 {
     std::cout<<"Comes here to target generation function"<<std::endl;
-    is_keypoint_target = true;
+    _meta_data_graph->set_pose_estimation(true);
     _gaussian_sigma = sigma;
+    _output_image_width_pose = output_width;
+    _output_image_height_pose = output_height;
 }
 
 

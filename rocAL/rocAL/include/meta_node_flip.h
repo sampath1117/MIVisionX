@@ -34,8 +34,9 @@ class FlipMetaNode:public MetaNode
 {
     public:
         FlipMetaNode() {};
-        void update_parameters(MetaDataBatch* input_meta_data)override;
+        void update_parameters(MetaDataBatch* input_meta_data, bool pose_estimation)override;
         std::shared_ptr<FlipNode> _node = nullptr;
+        //MetaDataGraph *input_meta_graph;
     private:
         void initialize();
         vx_array _src_width, _src_height;

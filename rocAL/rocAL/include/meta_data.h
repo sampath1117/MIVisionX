@@ -27,50 +27,69 @@ THE SOFTWARE.
 #include <memory>
 #include "commons.h"
 
+//Defined constant since needed in reader and meta nodes
+#define NUMBER_OF_KEYPOINTS 17;
+#define PIXEL_STD  200;
+#define SCALE_CONSTANT_CS 1.25;
+#define SCALE_CONSTANT_HALF_BODY 1.5;
+
+
 typedef  struct { float l; float t; float r; float b; } BoundingBoxCord;
-typedef struct { float x; float y; } BoundingBoxCenter;
-typedef struct { float x; float y; } BoundingBoxScale;
+typedef struct { float xc; float yc; } BoundingBoxCenter;
+typedef struct { float ws; float hs; } BoundingBoxScale;
 typedef struct {
     float x; //x-coordinate of keypoint
     float y; //y-coordinate of keypoint
 } KeyPoint;
 typedef struct
 {
-    float v1; //Visibility of keypoint
-    float v2; //Visibility of keypoint
+    float xv; //Visibility of keypoint
+    float yv; //Visibility of keypoint
 }KeyPointVisibility;
 
 typedef  std::vector<BoundingBoxCord> BoundingBoxCords;
-typedef  std::vector<BoundingBoxCenter> BoundingBoxCenters;
-typedef  std::vector<BoundingBoxScale> BoundingBoxScales;
-
-typedef std::vector<KeyPoint> KeyPoints;
-typedef std::vector<KeyPoints> ImageKeyPoints;        //add change
-typedef std::vector<KeyPointVisibility> KeyPointsVisibility;
-typedef std::vector<KeyPointsVisibility> ImageKeyPointsVisibility;
-
 typedef  std::vector<int> BoundingBoxLabels;
 typedef  struct { int w; int h; } ImgSize;
 typedef  std::vector<ImgSize> ImgSizes;
+
+typedef std::vector<KeyPoint> KeyPoints;
+typedef std::vector<KeyPointVisibility> KeyPointsVisibility;
+typedef std::vector<std::vector<float> > Target;
+
+typedef std::vector<Target> Targets;
+typedef std::vector<Targets> ImageTargets;
+typedef float TargetWeight;
+typedef std::vector<TargetWeight> TargetsWeight;
+typedef std::vector<TargetsWeight> ImageTargetsWeight;
+
+typedef struct
+{
+    std::string image_path;
+    BoundingBoxCenter center;
+    BoundingBoxScale scale;
+    KeyPoints joints;
+    KeyPointsVisibility joints_visility;
+    float score;
+    float rotation;
+}JointsData;
+typedef std::vector<JointsData> ImageJointsData;
 
 struct MetaData
 {
     int& get_label() { return _label_id; }
     BoundingBoxCords& get_bb_cords() { return _bb_cords; }
     BoundingBoxLabels& get_bb_labels() { return _bb_label_ids; }
-    BoundingBoxCenters& get_bb_centers() { return _bb_centers; }
-    BoundingBoxScales& get_bb_scales() { return _bb_scales; }
     ImgSizes& get_img_sizes() {return _img_sizes; }
-    ImageKeyPoints& get_img_key_points() { return _img_key_points; }
-    ImageKeyPointsVisibility& get_img_key_points_visibility() { return _img_key_points_visibility; }
+    ImageTargets& get_img_targets() { return _img_targets; }
+    ImageTargetsWeight& get_img_targets_weight() { return _img_targets_weight; }
+    ImageJointsData& get_img_joints_data(){ return _img_joints_data; }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
     BoundingBoxLabels _bb_label_ids = {}; // For bb use
-    BoundingBoxCenters _bb_centers = {}; //For bb use
-    BoundingBoxScales _bb_scales = {}; //For bb use
-    ImageKeyPoints _img_key_points = {}; // For key points
-    ImageKeyPointsVisibility _img_key_points_visibility = {}; //for keypoint visibility use
+    ImageTargets _img_targets = {};
+    ImageTargetsWeight _img_targets_weight = {};
     ImgSizes _img_sizes = {};
+    ImageJointsData _img_joints_data = {};
     int _label_id = -1; // For label use only
 };
 
@@ -94,23 +113,19 @@ struct BoundingBox : public MetaData
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
     }
-    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageKeyPoints img_key_points, ImageKeyPointsVisibility img_key_points_visibility, BoundingBoxCenters bb_centers, BoundingBoxScales bb_scales)
+    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageJointsData img_joints_data)
     {
         _bb_cords =std::move(bb_cords);
         _bb_label_ids = std::move(bb_label_ids);
-        _bb_centers = std::move(bb_centers);
-        _bb_scales = std::move(bb_scales);
         _img_sizes = std::move(img_sizes);
-        _img_key_points = std::move(img_key_points);
-        _img_key_points_visibility = std::move(img_key_points_visibility);
+        _img_joints_data = std::move(img_joints_data);
     }
     void set_bb_cords(BoundingBoxCords bb_cords) { _bb_cords =std::move(bb_cords); }
     void set_bb_labels(BoundingBoxLabels bb_label_ids) {_bb_label_ids = std::move(bb_label_ids); }
-    void set_bb_centers(BoundingBoxCenters bb_centers) { _bb_centers =std::move(bb_centers); }
-    void set_bb_scales(BoundingBoxScales bb_scales) { _bb_scales =std::move(bb_scales); }
     void set_img_sizes(ImgSizes img_sizes) { _img_sizes =std::move(img_sizes); }
-    void set_img_key_points(ImageKeyPoints img_key_points) {_img_key_points = std::move(img_key_points); }
-    void set_img_key_points_visibility(ImageKeyPointsVisibility img_key_points_visibility) {_img_key_points_visibility = std::move(img_key_points_visibility); }
+    void set_img_targets(ImageTargets img_targets) { _img_targets = std::move(img_targets); }
+    void set_img_targets_weight(ImageTargetsWeight img_targets_weight) { _img_targets_weight = std::move(img_targets_weight); }
+    void set_img_joints_data(ImageJointsData img_joints_data) { _img_joints_data = std::move(img_joints_data); }
 };
 
 struct MetaDataBatch
@@ -129,20 +144,18 @@ struct MetaDataBatch
     std::vector<int>& get_label_batch() { return _label_id; }
     std::vector<BoundingBoxCords>& get_bb_cords_batch() { return _bb_cords; }
     std::vector<BoundingBoxLabels>& get_bb_labels_batch() { return _bb_label_ids; }
-    std::vector<BoundingBoxCenters>& get_bb_centers_batch() { return _bb_centers; }
-    std::vector<BoundingBoxScales>& get_bb_scales_batch() { return _bb_scales; }
     std::vector<ImgSizes>& get_img_sizes_batch() { return _img_sizes; }
-    std::vector<ImageKeyPoints>& get_img_key_points_batch() { return _img_key_points; }
-    std::vector<ImageKeyPointsVisibility>& get_img_key_points_visibility_batch() { return _img_key_points_visibility; }
+    std::vector<ImageTargets>& get_img_targets_batch() { return _img_targets; }
+    std::vector<ImageTargetsWeight>& get_img_targets_weight_batch() { return _img_targets_weight; }
+    std::vector<ImageJointsData>& get_img_joints_data_batch(){return _img_joints_data; }
 protected:
     std::vector<int> _label_id = {}; // For label use only
     std::vector<BoundingBoxCords> _bb_cords = {};
     std::vector<BoundingBoxLabels> _bb_label_ids = {};
-    std::vector<BoundingBoxCenters> _bb_centers = {};
-    std::vector<BoundingBoxScales> _bb_scales = {};
     std::vector<ImgSizes> _img_sizes = {};
-    std::vector<ImageKeyPoints>  _img_key_points = {};
-    std::vector<ImageKeyPointsVisibility> _img_key_points_visibility = {};
+    std::vector<ImageTargets> _img_targets = {};
+    std::vector<ImageTargetsWeight> _img_targets_weight = {};
+    std::vector<ImageJointsData> _img_joints_data = {};
 };
 
 struct LabelBatch : public MetaDataBatch
@@ -181,32 +194,29 @@ struct BoundingBoxBatch: public MetaDataBatch
     {
         _bb_cords.clear();
         _bb_label_ids.clear();
-        _bb_centers.clear();
-        _bb_scales.clear();
         _img_sizes.clear();
-        _img_key_points.clear();
-        _img_key_points_visibility.clear();
+        _img_targets.clear();
+        _img_targets_weight.clear();
+        _img_joints_data.clear();
     }
     MetaDataBatch&  operator += (MetaDataBatch& other) override
     {
         _bb_cords.insert(_bb_cords.end(),other.get_bb_cords_batch().begin(), other.get_bb_cords_batch().end());
         _bb_label_ids.insert(_bb_label_ids.end(), other.get_bb_labels_batch().begin(), other.get_bb_labels_batch().end());
-        _bb_centers.insert(_bb_centers.end(),other.get_bb_centers_batch().begin(), other.get_bb_centers_batch().end());
-        _bb_scales.insert( _bb_scales.end(),other.get_bb_scales_batch().begin(), other.get_bb_scales_batch().end());
         _img_sizes.insert(_img_sizes.end(),other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
-        _img_key_points.insert(_img_key_points.end(),other.get_img_key_points_batch().begin(),other.get_img_key_points_batch().end());
-        _img_key_points_visibility.insert(_img_key_points_visibility.end(),other.get_img_key_points_visibility_batch().begin(),other.get_img_key_points_visibility_batch().end());
+        _img_targets.insert(_img_targets.end(),other.get_img_targets_batch().begin(),other.get_img_targets_batch().end());
+        _img_targets_weight.insert(_img_targets_weight.end(),other.get_img_targets_weight_batch().begin(),other.get_img_targets_weight_batch().end());
+        _img_joints_data.insert(_img_joints_data.end(),other.get_img_joints_data_batch().begin(),other.get_img_joints_data_batch().end());
         return *this;
     }
     void resize(int batch_size) override
     {
         _bb_cords.resize(batch_size);
         _bb_label_ids.resize(batch_size);
-        _bb_centers.resize(batch_size);
-        _bb_scales.resize(batch_size);
         _img_sizes.resize(batch_size);
-        _img_key_points.resize(batch_size);
-        _img_key_points_visibility.resize(batch_size);
+        _img_targets.resize(batch_size);
+        _img_targets_weight.resize(batch_size);
+        _img_joints_data.resize(batch_size);
     }
     int size() override
     {

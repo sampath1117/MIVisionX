@@ -21,13 +21,14 @@ THE SOFTWARE.
 */
 
 #include "meta_node_warp_affine.h"
+
 void WarpAffineMetaNode::initialize()
 {
     _src_height_val.resize(_batch_size);
     _src_width_val.resize(_batch_size);
     _affine_val.resize(6 * _batch_size);
 }
-void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data)
+void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_estimation)
 {
     //std::cout<<"Warp affine meta node is called:"<<std::endl;
 
@@ -38,6 +39,8 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data)
         _batch_size = input_meta_data->size();
     }
 
+    auto kps = NUMBER_OF_KEYPOINTS;
+
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
     _affine_array = _node->get_affine_array();
@@ -46,31 +49,25 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data)
     vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint), _src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_affine_array, 0, (6 * _batch_size), sizeof(float), _affine_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
 
-    auto is_keypoint_target = 1;
-    if (is_keypoint_target)
+    if (pose_estimation)
     {
-
         for (int i = 0; i < _batch_size; i++)
         {
             auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();
-            //int labels_buf[bb_count];
-            //float coords_buf[bb_count * 4];
-
-            //BoundingBoxCords bb_coords;
-            //BoundingBoxLabels bb_labels;
-            ImageKeyPoints img_key_points;
-            unsigned int num_keypoints = 17;
+            ImageJointsData img_joints_data;
+            JointsData joints_data;
 
             //Update Keypoints
             for (unsigned int object_index = 0; object_index < bb_count; object_index++)
             {
                 KeyPoints key_points;
+                joints_data = input_meta_data->get_img_joints_data_batch()[i][object_index];
 
-                for (unsigned int keypoint_index = 0; keypoint_index < num_keypoints; keypoint_index++)
+                for (unsigned int keypoint_index = 0; keypoint_index < kps; keypoint_index++)
                 {
                     KeyPoint key_point;
                     float temp_x, temp_y;
-                    key_point = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index];
+                    key_point = joints_data.joints[keypoint_index];
 
                     //Matrix multiplication of Affine matrix with keypoint values
                     temp_x = (_affine_val[i * 6 + 0] * key_point.x) + (_affine_val[i * 6 + 1] * key_point.y) + (_affine_val[i * 6 + 2] * 1);
@@ -79,9 +76,11 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data)
                     key_point.y = temp_y;
                     key_points.push_back(key_point);
                 }
-                img_key_points.push_back(key_points);
+                joints_data.joints = key_points;
+                img_joints_data.push_back(joints_data);
+                key_points.clear();
             }
-            input_meta_data->get_img_key_points_batch()[i] = img_key_points;
+            input_meta_data->get_img_joints_data_batch()[i] = img_joints_data;
         }
     }
 }

@@ -28,25 +28,26 @@ void FlipMetaNode::initialize()
     _src_width_val.resize(_batch_size);
     _flip_axis_val.resize(_batch_size);
 }
-void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data)
+void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_estimation)
 {
     //std::cout<<"flip meta node is called:"<<std::endl;
 
     initialize();
-
+    auto num_keypoints = NUMBER_OF_KEYPOINTS;
+    
     if (_batch_size != input_meta_data->size())
     {
         _batch_size = input_meta_data->size();
     }
+
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
     _flip_axis = _node->get_flip_axis();
 
+
     vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint), _src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint), _src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_flip_axis, 0, _batch_size, sizeof(int), _flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-
-    auto is_keypoint_target = 1;
 
     for (int i = 0; i < _batch_size; i++)
     {
@@ -61,15 +62,11 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data)
         memcpy(coords_buf, input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
 
         BoundingBoxCords bb_coords;
+        ImageJointsData img_joints_data;
         //BoundingBoxLabels bb_labels;
-        ImageKeyPoints img_key_points;
-        ImageKeyPointsVisibility img_key_points_visibility;
-        BoundingBoxCenters bb_centers;
-
-        if (is_keypoint_target)
+        
+        if (pose_estimation)
         {
-            unsigned int num_keypoints = 17;
-
             for (unsigned int object_index = 0; object_index < bb_count; object_index++)
             {
                 KeyPoints key_points;
@@ -77,16 +74,17 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data)
                 KeyPoint key_point0;
                 KeyPointVisibility key_point0_vis;
                 BoundingBoxCenter bb_center;
+                JointsData joints_data;
                 
-                key_point0 = input_meta_data->get_img_key_points_batch()[i][object_index][0];
-                key_point0_vis = input_meta_data->get_img_key_points_visibility_batch()[i][object_index][0];
-                key_point0.x = (img_width - key_point0.x - 1) * (key_point0_vis.v1);
-                bb_center = input_meta_data->get_bb_centers_batch()[i][object_index];
-                bb_center.x = img_width - bb_center.x - 1;
+                joints_data = input_meta_data->get_img_joints_data_batch()[i][object_index];
+                key_point0 = joints_data.joints[0];
+                key_point0_vis = joints_data.joints_visility[0];
+                key_point0.x = (img_width - key_point0.x - 1) * (key_point0_vis.xv);
+                bb_center = joints_data.center;
+                bb_center.xc = img_width - bb_center.xc - 1;
                 
                 key_points.push_back(key_point0);
                 key_points_visibility.push_back(key_point0_vis);
-                bb_centers.push_back(bb_center);
                 //std::cout<<"Difference:"<<key_point0.x<<std::endl;
 
                 for (unsigned int keypoint_index = 1; keypoint_index < num_keypoints; keypoint_index = keypoint_index + 2)
@@ -94,26 +92,30 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data)
                     //std::cout<<"Flipping keypoints: "<< keypoint_index<<" "<<keypoint_index+1<<std::endl;
                     KeyPoint key_point1, key_point2;
                     KeyPointVisibility key_point1_vis,key_point2_vis;
-                    key_point1 = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index];
-                    key_point2 = input_meta_data->get_img_key_points_batch()[i][object_index][keypoint_index + 1];
-                    key_point1_vis = input_meta_data->get_img_key_points_visibility_batch()[i][object_index][keypoint_index];
-                    key_point2_vis = input_meta_data->get_img_key_points_visibility_batch()[i][object_index][keypoint_index+1];
+                    key_point1 = joints_data.joints[keypoint_index];
+                    key_point2 = joints_data.joints[keypoint_index+1];
+                    key_point1_vis = joints_data.joints_visility[keypoint_index];
+                    key_point2_vis = joints_data.joints_visility[keypoint_index+1];
                     
                     //Update the keypoint co-ordinates
-                    key_point1.x = (img_width - key_point1.x - 1) * (key_point1_vis.v1);
-                    key_point2.x = (img_width - key_point2.x - 1) * (key_point2_vis.v2);
+                    key_point1.x = (img_width - key_point1.x - 1) * (key_point1_vis.xv);
+                    key_point2.x = (img_width - key_point2.x - 1) * (key_point2_vis.xv);
 
                     key_points.push_back(key_point2);
                     key_points.push_back(key_point1);
                     key_points_visibility.push_back(key_point2_vis);
                     key_points_visibility.push_back(key_point1_vis);   
                 }
-                img_key_points.push_back(key_points);
-                img_key_points_visibility.push_back(key_points_visibility);
+                joints_data.joints = key_points;
+                joints_data.joints_visility = key_points_visibility;
+                joints_data.center = bb_center;
+                img_joints_data.push_back(joints_data);
+                key_points.clear();
+                key_points_visibility.clear();
             }
-            input_meta_data->get_img_key_points_batch()[i] = img_key_points;
-            input_meta_data->get_img_key_points_visibility_batch()[i] = img_key_points_visibility;
-            input_meta_data->get_bb_centers_batch()[i] = bb_centers;
+            input_meta_data->get_img_joints_data_batch()[i] = img_joints_data;
+            // input_meta_data->get_img_key_points_visibility_batch()[i] = img_key_points_visibility;
+            // input_meta_data->get_bb_centers_batch()[i] = bb_centers;
         }
 
             for (uint j = 0, m = 0; j < bb_count; j++)
