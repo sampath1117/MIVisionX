@@ -43,6 +43,9 @@ public:
 private:
     BoundingBoxBatch* _output;
     std::string _path;
+    bool _keypoint;
+    int _out_img_width;
+    int _out_img_height;
     int meta_data_reader_type;
     void add(std::string image_name, BoundingBoxCords bbox, BoundingBoxLabels b_labels, ImgSizes image_size,ImageJointsData img_joints_data);
     bool exists(const std::string &image_name);

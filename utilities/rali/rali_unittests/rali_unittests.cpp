@@ -164,7 +164,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     }
     //std::cout<<"Entered block for creating ralicocoreader"<<std::endl;
     //raliKeyPointPose(handle , sigma , pose_output_width , pose_output_height);
-    meta_data = raliCreateCOCOReader(handle, json_path, true, sigma, pose_output_width, pose_output_height);
+    meta_data = raliCreateCOCOReader(handle, json_path, true, true, sigma, pose_output_width, pose_output_height);
     //std::cout<<"Extracted meta data from coco"<<std::endl;
 #elif defined CAFFE_READER
     meta_data = raliCreateCaffeLMDBLabelReader(handle, path);
@@ -691,27 +691,32 @@ RaliImage input1;
         raliGetImageKeyPoints(handle, img_key_points, img_key_points_vis);
         for (int k = 0; k < size*17*2; k=k+2)
         {
-         std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
+         //std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
         //std::cout<<"v : "<<img_key_points_vis[k]<<std::endl;
         }
 
-        // float img_targets[size*17*96*72];
-        // float img_targets_weight[size*17*96*72];
-        // raliGetImageTargets(handle, img_targets, img_targets_weight);
-        // int cnt=0;
-        // // for (int k = 0; k < size*17; k=k+96*72)
-        // // {
-        //     std::cout<<"Unittest Heat map:"<<std::endl;
-        //     for(int i = 0; i < 96 ; i++)
-        //     {
-        //         for(int j = 0; j < 72 ; j++)
-        //         {
-        //             cnt++;
-        //             std::cout<<img_targets[cnt]<<" ";
-        //         }
-        //         std::cout<<std::endl;
-        //     }
-        // }
+        float img_targets[size*17*96*72];
+        float img_targets_weight[size*17*96*72];
+        raliGetImageTargets(handle, img_targets, img_targets_weight);
+        int cnt=0;
+        for (int k = 0; k < size*17; k++)
+        {
+            std::cout<<"keypoint : "<<img_key_points[2*k]<<"  "<<img_key_points[2*k+1]<<std::endl;
+            // std::cout<<"Heat map number: "<<k<<std::endl;
+            for(int i = 0; i < 96 ; i++)
+            {
+                for(int j = 0; j < 72 ; j++)
+                {
+                    cnt = cnt+1;
+                    if(img_targets[cnt]!=0)
+                    {
+                        std::cout<<img_targets[cnt]<<" ";
+                    }
+                }
+                std::cout<<std::endl;
+            }
+            std::cout<<std::endl;
+        }
 
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);

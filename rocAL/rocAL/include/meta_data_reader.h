@@ -53,15 +53,21 @@ private:
     std::string _path;
     std::map<std::string, std::string> _feature_key_map; 
     std::string _file_prefix;           // if we want to read only filenames with prefix (needed for cifar10 meta data)
+    bool _keypoint;
+    int _out_img_width;
+    int _out_img_height;
 public:
-    MetaDataConfig(const MetaDataType& type, const MetaDataReaderType& reader_type, const std::string& path, const std::map<std::string, std::string> &feature_key_map=std::map<std::string, std::string>(), const std::string file_prefix=std::string())
-                    :_type(type), _reader_type(reader_type),  _path(path), _feature_key_map(feature_key_map), _file_prefix(file_prefix){}
+    MetaDataConfig(const MetaDataType& type, const MetaDataReaderType& reader_type, const std::string& path, const std::map<std::string, std::string> &feature_key_map=std::map<std::string, std::string>(), const std::string file_prefix=std::string(), const bool keypoint = 0, const int out_img_width = 288, const int out_img_height = 384)
+                    :_type(type), _reader_type(reader_type),  _path(path), _feature_key_map(feature_key_map), _file_prefix(file_prefix), _keypoint(keypoint),_out_img_width(out_img_width),_out_img_height(out_img_height){}
     MetaDataConfig() = delete;
     MetaDataType type() const { return _type; }
     MetaDataReaderType reader_type() const { return _reader_type; }
     std::string path() const { return  _path; }
     std::map<std::string, std::string> feature_key_map() const {return _feature_key_map; }
     std::string file_prefix() const { return  _file_prefix; }
+    bool keypoint() const { return _keypoint; }
+    int out_img_width() const { return _out_img_width; }
+    int out_img_height() const { return _out_img_height; }
 };
 
 

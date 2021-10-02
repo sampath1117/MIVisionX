@@ -67,12 +67,12 @@ RALI_API_CALL raliCreateLabelReader(RaliContext p_context, const char* source_pa
 }
 
 RaliMetaData
-RALI_API_CALL raliCreateCOCOReader(RaliContext p_context, const char* source_path, bool is_output, float sigma , float pose_output_width , float pose_output_height){
+RALI_API_CALL raliCreateCOCOReader(RaliContext p_context, const char* source_path, bool is_output, bool keypoint, float sigma , int pose_output_width , int pose_output_height){
     if (!p_context)
         THROW("Invalid rali context passed to raliCreateCOCOReader")
     auto context = static_cast<Context*>(p_context);
 
-    return context->master_graph->create_coco_meta_data_reader(source_path, is_output, sigma , pose_output_width , pose_output_height);
+    return context->master_graph->create_coco_meta_data_reader(source_path, is_output, keypoint, sigma , pose_output_width , pose_output_height);
 
 }
 
@@ -439,17 +439,23 @@ RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2
     { 
         unsigned annotation_size = meta_data.second->get_img_targets_batch()[i].size();
         std::cout<<"annotation size:"<<annotation_size<<std::endl;
-        std::cout<<"size of keypoint"<<sizeof(KeyPoint)<<std::endl;
         
         for(unsigned j = 0; j < annotation_size ; j++)
         {
-            // unsigned target_size = meta_data.second->get_img_targets_batch()[i][j].size();
-            // std::cout<<"Number of Targets:"<<target_size<<std::endl;
-           
-            memcpy(buf1, meta_data.second->get_img_targets_batch()[i][j].data() , annotation_size * num_keypoints * 96 * 72 * sizeof(float));
-            //memcpy(buf2, meta_data.second->get_img_targets_weight_batch()[i][j].data(), annotation_size * num_keypoints * sizeof(TargetsWeight));
-            buf1 += (annotation_size * num_keypoints * 96 * 72);
-            //buf2 += (annotation_size * num_keypoints * 2);
+            unsigned kps = meta_data.second->get_img_targets_batch()[i][j].size();
+            std::cout<<"size of Target:"<<kps<<std::endl;
+
+            for (unsigned k = 0; k < kps ; k++)
+            {
+                unsigned width_size = meta_data.second->get_img_targets_batch()[i][j][k].size();
+
+                for(unsigned f = 0; f < width_size ; f++)
+                {
+                    unsigned h = meta_data.second->get_img_targets_batch()[i][j][k][f].size();
+                    memcpy(buf1, meta_data.second->get_img_targets_batch()[i][j][k][f].data() , sizeof(float)* meta_data.second->get_img_targets_batch()[i][j][k][f].size());
+                    buf1 += (h);
+                }
+            }
         }
     }
 }
@@ -482,6 +488,8 @@ RALI_API_CALL raliGetJointsData(RaliContext p_context, int* buf)
         }
     }
 }
+
+
 // void 
 // RALI_API_CALL raliKeyPointPose(RaliContext p_context, float sigma, float output_width, float output_height)
 // {

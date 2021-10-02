@@ -33,6 +33,9 @@ void COCOMetaDataReader::init(const MetaDataConfig &cfg)
 {
     _path = cfg.path();
     _output = new BoundingBoxBatch();
+    _keypoint = cfg.keypoint();
+    _out_img_width = cfg.out_img_height();
+    _out_img_height = cfg.out_img_height();
 }
 
 bool COCOMetaDataReader::exists(const std::string &image_name)
@@ -136,6 +139,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
     BoundingBoxLabels bb_labels;
     ImgSizes img_sizes;
     ImageJointsData img_joints_data;
+
     
 
     BoundingBoxCord box;
@@ -151,7 +155,6 @@ void COCOMetaDataReader::read_all(const std::string &path)
     
     float pixel_std = PIXEL_STD;
     float scale_constant = SCALE_CONSTANT_CS;
-    bool is_pose_estimation = true;
 
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
     parser.EnterObject();
@@ -251,9 +254,10 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         RAPIDJSON_ASSERT(parser.PeekType() == kArrayType);
                         parser.EnterArray();
                         int i = 0;
-                        if (is_pose_estimation)
+
+                        if (_keypoint)
                         {
-                            float aspect_ratio = 288 * 1.0 / 384;
+                            float aspect_ratio = (_out_img_width * 1.0 / _out_img_height);
                             bool flag;
 
                             flag = parser.NextArrayValue();

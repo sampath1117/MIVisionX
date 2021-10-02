@@ -42,8 +42,6 @@ public:
     virtual bool is_pose_estimation() = 0;
     virtual void set_pose_estimation(bool pose_estimation) = 0;
     std::list<std::shared_ptr<MetaNode>> _meta_nodes;
-    std::vector<int> UPPER_BODY_IDS = { 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 };
-    std::vector<int> LOWER_BODY_IDS = { 11 , 12 , 13 , 14 , 15 , 16 };
     bool _is_pose_estimation;
 };
 

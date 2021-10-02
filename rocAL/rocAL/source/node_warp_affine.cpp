@@ -102,6 +102,8 @@ void WarpAffineNode::update_affine_array()
             float src_dir[2] = {0.0};
             float dst_dir[2] = {0.0};
             float shift[2] = {0.0};
+            std::vector<int> UPPER_BODY_IDS = { 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 };
+            std::vector<int> LOWER_BODY_IDS = { 11 , 12 , 13 , 14 , 15 , 16 };
 
             for (uint bb_idx = 0; bb_idx < bb_count; bb_idx++)
             {
