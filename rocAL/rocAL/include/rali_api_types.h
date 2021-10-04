@@ -41,6 +41,7 @@ typedef void * RaliIntParam;
 typedef void * RaliContext;
 typedef void * RaliImage;
 typedef void * RaliMetaData;
+//typedef void * MetaDataJoints;
 
 struct TimingInfo
 {
@@ -49,6 +50,20 @@ struct TimingInfo
     long long unsigned process_time;
     long long unsigned transfer_time;
 };
+
+struct MetaDataJoints
+{
+    std::string image_path;
+    int image_id;
+    int annotation_id;
+    float score;
+    float rotation; 
+    float center[2];
+    float scale[2];
+    float joints[34];
+    float joints_visibility[34];
+};
+
 enum RaliStatus
 {
     RALI_OK = 0,

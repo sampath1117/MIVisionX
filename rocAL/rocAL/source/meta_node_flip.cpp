@@ -78,7 +78,7 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
                 
                 joints_data = input_meta_data->get_img_joints_data_batch()[i][object_index];
                 key_point0 = joints_data.joints[0];
-                key_point0_vis = joints_data.joints_visility[0];
+                key_point0_vis = joints_data.joints_visibility[0];
                 key_point0.x = (img_width - key_point0.x - 1) * (key_point0_vis.xv);
                 bb_center = joints_data.center;
                 bb_center.xc = img_width - bb_center.xc - 1;
@@ -94,8 +94,8 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
                     KeyPointVisibility key_point1_vis,key_point2_vis;
                     key_point1 = joints_data.joints[keypoint_index];
                     key_point2 = joints_data.joints[keypoint_index+1];
-                    key_point1_vis = joints_data.joints_visility[keypoint_index];
-                    key_point2_vis = joints_data.joints_visility[keypoint_index+1];
+                    key_point1_vis = joints_data.joints_visibility[keypoint_index];
+                    key_point2_vis = joints_data.joints_visibility[keypoint_index+1];
                     
                     //Update the keypoint co-ordinates
                     key_point1.x = (img_width - key_point1.x - 1) * (key_point1_vis.xv);
@@ -107,7 +107,7 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
                     key_points_visibility.push_back(key_point1_vis);   
                 }
                 joints_data.joints = key_points;
-                joints_data.joints_visility = key_points_visibility;
+                joints_data.joints_visibility = key_points_visibility;
                 joints_data.center = bb_center;
                 img_joints_data.push_back(joints_data);
                 key_points.clear();

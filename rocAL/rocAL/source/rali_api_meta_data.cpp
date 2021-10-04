@@ -404,11 +404,10 @@ RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *bu
     { 
         unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
         std::cout<<"annotation size:"<<annotation_size<<std::endl;
-        meta_data.second->get_bb_cords_batch()[i];
         for(unsigned j = 0; j < annotation_size ; j++)
         {
             memcpy(buf1, meta_data.second->get_img_joints_data_batch()[i][j].joints.data() , annotation_size * num_keypoints * sizeof(KeyPoint));
-            memcpy(buf2, meta_data.second->get_img_joints_data_batch()[i][j].joints_visility.data(), annotation_size * num_keypoints * sizeof(KeyPointVisibility));
+            memcpy(buf2, meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * num_keypoints * sizeof(KeyPointVisibility));
 
             buf1 += (annotation_size * num_keypoints * 2);
             buf2 += (annotation_size * num_keypoints * 2);
@@ -444,6 +443,8 @@ RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2
         {
             unsigned kps = meta_data.second->get_img_targets_batch()[i][j].size();
             std::cout<<"size of Target:"<<kps<<std::endl;
+            memcpy(buf2, meta_data.second->get_img_targets_weight_batch()[i][j].data() , sizeof(float)* meta_data.second->get_img_targets_weight_batch()[i][j].size());
+            buf2 += (annotation_size * num_keypoints);
 
             for (unsigned k = 0; k < kps ; k++)
             {
@@ -461,7 +462,7 @@ RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2
 }
 
 void
-RALI_API_CALL raliGetJointsData(RaliContext p_context, int* buf)
+RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data)
 {  
     if (!p_context)
         THROW("Invalid rali context passed to raliGetBoundingBoxCords")
@@ -476,25 +477,22 @@ RALI_API_CALL raliGetJointsData(RaliContext p_context, int* buf)
         WRN("No label has been loaded for this output image")
         return;
     }
-
     for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
-        unsigned annotation_size = meta_data.second->get_img_targets_batch()[i].size();
-        // std::cout<<"annotation size:"<<annotation_size<<std::endl;
+        unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
         for(unsigned j = 0; j < annotation_size ; j++)
         {
-            //memcpy(buf, meta_data.second->get_img_joints_data_batch()[i][j].center , annotation_size * sizeof(JointsData));
-            buf += (annotation_size * sizeof(JointsData));
+            std::cout<<"Entered the memcpy loop"<<std::endl;
+            joints_data->image_id = meta_data.second->get_img_joints_data_batch()[i][j].image_id;
+            joints_data->annotation_id = meta_data.second->get_img_joints_data_batch()[i][j].annotation_id;
+            joints_data->image_path = meta_data.second->get_img_joints_data_batch()[i][j].image_path;
+            memcpy(joints_data->center , &(meta_data.second->get_img_joints_data_batch()[i][j].center), annotation_size * sizeof(BoundingBoxScale));
+            memcpy(joints_data->scale , &(meta_data.second->get_img_joints_data_batch()[i][j].scale), annotation_size * sizeof(BoundingBoxScale));
+            memcpy(joints_data->joints ,meta_data.second->get_img_joints_data_batch()[i][j].joints.data(), annotation_size * 17 * sizeof(KeyPoint));
+            memcpy(joints_data->joints_visibility ,meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * 17 * sizeof(KeyPointVisibility));
+            joints_data->score = meta_data.second->get_img_joints_data_batch()[i][j].score;
+            joints_data->rotation = meta_data.second->get_img_joints_data_batch()[i][j].rotation;
         }
+
     }
 }
-
-
-// void 
-// RALI_API_CALL raliKeyPointPose(RaliContext p_context, float sigma, float output_width, float output_height)
-// {
-//     if (!p_context)
-//         THROW("Invalid rali context passed to raliKeyPointTarget")
-//     auto context = static_cast<Context *>(p_context);
-//     context->master_graph->keypoint_pose(sigma , output_width , output_height); 
-// }

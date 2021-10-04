@@ -361,7 +361,7 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
             {
                 Target bb_target;
                 bb_target.resize(target_height, std::vector<float>(target_width, 0));
-                TargetWeight bb_target_weight = full_batch_meta_data->get_img_joints_data_batch()[i][j].joints_visility[k].xv;
+                TargetWeight bb_target_weight = full_batch_meta_data->get_img_joints_data_batch()[i][j].joints_visibility[k].xv;
                 KeyPoint key_point;
                 key_point = full_batch_meta_data->get_img_joints_data_batch()[i][j].joints[k];
 

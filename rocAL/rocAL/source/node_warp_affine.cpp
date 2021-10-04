@@ -25,8 +25,10 @@ THE SOFTWARE.
 #include "node_warp_affine.h"
 #include "exception.h"
 
-void get_dir(float point[], float dir[], float r);
-void get_3rd_point(float mat[][2]);
+// void get_dir(float point[], float dir[], float r);
+// void get_3rd_point(float mat[][3]);
+// void get_inverse(float m[][3],float inv_m[3][3]);
+// void matrix_mult(float src[2][3] , float dst[3][3] ,float affine[2][3]);
 
 WarpAffineNode::WarpAffineNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs) :
         Node(inputs, outputs),
@@ -79,172 +81,215 @@ void WarpAffineNode::create_node()
 
 void WarpAffineNode::update_affine_array()
 {
-    bool pose_estimation = false;
+    // std::cout<<"Entered update affine array function"<<std::endl;   
+    // bool pose_estimation = true;
 
-    if(pose_estimation)
-    {
-        //Start of Half body transform
-        auto pixel_std = PIXEL_STD;
-        auto half_body_constant = SCALE_CONSTANT_HALF_BODY;
-        auto scale_factor = 0.35;
-        auto rotation_factor = 0.0;
-        float output_size[2] = {288.0, 384.0};
-        float pi = 3.14;
-        auto kps = NUMBER_OF_KEYPOINTS;
+    // if(pose_estimation)
+    // {
+    //     std::cout<<"Enter the affine calculation code"<<std::endl;
+    //     //Start of Half body transform
+    //     auto pixel_std = PIXEL_STD;
+    //     auto half_body_constant = SCALE_CONSTANT_HALF_BODY;
+    //     auto scale_factor = 0.35;
+    //     auto rotation_factor = 0.0;
+    //     float output_size[2] = {288.0, 384.0};
+    //     float pi = 3.14;
+    //     auto kps = NUMBER_OF_KEYPOINTS;
 
-        for (int i = 0; i < _meta_data_info->size(); i++)
-        {
-            ImageJointsData img_joints_data;
-            JointsData joints_data;
-            auto bb_count = _meta_data_info->get_bb_labels_batch()[i].size();
-            float src[3][2] = {0.0};
-            float dst[3][2] = {0.0};
-            float src_dir[2] = {0.0};
-            float dst_dir[2] = {0.0};
-            float shift[2] = {0.0};
-            std::vector<int> UPPER_BODY_IDS = { 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 };
-            std::vector<int> LOWER_BODY_IDS = { 11 , 12 , 13 , 14 , 15 , 16 };
+    //     std::cout<<"Enter the affine calculation code"<<std::endl;
+    //     for (int i = 0; i < _meta_data_info->size(); i++)
+    //     {
+    //         ImageJointsData img_joints_data;
+    //         JointsData joints_data;
+    //         auto bb_count = _meta_data_info->get_bb_labels_batch()[i].size();
+    //         float src[2][3] = {0.0};
+    //         float dst[2][3] = {1.0};
+    //         float dst_padded[3][3] = {1.0};
+    //         float inv_dst[3][3];
+    //         float src_dir[2] = {0.0};
+    //         float dst_dir[2] = {0.0};
+    //         float shift[2] = {0.0};
+    //         float affine_matrix[2][3];
+    //         std::vector<int> UPPER_BODY_IDS = { 0 , 1 , 2 , 3 , 4 , 5 , 6 , 7 , 8 , 9 , 10 };
+    //         std::vector<int> LOWER_BODY_IDS = { 11 , 12 , 13 , 14 , 15 , 16 };
+    //         std::cout<<"Initialized matrices needed"<<std::endl;
+    //         for (uint bb_idx = 0; bb_idx < bb_count; bb_idx++)
+    //         {
+    //             joints_data = _meta_data_info->get_img_joints_data_batch()[i][bb_idx];
+    //             BoundingBoxCenter box_center;
+    //             BoundingBoxScale box_scale;
+    //             KeyPoints upper_joints;
+    //             KeyPoints lower_joints;
+    //             KeyPoints selected_joints;
+    //             KeyPoint key_point;
+    //             KeyPointsVisibility key_points_visibility = joints_data.joints_visibility;
 
-            for (uint bb_idx = 0; bb_idx < bb_count; bb_idx++)
-            {
-                joints_data = _meta_data_info->get_img_joints_data_batch()[i][bb_idx];
-                BoundingBoxCenter box_center;
-                BoundingBoxScale box_scale;
-                KeyPoints upper_joints;
-                KeyPoints lower_joints;
-                KeyPoints selected_joints;
-                KeyPoint key_point;
-                KeyPointsVisibility key_points_visibility = joints_data.joints_visility;
+    //             box_center = joints_data.center;
+    //             box_scale = joints_data.scale;
+                
+    //             /*
+    //             //Seperate the keypoints into upper body and lower body
+    //             for (uint kp_idx = 0; kp_idx < kps; kp_idx++)
+    //             {
+    //                 auto v = key_points_visibility[kp_idx].xv;
+    //                 if (v > 0)
+    //                 {
+    //                     key_point = joints_data.joints[kp_idx];
+    //                     if (kp_idx <= 10)
+    //                     {
+    //                         upper_joints.push_back(key_point);
+    //                     }
+    //                     else
+    //                     {
+    //                         lower_joints.push_back(key_point);
+    //                     }
+    //                 }
+    //             }
 
-                //Seperate the keypoints into upper body and lower body
-                for (uint kp_idx = 0; kp_idx < kps; kp_idx++)
-                {
-                    auto v = key_points_visibility[kp_idx].xv;
-                    if (v > 0)
-                    {
-                        key_point = joints_data.joints[kp_idx];
-                        if (kp_idx <= 10)
-                        {
-                            upper_joints.push_back(key_point);
-                        }
-                        else
-                        {
-                            lower_joints.push_back(key_point);
-                        }
-                    }
-                }
+    //             //Any of lower body/upper body joints should have minimum 3 joints
+    //             if (lower_joints.size() < 3 && upper_joints.size() < 3)
+    //             {
+    //                 return;
+    //             }
 
-                //Any of lower body/upper body joints should have minimum 3 joints
-                if (lower_joints.size() < 3 && upper_joints.size() < 3)
-                {
-                    return;
-                }
+    //             //select any of upper body and lower body joints
+    //             selected_joints = upper_joints;
+    //             if (lower_joints.size() > 2) //add random factor here
+    //             {
+    //                 selected_joints = lower_joints;
+    //             }
 
-                //select any of upper body and lower body joints
-                selected_joints = upper_joints;
-                if (lower_joints.size() > 2) //add random factor here
-                {
-                    selected_joints = lower_joints;
-                }
+    //             auto mean_center_x = 0.0;
+    //             auto mean_center_y = 0.0;
+    //             auto min_idx = 0;
+    //             auto max_idx = 0;
+    //             for (uint kp_idx = 0; kp_idx < selected_joints.size(); kp_idx++)
+    //             {
+    //                 mean_center_x = mean_center_x + selected_joints[kp_idx].x;
+    //                 mean_center_y = mean_center_y + selected_joints[kp_idx].y;
 
-                auto mean_center_x = 0.0;
-                auto mean_center_y = 0.0;
-                auto min_idx = 0;
-                auto max_idx = 0;
-                for (uint kp_idx = 0; kp_idx < selected_joints.size(); kp_idx++)
-                {
-                    mean_center_x = mean_center_x + selected_joints[kp_idx].x;
-                    mean_center_y = mean_center_y + selected_joints[kp_idx].y;
+    //                 if (selected_joints[kp_idx].x < selected_joints[min_idx].x)
+    //                 {
+    //                     min_idx = kp_idx;
+    //                 }
 
-                    if (selected_joints[kp_idx].x < selected_joints[min_idx].x)
-                    {
-                        min_idx = kp_idx;
-                    }
+    //                 if (selected_joints[kp_idx].x > selected_joints[max_idx].x)
+    //                 {
+    //                     max_idx = kp_idx;
+    //                 }
+    //             }
+    //             box_center.xc = mean_center_x / selected_joints.size();
+    //             box_center.yc = mean_center_y / selected_joints.size();
 
-                    if (selected_joints[kp_idx].x > selected_joints[max_idx].x)
-                    {
-                        max_idx = kp_idx;
-                    }
-                }
-                box_center.xc = mean_center_x / selected_joints.size();
-                box_center.yc = mean_center_y / selected_joints.size();
+    //             //Calculate the scale value
+    //             float left_top[] = {selected_joints[min_idx].x, selected_joints[min_idx].y};
+    //             float right_bottom[] = {selected_joints[max_idx].x, selected_joints[max_idx].y};
+    //             float w, h;
+    //             w = right_bottom[0] - left_top[0];
+    //             h = right_bottom[1] - left_top[1];
 
-                //Calculate the scale value
-                float left_top[] = {selected_joints[min_idx].x, selected_joints[min_idx].y};
-                float right_bottom[] = {selected_joints[max_idx].x, selected_joints[max_idx].y};
-                float w, h;
-                w = right_bottom[0] - left_top[0];
-                h = right_bottom[1] - left_top[1];
+    //             float aspect_ratio = output_size[0] * 1.0 / output_size[1];
+    //             if (w > aspect_ratio * h)
+    //             {
+    //                 h = w * 1.0 / aspect_ratio;
+    //             }
+    //             else if (w < aspect_ratio * h)
+    //             {
+    //                 w = aspect_ratio * h;
+    //             }
 
-                float aspect_ratio = output_size[0] * 1.0 / output_size[1];
-                if (w > aspect_ratio * h)
-                {
-                    h = w * 1.0 / aspect_ratio;
-                }
-                else if (w < aspect_ratio * h)
-                {
-                    w = aspect_ratio * h;
-                }
+    //             box_scale.ws = (half_body_constant * w * 1.0) / pixel_std;
+    //             box_scale.hs = (half_body_constant * h * 1.0) / pixel_std;
+    //             //End of Half body transform
 
-                box_scale.ws = (half_body_constant * w * 1.0) / pixel_std;
-                box_scale.hs = (half_body_constant * h * 1.0) / pixel_std;
-                //End of Half body transform
+    //             //Multiply scale with random scale factor clipped between [1-sf,1+sf]
+    //             box_scale.ws = box_scale.ws * scale_factor;
+    //             box_scale.hs = box_scale.hs * scale_factor;
+    //             */
 
-                //Multiply scale with random scale factor clipped between [1-sf,1+sf]
-                box_scale.ws = box_scale.ws * scale_factor;
-                box_scale.hs = box_scale.hs * scale_factor;
+    //             //Get random rotation factor
+    //             auto r = rotation_factor;
+    //             joints_data.rotation = r;
 
-                //Get random rotation factor
-                auto r = rotation_factor;
-                joints_data.rotation = r;
+    //             //Generate the affine matrix based on this values
 
-                //Generate the affine matrix based on this values
+    //             //Get the correct scale values
+    //             float scale_temp[2] = {pixel_std * box_scale.ws, pixel_std * box_scale.hs};
+    //             float src_w = scale_temp[0];
+    //             float dst_w = output_size[0]*1.0;
+    //             float dst_h = output_size[1]*1.0;
+    //             auto r_rad = pi * r / 180;
 
-                //Get the correct scale values
-                float scale_temp[2] = {pixel_std * box_scale.ws, pixel_std * box_scale.hs};
-                float src_w = scale_temp[0];
-                float dst_w = output_size[0]*1.0;
-                float dst_h = output_size[1]*1.0;
-                auto r_rad = pi * r / 180;
+    //             std::cout << "src_w: " << src_w << std::endl;
+    //             std::cout << "dst_w: " << dst_w << std::endl;
+    //             std::cout << "dst_h: " << dst_h << std::endl;
 
-                std::cout << "src_w: " << src_w << std::endl;
-                std::cout << "dst_w: " << dst_w << std::endl;
-                std::cout << "dst_h: " << dst_h << std::endl;
+    //             float src_point[2] = {0.0, src_w * -0.5};
+    //             float dst_point[2] = {0.0, dst_w * -0.5};
 
-                float src_point[2] = {0.0, src_w * -0.5};
-                float dst_point[2] = {0.0, dst_w * -0.5};
+    //             std::cout<<"Calculated the source and destination point"<<std::endl;
 
-                get_dir(src_point, src_dir, r_rad);
-                get_dir(dst_point, dst_dir, r_rad);
+    //             get_dir(src_point, src_dir, r_rad);
+    //             get_dir(dst_point, dst_dir, r_rad);
+
+    //             std::cout<<"Got the direction"<<std::endl;
             
-                src[0][0] = box_center.xc + (shift[0] * scale_temp[0]);
-                src[0][1] = box_center.yc + (shift[1] * scale_temp[1]);
-                src[1][0] = box_center.xc + src_dir[0] + (shift[0] * scale_temp[0]);
-                src[1][1] = box_center.yc + src_dir[1] + (shift[1] * scale_temp[1]);
+    //             src[0][0] = box_center.xc + (shift[0] * scale_temp[0]);
+    //             src[1][0] = box_center.yc + (shift[1] * scale_temp[1]);
+    //             src[0][1] = box_center.xc + src_dir[0] + (shift[0] * scale_temp[0]);
+    //             src[1][1] = box_center.yc + src_dir[1] + (shift[1] * scale_temp[1]);
 
-                dst[0][0] = dst_w * 0.5;
-                dst[0][1] = dst_h * 0.5;
-                dst[1][0] = dst_w * 0.5 + dst_dir[0] + (shift[0] * scale_temp[0]);
-                dst[1][1] = dst_h * 0.5 + dst_dir[1] + (shift[1] * scale_temp[1]);
+    //             std::cout << "src matrix:" << std::endl
+    //             << src[0][0] << " " << src[0][1] << std::endl
+    //             << src[1][0] << " " << src[1][1] << std::endl;
+               
+    //             dst[0][0] = dst_padded[0][0] = dst_w * 0.5;
+    //             dst[1][0] = dst_padded[1][0] = dst_h * 0.5;
+    //             dst[0][1] = dst_padded[0][1] = dst_w * 0.5 + dst_dir[0] + (shift[0] * scale_temp[0]);
+    //             dst[1][1] = dst_padded[1][1] = dst_h * 0.5 + dst_dir[1] + (shift[1] * scale_temp[1]);
+    //             dst_padded[2][0] = 1.0;
+    //             dst_padded[2][1] = 1.0;
+    //             dst_padded[2][2] = 1.0;   
 
-                get_3rd_point(src);
-                get_3rd_point(dst);
+    //             std::cout << "dst matrix:" << std::endl
+    //             << dst[0][0] << " " << dst[0][1] << " " << dst[0][2]<<std::endl
+    //             << dst[1][0] << " " << dst[1][1] << " " << dst[1][2]<<std::endl
+    //             << dst_padded[2][0] << " " << dst_padded[2][1] << " " << dst_padded[2][2]<<std::endl;
+                       
+                
+    //             //Get the 3rd point
+    //             get_3rd_point(src);
+    //             get_3rd_point(dst);
+    //             dst_padded[0][2] = dst[0][2];
+    //             dst_padded[1][2] = dst[1][2];
+        
+    //             //Get the inverse matrix
+    //             get_inverse(dst_padded,inv_dst);
+    //             std::cout << "inverse matrix:" << std::endl
+    //             << inv_dst[0][0] << " " << inv_dst[0][1] << " " << inv_dst[0][2]<<std::endl
+    //             << inv_dst[1][0] << " " << inv_dst[1][1] << " " << inv_dst[1][2]<<std::endl
+    //             << inv_dst[2][0] << " " << inv_dst[2][1] << " " << inv_dst[2][2]<<std::endl;
 
-                //Calculate the affine
+    //             //Get the affine array
+    //             matrix_mult(src,inv_dst,affine_matrix);
 
-                //Copy these values to local bb_centers,bb_scales
-                joints_data.center = box_center;
-                joints_data.scale = box_scale;
-                img_joints_data.push_back(joints_data);
+    //             std::cout << "affine matrix:" << std::endl
+    //             << affine_matrix[0][0] << " " << affine_matrix[0][1] << " " << affine_matrix[0][2]<<std::endl
+    //             << affine_matrix[1][0] << " " << affine_matrix[1][1] << " " << affine_matrix[1][2]<<std::endl;
 
-                //Clear the keypoint values
-                upper_joints.clear();
-                lower_joints.clear();
-                selected_joints.clear();
-            }
-            _meta_data_info->get_img_joints_data_batch()[i] = img_joints_data;
-        }
-    }
+    //             //Copy these values to local bb_centers,bb_scales
+    //             joints_data.center = box_center;
+    //             joints_data.scale = box_scale;
+    //             img_joints_data.push_back(joints_data);
+
+    //             //Clear the keypoint values
+    //             upper_joints.clear();
+    //             lower_joints.clear();
+    //             selected_joints.clear();
+    //         }
+    //         //_meta_data_info->get_img_joints_data_batch()[i] = img_joints_data;
+    //     }
+    // }
     
     for (uint i = 0; i < _batch_size; i++ )
     {
@@ -289,32 +334,90 @@ void WarpAffineNode::update_node()
     update_affine_array();
 }
 
-void get_dir(float point[], float dir[], float r)
-{
-    // std::cout<<"direction array before:"<<std::endl;
-    // std::cout<<dir[0]<<" "<<dir[1]<<std::endl;
-    float sn = std::sin(r);
-    float cs = std::cos(r);
-    dir[0] = point[0] * cs - point[1] * sn;
-    dir[1] = point[0] * sn + point[1] * cs;
-    // std::cout<<"direction array after:"<<std::endl;
-    // std::cout<<dir[0]<<" "<<dir[1]<<std::endl;
-}
-void get_3rd_point(float mat[][2])
-{
-    // std::cout << "matrix before:" << std::endl
-    // << mat[0][0] << " " << mat[0][1] << std::endl
-    // << mat[1][0] << " " << mat[1][1] << std::endl
-    // << mat[2][0] << " " << mat[2][1] << std::endl;
+// void get_dir(float point[], float dir[], float r)
+// {
+//     // std::cout<<"direction array before:"<<std::endl;
+//     // std::cout<<dir[0]<<" "<<dir[1]<<std::endl;
+//     float sn = std::sin(r);
+//     float cs = std::cos(r);
+//     dir[0] = point[0] * cs - point[1] * sn;
+//     dir[1] = point[0] * sn + point[1] * cs;
+//     // std::cout<<"direction array after:"<<std::endl;
+//     // std::cout<<dir[0]<<" "<<dir[1]<<std::endl;
+// }
+// void get_3rd_point(float mat[][3])
+// {
+//     // std::cout << "matrix before:" << std::endl
+//     // << mat[0][0] << " " << mat[0][1] << std::endl
+//     // << mat[1][0] << " " << mat[1][1] << std::endl
+//     // << mat[2][0] << " " << mat[2][1] << std::endl;
 
-    float direct[2] = {mat[0][0] - mat[1][0], mat[0][1] - mat[1][1]};
-    mat[2][0] = mat[1][0] - direct[1];
-    mat[2][1] = mat[1][1] + direct[0];
+//     float direct[2] = {mat[0][0] - mat[0][1], mat[1][0] - mat[1][1]};
+//     mat[0][2] = mat[0][1] - direct[1];
+//     mat[1][2] = mat[1][1] + direct[0];
 
-    // std::cout << "matrix after:" << std::endl
-    // << mat[0][0] << " " << mat[0][1] << std::endl
-    // << mat[1][0] << " " << mat[1][1] << std::endl
-    // << mat[2][0] << " " << mat[2][1] << std::endl;
-}
+//     // std::cout << "matrix after:" << std::endl
+//     // << mat[0][0] << " " << mat[0][1] << std::endl
+//     // << mat[1][0] << " " << mat[1][1] << std::endl
+//     // << mat[2][0] << " " << mat[2][1] << std::endl;
+// }
+
+// void get_inverse(float m[3][3],float inv_m[3][3])
+// {
+//     float det = 0.0;
+
+//     //Calculate determinant of the matrix
+//     for(int i = 0; i < 3 ; i++)
+//     {
+//         det = det + (m[0][i] * (m[1][(i+1) % 3] * m[2][(i+2) % 3] - m[1][(i+2) % 3] * m[2][(i+1) % 3]));
+//     }
+
+//     if(det==0)
+//     {
+//         return;
+//     }
+
+//     for(int i = 0 ; i < 3 ; i++)
+//     {
+//         for(int j = 0 ; j < 3 ; j++)
+//         {
+//         	inv_m[j][i] = ((m[(i+1)%3][(j+1)%3] * m[(i+2)%3][(j+2)%3]) - (m[(i+1)%3][(j+2)%3] * m[(i+2)%3][(j+1)%3])) / det;
+//   		}
+//   	}
+  	
+//   	for(int i = 0 ; i < 3 ; i++)
+//     {
+//         for(int j = 0 ; j < 3 ; j++)
+//         {
+//         	std::cout<<inv_m[j][i]<<" ";
+//   		}
+//   		std::cout<<std::endl;
+//   	}
+// }
+
+// void matrix_mult(float src[2][3] , float dst[3][3] ,float affine[2][3])
+// {
+//     for(int i = 0 ; i < 2 ; i++)
+//     {
+//         for(int j = 0; j < 3 ; j++)
+//         {
+//             for(int k = 0; k < 3; k++)
+//             {
+//                 affine[i][j] += src[i][k] * dst[k][j];
+//             }
+//         }
+//     }
+
+//     //Print the affine matrix generated
+//     for(int i = 0 ; i < 2 ; i++)
+//     {
+//         for(int j = 0; j < 3 ; j++)
+//         {
+//             std::cout<<affine[i][j]<<" "; 
+//         }
+//         std::cout<<std::endl;
+//     }
+
+// }
 
  

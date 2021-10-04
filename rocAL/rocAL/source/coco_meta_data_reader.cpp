@@ -66,7 +66,7 @@ void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
     }
 }
 
-void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size, ImageJointsData img_joints_data) //add change
+void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size, ImageJointsData img_joints_data) 
 {
     if (exists(image_name))
     {
@@ -87,6 +87,7 @@ void COCOMetaDataReader::print_map_contents()
     ImgSizes img_sizes;
     ImageJointsData img_joints_data;
     size_t num_keypoints = NUMBER_OF_KEYPOINTS;
+    
 
     std::cout << "\nBBox Annotations List: \n";
     for (auto &elem : _map_content)
@@ -111,7 +112,7 @@ void COCOMetaDataReader::print_map_contents()
             //std::cout<<"Size of key points index is:"<<img_key_points[i].size()<<std::endl;
             for (unsigned int j = 0; j < num_keypoints; j++)
             {
-                std::cout << " x : " << img_joints_data[i].joints[j].x << " , y: " << img_joints_data[i].joints[j].y << " , v : " << img_joints_data[i].joints_visility[j].xv << std::endl;
+                std::cout << " x : " << img_joints_data[i].joints[j].x << " , y: " << img_joints_data[i].joints[j].y << " , v : " << img_joints_data[i].joints_visibility[j].xv << std::endl;
             }
         }
     }
@@ -140,21 +141,20 @@ void COCOMetaDataReader::read_all(const std::string &path)
     ImgSizes img_sizes;
     ImageJointsData img_joints_data;
 
-    
-
     BoundingBoxCord box;
     BoundingBoxCenter box_center;
     BoundingBoxScale box_scale;
     ImgSize img_size;
-    size_t num_keypoints = NUMBER_OF_KEYPOINTS;
+    size_t num_keypoints = NUMBER_OF_KEYPOINTS; 
     float score = 1.0;
+    float rotation = 0.0;
     KeyPoints key_points(num_keypoints);
     KeyPointsVisibility key_points_visibility(num_keypoints);
     JointsData joints_data;
 
-    
     float pixel_std = PIXEL_STD;
     float scale_constant = SCALE_CONSTANT_CS;
+    
 
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
     parser.EnterObject();
@@ -231,9 +231,9 @@ void COCOMetaDataReader::read_all(const std::string &path)
             parser.EnterArray();
             while (parser.NextArrayValue())
             {
-                int id = 1, label = 0;
-                std::array<float, 4> bbox = { 0 };
-                std::array<float, 51> keypoint{}; //new change
+                int id = 1, label = 0, ann_id;
+                std::array<float, 4> bbox = {};
+                std::array<float, 51> keypoint{}; 
                 if (parser.PeekType() != kObjectType)
                 {
                     continue;
@@ -249,52 +249,42 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     {
                         label = parser.GetInt();
                     }
+                    else if (0 == std::strcmp(internal_key, "id"))
+                    {
+                        ann_id = parser.GetInt();
+                    }
                     else if (0 == std::strcmp(internal_key, "bbox"))
                     {
                         RAPIDJSON_ASSERT(parser.PeekType() == kArrayType);
                         parser.EnterArray();
-                        int i = 0;
 
                         if (_keypoint)
                         {
                             float aspect_ratio = (_out_img_width * 1.0 / _out_img_height);
-                            bool flag;
+                            
+                            box_center.xc = (parser.NextArrayValue()) * parser.GetDouble();
+                            box_center.yc = (parser.NextArrayValue()) * parser.GetDouble();
+                            box_scale.ws = (parser.NextArrayValue()) * parser.GetDouble();
+                            box_scale.hs = (parser.NextArrayValue()) * parser.GetDouble();
 
-                            flag = parser.NextArrayValue();
-                            box_center.xc = parser.GetDouble() * flag;
-                            flag = parser.NextArrayValue();
-                            box_center.yc = parser.GetDouble() * flag;
+                            box_center.xc +=  (0.5 * box_scale.ws);
+                            box_center.yc +=  (0.5 * box_scale.hs);
+                            
+                            box_scale.hs = (box_scale.ws > aspect_ratio * box_scale.hs) ? ((box_scale.hs = box_scale.ws * 1.0 / aspect_ratio) / pixel_std) : box_scale.hs / pixel_std; 
+                            box_scale.ws =  (box_scale.hs > aspect_ratio * box_scale.ws) ? ((box_scale.ws = aspect_ratio * box_scale.hs) /  pixel_std) : box_scale.ws / pixel_std;
 
-                            flag = parser.NextArrayValue();
-                            box_scale.ws = parser.GetDouble() * flag;
-                            flag = parser.NextArrayValue();
-                            box_scale.hs = parser.GetDouble() * flag;
-
-                            box_center.xc = box_center.xc + 0.5 * box_scale.ws;
-                            box_center.yc = box_center.yc + 0.5 * box_scale.hs;
-
-                            if (box_scale.ws > aspect_ratio * box_scale.hs)
-                            {
-                                box_scale.hs = box_scale.ws * 1.0 / aspect_ratio;
-                            }
-                            else if (box_scale.hs > aspect_ratio * box_scale.ws)
-                            {
-                                box_scale.ws = aspect_ratio * box_scale.hs;
-                            }
-
-                            box_scale.ws = box_scale.ws / pixel_std;
-                            box_scale.hs = box_scale.hs  / pixel_std;
-
-                            if (box_center.xc != -1)
+                            if (box_center.xc != -1) 
                             {
                                 box_scale.ws = scale_constant * box_scale.ws;
                                 box_scale.hs = scale_constant * box_scale.hs;
                             }
+
                             //Move to next section
                             parser.NextArrayValue();
                         }
                         else
                         {
+                            int i = 0;
                             while (parser.NextArrayValue())
                             {
                                 bbox[i] = parser.GetDouble();
@@ -302,7 +292,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                             }
                         }
                     }
-                    else if (0 == std::strcmp(internal_key, "keypoints")) //add change
+                    else if (0 == std::strcmp(internal_key, "keypoints")) 
                     {
                         RAPIDJSON_ASSERT(parser.PeekType() == kArrayType);
                         parser.EnterArray();
@@ -322,45 +312,49 @@ void COCOMetaDataReader::read_all(const std::string &path)
                 sprintf(buffer, "%012d", id);
                 string str(buffer);
                 std::string file_name = str + ".jpg";
-
                 auto it = _map_img_sizes.find(file_name);
                 ImgSizes image_size = it->second; //Normalizing the co-ordinates & convert to "ltrb" format
 
-                box.l = bbox[0] / image_size[0].w;
-                box.t = bbox[1] / image_size[0].h;
-                box.r = (bbox[0] + bbox[2]) / image_size[0].w;
-                box.b = (bbox[1] + bbox[3]) / image_size[0].h;
+                
+                if (!_keypoint) // format conversion not required for key point processing 
+                {
+                    box.l = bbox[0] / image_size[0].w;
+                    box.t = bbox[1] / image_size[0].h;
+                    box.r = (bbox[0] + bbox[2]) / image_size[0].w;
+                    box.b = (bbox[1] + bbox[3]) / image_size[0].h;
+                }
+                //Store the keypoint values in Joints, Joints Visibility
+                else
+                {
+                    unsigned int j = 0; 
+                    for (unsigned int i = 0; i < num_keypoints; i++)
+                    {
+                        key_points[i].x = keypoint[j];
+                        key_points[i].y = keypoint[j + 1];
+                        key_points_visibility[i].xv = !(!keypoint[j + 2]);
+                        key_points_visibility[i].yv = !(!keypoint[j + 2]);
+                        j = j + 3;
+                    }
+
+                    joints_data.annotation_id = ann_id;
+                    joints_data.image_id = id;
+                    joints_data.image_path = file_name;
+                    joints_data.center = box_center;
+                    joints_data.scale = box_scale;
+                    joints_data.joints = key_points;
+                    joints_data.joints_visibility = key_points_visibility;
+                    joints_data.score = score;
+                    joints_data.rotation = rotation;
+                }
 
                 bb_coords.push_back(box);
                 bb_labels.push_back(label);
-
-
-                //Store the keypoint values in Joints, Joints Visibility
-                unsigned int j = 0; //new change
-                for (unsigned int i = 0; i < num_keypoints; i++)
-                {
-                    key_points[i].x = keypoint[j];
-                    key_points[i].y = keypoint[j + 1];
-                    key_points_visibility[i].xv = !(!keypoint[j + 2]);
-                    key_points_visibility[i].yv = !(!keypoint[j + 2]);
-                    j = j + 3;
-                }
-                //std::cout<<"Completed setting keypoint values"<<std::endl;
-                
-
-                joints_data.joints = key_points;
-                joints_data.joints_visility = key_points_visibility;
-                joints_data.center = box_center;
-                joints_data.scale = box_scale;
-                joints_data.image_path = file_name;
-                joints_data.score = score;
                 img_joints_data.push_back(joints_data);
-
-                //std::cout<<"Pushed keypoint values to the keypoint vector"<<std::endl;
+                
                 add(file_name, bb_coords, bb_labels, image_size, img_joints_data);
+                img_joints_data.clear();
                 bb_coords.clear();
                 bb_labels.clear();
-                img_joints_data.clear();
             }
         }
         else

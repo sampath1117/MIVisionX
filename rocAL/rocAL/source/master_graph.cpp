@@ -902,7 +902,6 @@ void MasterGraph::output_routine()
                     {
                         if(_is_random_bbox_crop)
                         {
-                            decoded_image_info decode_image_info;
                             _meta_data_graph->update_random_bbox_meta_data(_augmented_meta_data, decode_image_info, crop_image_info);
                         }
                         /*
@@ -973,7 +972,7 @@ void MasterGraph::stop_processing()
         _output_thread.join();
 }
 
-MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, bool keypoint, float sigma , int pose_output_width , int pose_output_height)
+MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, bool keypoint, float sigma = 0.0 , int pose_output_width = 0, int pose_output_height = 0)
 {
     if( _meta_data_reader)
         THROW("A metadata reader has already been created")
@@ -985,8 +984,12 @@ MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_pat
     _meta_data_reader = create_meta_data_reader(config);
     _meta_data_reader->init(config);
     _meta_data_reader->read_all(source_path);
-    //Set the variables required for keypoints
-    MasterGraph::keypoint_pose(sigma , pose_output_width , pose_output_height);
+
+    if(keypoint)
+    {
+        MasterGraph::keypoint_pose(sigma , pose_output_width , pose_output_height);
+    }
+
     if(is_output)
     {
         if (_augmented_meta_data)

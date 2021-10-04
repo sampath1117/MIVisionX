@@ -37,6 +37,8 @@ THE SOFTWARE.
 typedef  struct { float l; float t; float r; float b; } BoundingBoxCord;
 typedef struct { float xc; float yc; } BoundingBoxCenter;
 typedef struct { float ws; float hs; } BoundingBoxScale;
+typedef  std::vector<BoundingBoxCenter> BoundingBoxCenters;
+typedef  std::vector<BoundingBoxScale> BoundingBoxScales;
 typedef struct {
     float x; //x-coordinate of keypoint
     float y; //y-coordinate of keypoint
@@ -55,20 +57,25 @@ typedef  std::vector<ImgSize> ImgSizes;
 typedef std::vector<KeyPoint> KeyPoints;
 typedef std::vector<KeyPointVisibility> KeyPointsVisibility;
 typedef std::vector<std::vector<float> > Target;
-
 typedef std::vector<Target> Targets;
 typedef std::vector<Targets> ImageTargets;
 typedef float TargetWeight;
 typedef std::vector<TargetWeight> TargetsWeight;
 typedef std::vector<TargetsWeight> ImageTargetsWeight;
 
+typedef std::vector<int> ImageIDs;
+typedef std::vector<int> AnnotationIDs;
+typedef std::vector<float> Scores;
+typedef std::vector<float> Rotations;
 typedef struct
 {
+    int image_id;
+    int annotation_id;
     std::string image_path;
     BoundingBoxCenter center;
     BoundingBoxScale scale;
     KeyPoints joints;
-    KeyPointsVisibility joints_visility;
+    KeyPointsVisibility joints_visibility;
     float score;
     float rotation;
 }JointsData;
@@ -98,6 +105,7 @@ struct Label : public MetaData
     Label(int label) { _label_id = label; }
     Label(){ _label_id = -1; }
 };
+
 
 struct BoundingBox : public MetaData
 {

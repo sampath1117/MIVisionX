@@ -96,7 +96,7 @@ int main(int argc, const char **argv)
 int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height, int num_of_classes, int display_all)
 {
     size_t num_threads = 1;
-    unsigned int inputBatchSize = 1;
+    unsigned int inputBatchSize = 2;
     int decode_max_width = width;
     int decode_max_height = height;
     float sigma = 3.0;
@@ -671,11 +671,12 @@ RaliImage input1;
         int img_size = raliGetImageNameLen(handle, image_name_length);
         char img_name[img_size];
         raliGetImageName(handle, img_name);
-        std::cerr << "\nPrinting image names of batch: " << img_name<<std::endl;
+        //std::cerr << "\nPrinting image names of batch: " << img_name<<std::endl;
         int bb_label_count[inputBatchSize];
         int size = raliGetBoundingBoxCount(handle, bb_label_count);
         for (int i = 0; i < inputBatchSize; i++)
-            std::cerr << "\n Number of box:  " << bb_label_count[i]<<std::endl;
+            //std::cerr << "\n Number of box:  " << bb_label_count[i]<<std::endl;
+            std::cout<<"";
         int bb_labels[size];
         raliGetBoundingBoxLabel(handle, bb_labels);
         float bb_coords[size * 4];
@@ -696,13 +697,13 @@ RaliImage input1;
         }
 
         float img_targets[size*17*96*72];
-        float img_targets_weight[size*17*96*72];
+        float img_targets_weight[size*17];
         raliGetImageTargets(handle, img_targets, img_targets_weight);
         int cnt=0;
         for (int k = 0; k < size*17; k++)
         {
-            std::cout<<"keypoint : "<<img_key_points[2*k]<<"  "<<img_key_points[2*k+1]<<std::endl;
-            // std::cout<<"Heat map number: "<<k<<std::endl;
+            //std::cout<<"keypoint : "<<img_key_points[2*k]<<"  "<<img_key_points[2*k+1]<<std::endl;
+            std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
             for(int i = 0; i < 96 ; i++)
             {
                 for(int j = 0; j < 72 ; j++)
@@ -717,6 +718,24 @@ RaliImage input1;
             }
             std::cout<<std::endl;
         }
+
+        MetaDataJoints *joints_data = new MetaDataJoints();
+        raliGetJointsData(handle, joints_data);
+        // std::cout<<"Image ID: "<<joints_data->image_id<<std::endl;
+        // std::cout<<"Annotation ID: "<<joints_data->annotation_id<<std::endl;
+        // std::cout<<"Image Path: "<<joints_data->image_path<<std::endl;
+        // std::cout<<"Center: "<<joints_data->center[0]<<" "<<joints_data->center[1]<<std::endl;
+        // std::cout<<"Scale: "<<joints_data->scale[0]<<" "<<joints_data->scale[1]<<std::endl;
+        // std::cout<<"Rotation: "<<joints_data->rotation<<std::endl;
+        // std::cout<<"Score : "<<joints_data->score<<std::endl;
+        
+        // for (int k = 0; k < size*17*2; k=k+2)
+        // {
+        //  std::cout<<"x : "<<joints_data->joints[k]<<" , y : "<<joints_data->joints[k+1]<<" , v : "<<joints_data->joints_visibility[k]<<std::endl;
+        // }
+        
+
+        
 
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);
@@ -783,6 +802,8 @@ RaliImage input1;
         }
         col_counter = (col_counter + 1) % number_of_cols;
     }
+
+    
 
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(t2 - t1).count();
