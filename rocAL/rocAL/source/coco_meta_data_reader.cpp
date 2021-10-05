@@ -86,9 +86,7 @@ void COCOMetaDataReader::print_map_contents()
     BoundingBoxLabels bb_labels;
     ImgSizes img_sizes;
     ImageJointsData img_joints_data;
-    size_t num_keypoints = NUMBER_OF_KEYPOINTS;
     
-
     std::cout << "\nBBox Annotations List: \n";
     for (auto &elem : _map_content)
     {
@@ -110,7 +108,7 @@ void COCOMetaDataReader::print_map_contents()
         for (unsigned int i = 0; i < bb_coords.size(); i++)
         {
             //std::cout<<"Size of key points index is:"<<img_key_points[i].size()<<std::endl;
-            for (unsigned int j = 0; j < num_keypoints; j++)
+            for (unsigned int j = 0; j < NUMBER_OF_KEYPOINTS; j++)
             {
                 std::cout << " x : " << img_joints_data[i].joints[j].x << " , y: " << img_joints_data[i].joints[j].y << " , v : " << img_joints_data[i].joints_visibility[j].xv << std::endl;
             }
@@ -145,15 +143,12 @@ void COCOMetaDataReader::read_all(const std::string &path)
     BoundingBoxCenter box_center;
     BoundingBoxScale box_scale;
     ImgSize img_size;
-    size_t num_keypoints = NUMBER_OF_KEYPOINTS; 
     float score = 1.0;
     float rotation = 0.0;
-    KeyPoints key_points(num_keypoints);
-    KeyPointsVisibility key_points_visibility(num_keypoints);
+    KeyPoints key_points(NUMBER_OF_KEYPOINTS);
+    KeyPointsVisibility key_points_visibility(NUMBER_OF_KEYPOINTS);
     JointsData joints_data;
 
-    float pixel_std = PIXEL_STD;
-    float scale_constant = SCALE_CONSTANT_CS;
     
 
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
@@ -270,13 +265,13 @@ void COCOMetaDataReader::read_all(const std::string &path)
                             box_center.xc +=  (0.5 * box_scale.ws);
                             box_center.yc +=  (0.5 * box_scale.hs);
                             
-                            box_scale.hs = (box_scale.ws > aspect_ratio * box_scale.hs) ? ((box_scale.hs = box_scale.ws * 1.0 / aspect_ratio) / pixel_std) : box_scale.hs / pixel_std; 
-                            box_scale.ws =  (box_scale.hs > aspect_ratio * box_scale.ws) ? ((box_scale.ws = aspect_ratio * box_scale.hs) /  pixel_std) : box_scale.ws / pixel_std;
+                            box_scale.hs = (box_scale.ws > aspect_ratio * box_scale.hs) ? ((box_scale.hs = box_scale.ws * 1.0 / aspect_ratio) / PIXEL_STD) : box_scale.hs / PIXEL_STD; 
+                            box_scale.ws =  (box_scale.hs > aspect_ratio * box_scale.ws) ? ((box_scale.ws = aspect_ratio * box_scale.hs) /  PIXEL_STD) : box_scale.ws / PIXEL_STD;
 
                             if (box_center.xc != -1) 
                             {
-                                box_scale.ws = scale_constant * box_scale.ws;
-                                box_scale.hs = scale_constant * box_scale.hs;
+                                box_scale.ws = SCALE_CONSTANT_CS * box_scale.ws;
+                                box_scale.hs = SCALE_CONSTANT_CS * box_scale.hs;
                             }
 
                             //Move to next section
@@ -327,7 +322,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                 else
                 {
                     unsigned int j = 0; 
-                    for (unsigned int i = 0; i < num_keypoints; i++)
+                    for (unsigned int i = 0; i < NUMBER_OF_KEYPOINTS; i++)
                     {
                         key_points[i].x = keypoint[j];
                         key_points[i].y = keypoint[j + 1];

@@ -316,7 +316,6 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
 {
     //std::cout << "Entered heat map function" << std::endl;
     //Generate gaussians
-    auto kps = NUMBER_OF_KEYPOINTS;
     int tmp_size = sigma * 3;
     int gauss_size = 2 * tmp_size + 1;
 
@@ -357,7 +356,7 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
             Targets bb_targets;
             TargetsWeight bb_targets_weight;
 
-            for (int k = 0; k < kps; k++)
+            for (int k = 0; k < NUMBER_OF_KEYPOINTS; k++)
             {
                 Target bb_target;
                 bb_target.resize(target_height, std::vector<float>(target_width, 0));

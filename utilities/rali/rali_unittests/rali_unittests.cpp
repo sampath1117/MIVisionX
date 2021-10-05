@@ -719,26 +719,31 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         //     std::cout<<std::endl;
         // }
 
-        MetaDataJoints *joints_data = new MetaDataJoints(inputBatchSize);
+        MetaDataJoints *joints_data[inputBatchSize];
+        for(int i = 0 ; i < inputBatchSize ; i++)
+        {
+            joints_data[i] = new MetaDataJoints();
+        }
+
         raliGetJointsData(handle, joints_data);
         for (int i = 0; i < inputBatchSize; i++)
         {   
-            std::cout << "ImageID: " << joints_data->image_id[i] << std::endl;
-            std::cout << "AnnotationID: " << joints_data->annotation_id[i] << std::endl;
+            std::cout << "ImageID: " << joints_data[i]->image_id << std::endl;
+            std::cout << "AnnotationID: " << joints_data[i]->annotation_id << std::endl;
             std::cout << "ImagePath: ";
             for(int j = 0; j < img_size; j++)
             {
-                std::cout <<joints_data->image_path[i*MAX_IMAGE_NAME_LENGTH+j];
+                std::cout <<joints_data[i]->image_path[j];
             }
             std::cout<<std::endl;
-            std::cout << "Center: " << joints_data->center[2*i] << " " << joints_data->center[2*i+1] << std::endl;
-            std::cout << "Scale: " << joints_data->scale[2*i] << " " << joints_data->scale[2*i+1] << std::endl;
-            std::cout << "Score: " << joints_data->score[i] << std::endl;
-            std::cout << "Rotation: " << joints_data->rotation[i] << std::endl;
+            std::cout << "Center: " << joints_data[i]->center[0] << " " << joints_data[i]->center[1] << std::endl;
+            std::cout << "Scale: " << joints_data[i]->scale[0] << " " << joints_data[i]->scale[1] << std::endl;
+            std::cout << "Score: " << joints_data[i]->score << std::endl;
+            std::cout << "Rotation: " << joints_data[i]->rotation << std::endl;
 
             for (int k = 0; k < 17 * 2 ; k = k + 2)
             {
-                std::cout << "x : " << joints_data->joints[k] << " , y : " << joints_data->joints[k + 1] << " , v : " << joints_data->joints_visibility[k] << std::endl;
+                std::cout << "x : " << joints_data[i]->joints[k] << " , y : " << joints_data[i]->joints[k + 1] << " , v : " << joints_data[i]->joints_visibility[k] << std::endl;
             }
         }
 

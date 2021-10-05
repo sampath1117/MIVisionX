@@ -56,39 +56,15 @@ struct TimingInfo
 
 struct MetaDataJoints
 {
-    char *image_path;
-    int *image_id;
-    int *annotation_id;
-    float *score;
-    float *rotation;
-    float *center;
-    float *scale;
-    float *joints;
-    float *joints_visibility;
-
-    MetaDataJoints(int size)
-    {
-        image_id = new int [size];
-        annotation_id = new int [size];
-        image_path = new char[size * MAX_IMAGE_NAME_LENGTH];
-        score = new float [size];
-        rotation = new float [size];
-        center = new float [(2 * size)];
-        scale = new float [(2 * size)];
-        joints = new float [(17 * 2 * size)];
-        joints_visibility = new float [(17 * 2 * size)];
-    }
-
-    ~MetaDataJoints()
-    {
-        delete[] image_id;
-        delete[] annotation_id;
-        delete[] score;
-        delete[] rotation;
-        delete[] center;
-        delete[] scale;
-        delete[] joints_visibility;
-    }
+    int image_id;
+    int annotation_id;
+    float score;
+    float rotation; 
+    char image_path[MAX_IMAGE_NAME_LENGTH];
+    float center[2];
+    float scale[2];
+    float joints[17 * 2];
+    float joints_visibility[17 * 2];
 };
 
 enum RaliStatus

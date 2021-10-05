@@ -44,8 +44,6 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
         _batch_size = input_meta_data->size();
     }
 
-    auto kps = NUMBER_OF_KEYPOINTS;
-
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
     _affine_array = _node->get_affine_array();
@@ -61,13 +59,10 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
 
         //std::cout << "Enter the affine calculation code" << std::endl;
         //Start of Half body transform
-        auto pixel_std = PIXEL_STD;
-        auto half_body_constant = SCALE_CONSTANT_HALF_BODY;
         auto scale_factor = 0.35;
         auto rotation_factor = 0.0;
         float output_size[2] = {288.0, 384.0};
         float pi = 3.14;
-        auto kps = NUMBER_OF_KEYPOINTS;
 
         //std::cout << "Enter the affine calculation code" << std::endl;
         for (int i = 0; i < input_meta_data->size(); i++)
@@ -102,7 +97,7 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
 
                 /*
                 //Seperate the keypoints into upper body and lower body
-                for (uint kp_idx = 0; kp_idx < kps; kp_idx++)
+                for (uint kp_idx = 0; kp_idx < NUMBER_OF_KEYPOINTS; kp_idx++)
                 {
                     auto v = key_points_visibility[kp_idx].xv;
                     if (v > 0)
@@ -171,8 +166,8 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
                     w = aspect_ratio * h;
                 }
 
-                box_scale.ws = (half_body_constant * w * 1.0) / pixel_std;
-                box_scale.hs = (half_body_constant * h * 1.0) / pixel_std;
+                box_scale.ws = (SCALE_CONSTANT_HALF_BODY * w * 1.0) / PIXEL_STD;
+                box_scale.hs = (SCALE_CONSTANT_HALF_BODY * h * 1.0) / PIXEL_STD;
                 //End of Half body transform
 
                 //Multiply scale with random scale factor clipped between [1-sf,1+sf]
@@ -187,7 +182,7 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
                 //Generate the affine matrix based on this values
 
                 //Get the correct scale values
-                float scale_temp[2] = {pixel_std * box_scale.ws, pixel_std * box_scale.hs};
+                float scale_temp[2] = {PIXEL_STD * box_scale.ws, PIXEL_STD * box_scale.hs};
                 float src_w = scale_temp[0];
                 float dst_w = output_size[0] * 1.0;
                 float dst_h = output_size[1] * 1.0;
@@ -276,7 +271,7 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
                 KeyPoints key_points;
                 joints_data = input_meta_data->get_img_joints_data_batch()[i][object_index];
 
-                for (unsigned int keypoint_index = 0; keypoint_index < kps; keypoint_index++)
+                for (unsigned int keypoint_index = 0; keypoint_index < NUMBER_OF_KEYPOINTS; keypoint_index++)
                 {
                     KeyPoint key_point;
                     float temp_x, temp_y;

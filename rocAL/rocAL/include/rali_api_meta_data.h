@@ -164,6 +164,6 @@ extern "C" void RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *
 //
 /// \param rali_context
 /// \param joints_data The user's buffer that will be filled with joints_data values
-extern "C" void RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data);
+extern "C" void RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data[]);
 
 #endif //MIVISIONX_RALI_API_META_DATA_H

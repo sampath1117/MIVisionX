@@ -28,10 +28,10 @@ THE SOFTWARE.
 #include "commons.h"
 
 //Defined constant since needed in reader and meta nodes
-#define NUMBER_OF_KEYPOINTS 17;
-#define PIXEL_STD  200;
-#define SCALE_CONSTANT_CS 1.25;
-#define SCALE_CONSTANT_HALF_BODY 1.5;
+#define NUMBER_OF_KEYPOINTS 17
+#define PIXEL_STD  200
+#define SCALE_CONSTANT_CS 1.25
+#define SCALE_CONSTANT_HALF_BODY 1.5
 
 
 typedef  struct { float l; float t; float r; float b; } BoundingBoxCord;

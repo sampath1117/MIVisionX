@@ -33,7 +33,6 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
     //std::cout<<"flip meta node is called:"<<std::endl;
 
     initialize();
-    auto num_keypoints = NUMBER_OF_KEYPOINTS;
     
     if (_batch_size != input_meta_data->size())
     {
@@ -87,7 +86,7 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
                 key_points_visibility.push_back(key_point0_vis);
                 //std::cout<<"Difference:"<<key_point0.x<<std::endl;
 
-                for (unsigned int keypoint_index = 1; keypoint_index < num_keypoints; keypoint_index = keypoint_index + 2)
+                for (unsigned int keypoint_index = 1; keypoint_index < NUMBER_OF_KEYPOINTS; keypoint_index = keypoint_index + 2)
                 {
                     //std::cout<<"Flipping keypoints: "<< keypoint_index<<" "<<keypoint_index+1<<std::endl;
                     KeyPoint key_point1, key_point2;
