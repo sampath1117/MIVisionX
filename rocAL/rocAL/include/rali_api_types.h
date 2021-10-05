@@ -33,14 +33,16 @@ THE SOFTWARE.
 #endif
 #endif
 
+#define MAX_IMAGE_NAME_LENGTH 100
+
 #include <half.hpp>
 using half_float::half;
 
-typedef void * RaliFloatParam;
-typedef void * RaliIntParam;
-typedef void * RaliContext;
-typedef void * RaliImage;
-typedef void * RaliMetaData;
+typedef void *RaliFloatParam;
+typedef void *RaliIntParam;
+typedef void *RaliContext;
+typedef void *RaliImage;
+typedef void *RaliMetaData;
 //typedef void * MetaDataJoints;
 
 struct TimingInfo
@@ -51,17 +53,42 @@ struct TimingInfo
     long long unsigned transfer_time;
 };
 
+
 struct MetaDataJoints
 {
-    std::string image_path;
-    int image_id;
-    int annotation_id;
-    float score;
-    float rotation; 
-    float center[2];
-    float scale[2];
-    float joints[34];
-    float joints_visibility[34];
+    char *image_path;
+    int *image_id;
+    int *annotation_id;
+    float *score;
+    float *rotation;
+    float *center;
+    float *scale;
+    float *joints;
+    float *joints_visibility;
+
+    MetaDataJoints(int size)
+    {
+        image_id = new int [size];
+        annotation_id = new int [size];
+        image_path = new char[size * MAX_IMAGE_NAME_LENGTH];
+        score = new float [size];
+        rotation = new float [size];
+        center = new float [(2 * size)];
+        scale = new float [(2 * size)];
+        joints = new float [(17 * 2 * size)];
+        joints_visibility = new float [(17 * 2 * size)];
+    }
+
+    ~MetaDataJoints()
+    {
+        delete[] image_id;
+        delete[] annotation_id;
+        delete[] score;
+        delete[] rotation;
+        delete[] center;
+        delete[] scale;
+        delete[] joints_visibility;
+    }
 };
 
 enum RaliStatus
@@ -73,12 +100,11 @@ enum RaliStatus
     RALI_INVALID_PARAMETER_TYPE
 };
 
-
 enum RaliImageColor
 {
     RALI_COLOR_RGB24 = 0,
     RALI_COLOR_BGR24 = 1,
-    RALI_COLOR_U8  = 2,
+    RALI_COLOR_U8 = 2,
     RALI_COLOR_RGB_PLANAR = 3,
 };
 
@@ -99,8 +125,8 @@ enum RaliImageSizeEvaluationPolicy
     RALI_USE_MAX_SIZE = 0,
     RALI_USE_USER_GIVEN_SIZE = 1,
     RALI_USE_MOST_FREQUENT_SIZE = 2,
-    RALI_USE_USER_GIVEN_SIZE_RESTRICTED = 3,    // use the given size only if the actual decoded size is greater than the given size
-    RALI_USE_MAX_SIZE_RESTRICTED = 4,       // use max size if the actual decoded size is greater than max
+    RALI_USE_USER_GIVEN_SIZE_RESTRICTED = 3, // use the given size only if the actual decoded size is greater than the given size
+    RALI_USE_MAX_SIZE_RESTRICTED = 4,        // use max size if the actual decoded size is greater than max
 };
 
 enum RaliDecodeDevice
@@ -128,6 +154,5 @@ enum RaliDecoderType
     RALI_DECODER_VIDEO_FFMPEG_SW = 2,
     RALI_DECODER_VIDEO_FFMPEG_HW = 3
 };
-
 
 #endif //MIVISIONX_RALI_API_TYPES_H

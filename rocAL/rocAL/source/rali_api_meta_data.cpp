@@ -403,7 +403,7 @@ RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *bu
     for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
         unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
-        std::cout<<"annotation size:"<<annotation_size<<std::endl;
+        //std::cout<<"annotation size:"<<annotation_size<<std::endl;
         for(unsigned j = 0; j < annotation_size ; j++)
         {
             memcpy(buf1, meta_data.second->get_img_joints_data_batch()[i][j].joints.data() , annotation_size * num_keypoints * sizeof(KeyPoint));
@@ -437,12 +437,12 @@ RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2
     for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
         unsigned annotation_size = meta_data.second->get_img_targets_batch()[i].size();
-        std::cout<<"annotation size:"<<annotation_size<<std::endl;
+        // std::cout<<"annotation size:"<<annotation_size<<std::endl;
         
         for(unsigned j = 0; j < annotation_size ; j++)
         {
             unsigned kps = meta_data.second->get_img_targets_batch()[i][j].size();
-            std::cout<<"size of Target:"<<kps<<std::endl;
+            // std::cout<<"size of Target:"<<kps<<std::endl;
             memcpy(buf2, meta_data.second->get_img_targets_weight_batch()[i][j].data() , sizeof(float)* meta_data.second->get_img_targets_weight_batch()[i][j].size());
             buf2 += (annotation_size * num_keypoints);
 
@@ -477,22 +477,44 @@ RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_da
         WRN("No label has been loaded for this output image")
         return;
     }
+    auto num_keypoints = NUMBER_OF_KEYPOINTS;
+
+    auto *center_ptr =joints_data->center;
+    auto *scale_ptr =joints_data->scale;
+    auto *joints_ptr =joints_data->joints;
+    auto *joints_vis_ptr =joints_data->joints_visibility;
+    auto *img_id_ptr = joints_data->image_id;
+    auto *ann_id_ptr = joints_data->annotation_id;
+    auto *score_ptr = joints_data->score;
+    auto *rotation_ptr = joints_data->rotation;
+    auto *img_path_ptr = joints_data->image_path;
+    int img_path_size;
+
     for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
         unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
         for(unsigned j = 0; j < annotation_size ; j++)
         {
-            std::cout<<"Entered the memcpy loop"<<std::endl;
-            joints_data->image_id = meta_data.second->get_img_joints_data_batch()[i][j].image_id;
-            joints_data->annotation_id = meta_data.second->get_img_joints_data_batch()[i][j].annotation_id;
-            joints_data->image_path = meta_data.second->get_img_joints_data_batch()[i][j].image_path;
-            memcpy(joints_data->center , &(meta_data.second->get_img_joints_data_batch()[i][j].center), annotation_size * sizeof(BoundingBoxScale));
-            memcpy(joints_data->scale , &(meta_data.second->get_img_joints_data_batch()[i][j].scale), annotation_size * sizeof(BoundingBoxScale));
-            memcpy(joints_data->joints ,meta_data.second->get_img_joints_data_batch()[i][j].joints.data(), annotation_size * 17 * sizeof(KeyPoint));
-            memcpy(joints_data->joints_visibility ,meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * 17 * sizeof(KeyPointVisibility));
-            joints_data->score = meta_data.second->get_img_joints_data_batch()[i][j].score;
-            joints_data->rotation = meta_data.second->get_img_joints_data_batch()[i][j].rotation;
+            img_path_size = meta_data.second->get_img_joints_data_batch()[i][j].image_path.size();
+            //std::cout<<"Image path size:"<<img_path_size<<std::endl;
+            memcpy(img_id_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].image_id),sizeof(int));
+            memcpy(ann_id_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].annotation_id), sizeof(int));
+            memcpy(img_path_ptr , meta_data.second->get_img_joints_data_batch()[i][j].image_path.data(), img_path_size);
+            memcpy(center_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].center), annotation_size * sizeof(BoundingBoxScale));
+            memcpy(scale_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].scale), annotation_size * sizeof(BoundingBoxScale));
+            memcpy(joints_ptr ,meta_data.second->get_img_joints_data_batch()[i][j].joints.data(), annotation_size * 17 * sizeof(KeyPoint));
+            memcpy(joints_vis_ptr ,meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * 17 * sizeof(KeyPointVisibility));
+            memcpy(score_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].score), sizeof(float));
+            memcpy(rotation_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].rotation), sizeof(float));
         }
-
+        img_id_ptr += (annotation_size);
+        ann_id_ptr += (annotation_size);
+        img_path_ptr += (annotation_size * 100);
+        center_ptr += (annotation_size * 2);
+        scale_ptr += (annotation_size * 2);
+        joints_ptr += (annotation_size * num_keypoints * 2);
+        joints_vis_ptr += (annotation_size * num_keypoints * 2);
+        score_ptr += (annotation_size);
+        rotation_ptr += (annotation_size);
     }
 }
