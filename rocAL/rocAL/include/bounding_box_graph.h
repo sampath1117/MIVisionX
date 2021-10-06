@@ -27,13 +27,11 @@ THE SOFTWARE.
 class BoundingBoxGraph : public MetaDataGraph
 {
 public:
-    void process(MetaDataBatch* meta_data) override;
+    void process(MetaDataBatch* meta_data, bool is_pose_estimation) override;
     void update_meta_data(MetaDataBatch* meta_data, decoded_image_info decode_image_info) override;
     void update_random_bbox_meta_data(MetaDataBatch* meta_data, decoded_image_info decoded_image_info,crop_image_info crop_image_info) override;
     void update_box_encoder_meta_data(std::vector<float> anchors, pMetaDataBatch full_batch_meta_data ,float criteria, bool offset , float scale, std::vector<float> means, std::vector<float> stds) override;
     void update_keypoint_target_meta_data(float sigma,int output_width, int output_height, pMetaDataBatch full_batch_meta_data);
     //void update_center_scale_meta_data(pMetaDataBatch full_batch_meta_data, int upper_joint_ids[], int lower_joint_ids[]);
-    bool is_pose_estimation() {return _is_pose_estimation; }
-    void set_pose_estimation(bool pose_estimation) {_is_pose_estimation = pose_estimation; }
 };
 

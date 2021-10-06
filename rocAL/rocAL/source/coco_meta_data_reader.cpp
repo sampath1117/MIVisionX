@@ -66,19 +66,31 @@ void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
     }
 }
 
-void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size, ImageJointsData img_joints_data) 
+void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords, BoundingBoxLabels bb_labels, ImgSizes image_size)
 {
     if (exists(image_name))
     {
         auto it = _map_content.find(image_name);
         it->second->get_bb_cords().push_back(bb_coords[0]);
         it->second->get_bb_labels().push_back(bb_labels[0]);
+        return;
+    }
+    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size);
+    _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
+}
+
+void COCOMetaDataReader::add(std::string image_name, ImgSizes image_size, ImageJointsData img_joints_data)
+{
+    if (exists(image_name))
+    {
+        auto it = _map_content.find(image_name);
         it->second->get_img_joints_data().push_back(img_joints_data[0]);
         return;
     }
-    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size, img_joints_data);
+    pMetaDataBox info = std::make_shared<BoundingBox>(image_size, img_joints_data);
     _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
 }
+
 
 void COCOMetaDataReader::print_map_contents()
 {
@@ -86,7 +98,7 @@ void COCOMetaDataReader::print_map_contents()
     BoundingBoxLabels bb_labels;
     ImgSizes img_sizes;
     ImageJointsData img_joints_data;
-    
+
     std::cout << "\nBBox Annotations List: \n";
     for (auto &elem : _map_content)
     {
@@ -100,12 +112,16 @@ void COCOMetaDataReader::print_map_contents()
         for (unsigned int i = 0; i < bb_coords.size(); i++)
         {
             std::cout << " l : " << bb_coords[i].l << " t: :" << bb_coords[i].t << " r : " << bb_coords[i].r << " b: :" << bb_coords[i].b << "Label Id : " << bb_labels[i] << std::endl;
-            std::cout << " center (x,y) : " << img_joints_data[i].center.xc << " " << img_joints_data[i].center.xc << std::endl;
-            std::cout << " scale (x,y) : " << img_joints_data[i].scale.ws << " " << img_joints_data[i].scale.hs << std::endl;
+        }
+
+        for (unsigned int i = 0; i < img_joints_data.size(); i++)
+        {
+            std::cout << " center (x,y) : " << img_joints_data[i].center.xc << " " << img_joints_data[i].center.yc << std::endl;
+            std::cout << " scale (w,h) : " << img_joints_data[i].scale.ws << " " << img_joints_data[i].scale.hs << std::endl;
         }
 
         //std::cout<<"New Detection:"<<std::endl;
-        for (unsigned int i = 0; i < bb_coords.size(); i++)
+        for (unsigned int i = 0; i < img_joints_data.size(); i++)
         {
             //std::cout<<"Size of key points index is:"<<img_key_points[i].size()<<std::endl;
             for (unsigned int j = 0; j < NUMBER_OF_KEYPOINTS; j++)
@@ -226,9 +242,9 @@ void COCOMetaDataReader::read_all(const std::string &path)
             parser.EnterArray();
             while (parser.NextArrayValue())
             {
-                int id = 1, label = 0, ann_id;
+                int id = 1, label = 0, ann_id = 0;
                 std::array<float, 4> bbox = {};
-                std::array<float, 51> keypoint{}; 
+                std::array<float, NUMBER_OF_KEYPOINTS * 3> keypoint{}; 
                 if (parser.PeekType() != kObjectType)
                 {
                     continue;
@@ -245,7 +261,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         label = parser.GetInt();
                     }
                     else if (0 == std::strcmp(internal_key, "id"))
-                    {
+                    {   
                         ann_id = parser.GetInt();
                     }
                     else if (0 == std::strcmp(internal_key, "bbox"))
@@ -317,6 +333,12 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     box.t = bbox[1] / image_size[0].h;
                     box.r = (bbox[0] + bbox[2]) / image_size[0].w;
                     box.b = (bbox[1] + bbox[3]) / image_size[0].h;
+
+                    bb_coords.push_back(box);
+                    bb_labels.push_back(label);
+                    add(file_name, bb_coords, bb_labels, image_size);
+                    bb_coords.clear();
+                    bb_labels.clear();
                 }
                 //Store the keypoint values in Joints, Joints Visibility
                 else
@@ -331,6 +353,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         j = j + 3;
                     }
 
+                    
                     joints_data.annotation_id = ann_id;
                     joints_data.image_id = id;
                     joints_data.image_path = file_name;
@@ -340,16 +363,11 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     joints_data.joints_visibility = key_points_visibility;
                     joints_data.score = score;
                     joints_data.rotation = rotation;
-                }
 
-                bb_coords.push_back(box);
-                bb_labels.push_back(label);
-                img_joints_data.push_back(joints_data);
-                
-                add(file_name, bb_coords, bb_labels, image_size, img_joints_data);
-                img_joints_data.clear();
-                bb_coords.clear();
-                bb_labels.clear();
+                    img_joints_data.push_back(joints_data);
+                    add(file_name, image_size, img_joints_data);
+                    img_joints_data.clear();
+                }
             }
         }
         else
