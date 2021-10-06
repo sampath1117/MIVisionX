@@ -329,3 +329,6 @@ class Pipeline(object):
 
     def Timing_Info(self):
         return b.getTimingInfo(self._handle)
+
+    def getJointsData(self):
+        return b.getJointData(self._handle)
