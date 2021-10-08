@@ -314,7 +314,6 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
 
 void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data)
 {
-    //std::cout << "Entered heat map function" << std::endl;
     //Generate gaussians
     int tmp_size = sigma * 3;
     int gauss_size = 2 * tmp_size + 1;
@@ -343,8 +342,8 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
     //Loop through all the keypoints and generate heat maps
     for (int i = 0; i < full_batch_meta_data->size(); i++)
     {
-        //std::cout << "New batch member" << std::endl;
-        auto bb_count = full_batch_meta_data->get_bb_labels_batch()[i].size();
+        auto bb_count = full_batch_meta_data->get_img_joints_data_batch()[i].size();
+        //std::cout << "bb count: " << bb_count << std::endl;
         float feat_stride[2] = {output_width / target_width, output_height / target_height};
 
         ImageTargets img_targets;

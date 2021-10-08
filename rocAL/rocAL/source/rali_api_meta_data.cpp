@@ -401,7 +401,6 @@ RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *bu
     for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
         unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
-        //std::cout<<"annotation size:"<<annotation_size<<std::endl;
         for(unsigned j = 0; j < annotation_size ; j++)
         {
             memcpy(buf1, meta_data.second->get_img_joints_data_batch()[i][j].joints.data() , annotation_size * NUMBER_OF_KEYPOINTS * sizeof(KeyPoint));
@@ -434,12 +433,10 @@ RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2
     for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
         unsigned annotation_size = meta_data.second->get_img_targets_batch()[i].size();
-        // std::cout<<"annotation size:"<<annotation_size<<std::endl;
         
         for(unsigned j = 0; j < annotation_size ; j++)
         {
             unsigned kps = meta_data.second->get_img_targets_batch()[i][j].size();
-            // std::cout<<"size of Target:"<<kps<<std::endl;
             memcpy(buf2, meta_data.second->get_img_targets_weight_batch()[i][j].data() , sizeof(float)* meta_data.second->get_img_targets_weight_batch()[i][j].size());
             buf2 += (annotation_size * NUMBER_OF_KEYPOINTS);
 

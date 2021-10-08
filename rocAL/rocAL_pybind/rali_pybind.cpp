@@ -158,6 +158,35 @@ namespace rali{
         return py::cast<py::none>(Py_None);
     }
 
+    py::object wrapper_keypoint_copy(RaliContext context, py::array_t<float> array1, py::array_t<float> array2)
+    {
+        auto buf1 = array1.request();
+        float* ptr1 = (float*) buf1.ptr;
+
+        auto buf2 = array2.request();
+        float* ptr2 = (float*) buf2.ptr;
+
+        // call pure C++ function
+        //std::cout<<"Entered keypoint copy function"<<std::endl;
+        raliGetImageKeyPoints(context,ptr1,ptr2);
+        return py::cast<py::none>(Py_None);
+    }
+
+
+    py::object wrapper_target_copy(RaliContext context, py::array_t<float> array1, py::array_t<float> array2)
+    {
+        auto buf1 = array1.request();
+        float* ptr1 = (float*) buf1.ptr;
+
+        auto buf2 = array2.request();
+        float* ptr2 = (float*) buf2.ptr;
+
+        // call pure C++ function
+        //std::cout<<"Entered keypoint copy function"<<std::endl;
+        raliGetImageTargets(context,ptr1,ptr2);
+        return py::cast<py::none>(Py_None);
+    }
+
     py::object wrapper_img_sizes_copy(RaliContext context, py::array_t<int> array)
     {
         auto buf = array.request();
@@ -185,7 +214,6 @@ namespace rali{
         return py::cast<py::none>(Py_None);
     }
 
-    py::object wrapper_joints_dict_copy(RaliContext context, py::class_)
 
 
     PYBIND11_MODULE(rali_pybind, m) {
@@ -208,16 +236,6 @@ namespace rali{
             .def_readwrite("decode_time",&TimingInfo::decode_time)
             .def_readwrite("process_time",&TimingInfo::process_time)
             .def_readwrite("transfer_time",&TimingInfo::transfer_time);
-        py::class_<MetaDataJoints>(m,"JointsData")
-            .def_readwrite("image_id",&MetaDataJoints::image_id)
-            .def_readwrite("ann_id",&MetaDataJoints::annotation_id)
-            .def_readwrite("image_path",&MetaDataJoints::image_path)
-            .def_readwrite("center",&MetaDataJoints::center)
-            .def_readwrite("scale",&MetaDataJoints::scale)
-            .def_readwrite("joints",&MetaDataJoints::joints)
-            .def_readwrite("joints_visibility",&MetaDataJoints::joints_visibility)
-            .def_readwrite("score",&MetaDataJoints::score)
-            .def_readwrite("rotation",&MetaDataJoints::rotation);
         py::module types_m = m.def_submodule("types");
         types_m.doc() = "Datatypes and options used by RALI";
         py::enum_<RaliStatus>(types_m, "RaliStatus", "Status info")
@@ -278,6 +296,8 @@ namespace rali{
         m.def("getImageLabels",&wrapper_label_copy);
         m.def("getBBLabels",&wrapper_BB_label_copy);
         m.def("getBBCords",&wrapper_BB_cord_copy);
+        m.def("getImageKeyPoints",&wrapper_keypoint_copy);
+        m.def("getImageTargets",&wrapper_target_copy);
         m.def("raliCopyEncodedBoxesAndLables",&wrapper_encoded_bbox_label);
         m.def("getImgSizes",&wrapper_img_sizes_copy);
         m.def("getBoundingBoxCount",&wrapper_labels_BB_count_copy);
@@ -285,7 +305,6 @@ namespace rali{
         m.def("isEmpty",&raliIsEmpty);
         m.def("BoxEncoder",&raliBoxEncoder);
         m.def("getTimingInfo",raliGetTimingInfo);
-        m.def("getJointsData",raliGetJointsData)
         // rali_api_parameter.h
         m.def("setSeed",&raliSetSeed);
         m.def("getSeed",&raliGetSeed);

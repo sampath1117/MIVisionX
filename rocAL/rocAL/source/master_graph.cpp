@@ -956,8 +956,10 @@ void MasterGraph::output_routine()
 
             if (_is_pose_estimation)
             {
+                //std::cout<<"Calling the Target copy"<<std::endl;
                 _meta_data_graph->update_keypoint_target_meta_data(_gaussian_sigma, _output_image_width_pose, _output_image_height_pose, full_batch_meta_data);
             }
+            
             _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data);
             _ring_buffer.push(); // Image data and metadata is now stored in output the ring_buffer, increases it's level by 1
         }

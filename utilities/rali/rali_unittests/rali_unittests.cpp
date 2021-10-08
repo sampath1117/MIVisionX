@@ -96,7 +96,7 @@ int main(int argc, const char **argv)
 int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height, int num_of_classes, int display_all)
 {
     size_t num_threads = 1;
-    unsigned int inputBatchSize = 2;
+    unsigned int inputBatchSize = 1;
     int decode_max_width = width;
     int decode_max_height = height;
     float sigma = 3.0;
@@ -706,25 +706,25 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         float img_targets_weight[size * 17];
         raliGetImageTargets(handle, img_targets, img_targets_weight);
         int cnt = 0;
-        for (int k = 0; k < size*17; k++)
-        {
-            //std::cout<<"keypoint : "<<img_key_points[2*k]<<"  "<<img_key_points[2*k+1]<<std::endl;
-            // std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
-            // std::cout<<"Heat map number: "<<k<<std::endl;
-            // for(int i = 0; i < 96 ; i++)
-            // {
-            //     for(int j = 0; j < 72 ; j++)
-            //     {
-            //         cnt = cnt+1;
-            //         if(img_targets[cnt]!=0)
-            //         {
-            //             std::cout<<img_targets[cnt]<<" ";
-            //         }
-            //     }
-            //     std::cout<<std::endl;
-            // }
-            // std::cout<<std::endl;
-        }
+        // for (int k = 0; k < size*17; k++)
+        // {
+        //     std::cout<<"keypoint : "<<img_key_points[2*k]<<"  "<<img_key_points[2*k+1]<<std::endl;
+        //     std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
+        //     std::cout<<"Heat map number: "<<k<<std::endl;
+        //     for(int i = 0; i < 96 ; i++)
+        //     {
+        //         for(int j = 0; j < 72 ; j++)
+        //         {
+        //             cnt = cnt+1;
+        //             if(img_targets[cnt]!=0)
+        //             {
+        //                 std::cout<<img_targets[cnt]<<" ";
+        //             }
+        //         }
+        //         std::cout<<std::endl;
+        //     }
+        //     std::cout<<std::endl;
+        // }
 
         MetaDataJoints *joints_data[inputBatchSize];
         for (int i = 0; i < inputBatchSize; i++)

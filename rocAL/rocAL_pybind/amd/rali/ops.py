@@ -549,7 +549,8 @@ class COCOReader(Node):
     def __init__(self, file_root, annotations_file='', bytes_per_sample_hint=0, dump_meta_files=False, dump_meta_files_path='', file_list='', initial_fill=1024,  lazy_init=False, ltrb=False, masks=False, meta_files_path='', num_shards=1, pad_last_batch=False, prefetch_queue_depth=1,
                  preserve=False, random_shuffle=False, ratio=False, read_ahead=False,
                  save_img_ids=False, seed=-1, shard_id=0, shuffle_after_epoch=False, size_threshold=0.1,
-                 skip_cached_images=False, skip_empty=False, stick_to_shard=False, tensor_init_bytes=1048576):
+                 skip_cached_images=False, skip_empty=False, stick_to_shard=False, tensor_init_bytes=1048576,
+                 is_keypoint = False, output_image_width = 288, output_image_height = 384, sigma = 3.0):
         Node().__init__()
         self._file_root = file_root
         self._annotations_file = annotations_file
@@ -580,6 +581,10 @@ class COCOReader(Node):
         self._tensor_init_bytes = tensor_init_bytes
         self._labels = []
         self._bboxes = []
+        self._output_image_width = output_image_width
+        self._output_image_height = output_image_height
+        self._sigma = sigma
+        self._is_keypoint = is_keypoint
         self.output = Node()
 
     def __call__(self, name=""):
@@ -593,7 +598,7 @@ class COCOReader(Node):
 
     def rali_c_func_call(self, handle):
         b.setSeed(self._seed)
-        b.COCOReader(handle, self._annotations_file, True)
+        b.COCOReader(handle, self._annotations_file, True,self._is_keypoint,self._sigma,self._output_image_width,self._output_image_height)
         # b.labelReader(handle,self._file_root)
         return self._file_root
 
