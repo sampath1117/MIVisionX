@@ -44,6 +44,7 @@ class COCOPipeline(Pipeline):
         self.rng2 = ops.Uniform(range=[0.875, 1.125])
         self.rng3 = ops.Uniform(range=[-0.05, 0.05])
         self.coin_flip = ops.CoinFlip(probability=0.5)
+        self.flip = ops.Flip()
         
 
     def define_graph(self):
@@ -53,14 +54,15 @@ class COCOPipeline(Pipeline):
         brightness = self.rng2()
         hue = self.rng3()
 
-        self.jpegs, self.bb, self.labels = self.input(name="Reader")
+        self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
         images = self.res(images)
+        # images = self.flip(images)
         output = self.twist(images)
 
         
         # Encoded Bbox and labels output in "xcycwh" format
-        return [output, self.bb, self.labels]
+        return [output,self.bb,self.labels]
 
 
 class RALICOCOIterator(object):
@@ -115,6 +117,11 @@ class RALICOCOIterator(object):
             print("Transfer time ::", timing_info.transfer_time)
             raise StopIteration
 
+        self.joints = dict({})
+        self.loader.GetJointsData(self.joints)
+        print("Joints data is: ")
+        print(self.joints)
+
         if self.loader.run() != 0:
             raise StopIteration
         self.lis = []  # Empty list for bboxes
@@ -130,7 +137,7 @@ class RALICOCOIterator(object):
         # Image id of a batch of images
         self.image_id = np.zeros(self.bs, dtype="int32")
         self.loader.GetImageId(self.image_id)
-        print(self.image_id)
+        # print(self.image_id)
 
         # Image sizes of a batch
         self.img_size = np.zeros((self.bs * 2), dtype="int32")
@@ -145,34 +152,40 @@ class RALICOCOIterator(object):
         self.target_weights = np.zeros((self.bs * 17 ), dtype = "float32")
         self.loader.GetImageTargets(self.targets, self.target_weights)
 
-        print("Joints\n", self.joints)
-        print("Joints Visibility\n", self.joints_vis)
-        cnt = 0
+        # print(self.targets.reshape((self.bs * 17,96,72)))
+        image_id_tensor = torch.tensor(self.image_id)
+        image_size_tensor = torch.tensor(self.img_size).view(-1, self.bs, 2)
+        joints_tensor = torch.tensor(self.joints).view(-1, self.bs, 2)
+        target_tensor = torch.tensor(self.targets).view(-1, self.bs * 17, 96, 72)
+        target_weights_tensor = torch.tensor(self.target_weights).view( -1, self.bs * 17)
+        # print(joints_tensor)
+        # print(target_tensor.shape)
+
+        # print("Joints\n", self.joints)
+        # print("Joints Visibility\n", self.joints_vis)
+        # cnt = 0
     
         # for k in range(self.bs * 17):
         #     for i in range(96):
-        #         for j in range(72):
+        #         for j in range(71):
         #             cnt  = cnt+1
-        #             print(self.targets[cnt],end=" ")
-        #         print("")
-        #     print("")
+        #             if(self.targets[cnt]!=0):
+        #                 print(self.targets[cnt],end=" ")
+        #         # print("")
+        #     # print("")
 
         #print("Targets\n",self.targets)
         #print("Target Weights\n",self.target_weights)
-
-        image_id_tensor = torch.tensor(self.image_id)
-        image_size_tensor = torch.tensor(self.img_size).view(-1, self.bs, 2)
         # for i in range(self.bs):
-              
-        #     if self.display:
-
-        #        #img = torch.from_numpy(self.out)
-        #        #draw_patches(img[i], i)
+        for i in range(self.bs):
+            if self.display:
+                img = torch.from_numpy(self.out)
+                draw_patches(img[i], self.image_id[i])
 
         if self.tensor_dtype == types.FLOAT:
-            return torch.from_numpy(self.out)
+            return torch.from_numpy(self.out), target_tensor , target_weights_tensor , image_id_tensor , image_size_tensor
         elif self.tensor_dtype == types.FLOAT16:
-            return torch.from_numpy(self.out.astype(np.float16))
+            return torch.from_numpy(self.out.astype(np.float16)),target_tensor, target_weights_tensor , image_id_tensor , image_size_tensor
 
 
     def reset(self):
@@ -181,6 +194,17 @@ class RALICOCOIterator(object):
     def __iter__(self):
         return self
 
+
+def draw_patches(img, idx):
+    #image is expected as a tensor, bboxes as numpy
+    import cv2
+    image = img.detach().numpy()
+    image = image.transpose([1, 2, 0])
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    _, htot, wtot = img.shape
+    
+    image = cv2.UMat(image).get()
+    cv2.imwrite(str(idx)+"_"+"train"+".png", image)
 
 
 def main(exp_name,
@@ -236,11 +260,19 @@ def main(exp_name,
     data_loader = RALICOCOIterator(pipe, multiplier=pipe._multiplier, 
     offset=pipe._offset, display=display)
 
-    epochs = 2
+    epochs = 1
     for epoch in range(int(epochs)):
         print("EPOCH:::::", epoch)
         for i, it in enumerate(data_loader, 0):
-            print(i)
+            print("**************", i, "*******************")
+            print("**************starts*******************")
+            # print("\nTargets:\n", it[1])
+            print("\nTarget Weights:\n", it[2])
+            print("\nIMAGE ID's:\n", it[3])
+            print("\nIMAGE SIZES:\n", it[4])
+            print("**************ends*******************")
+            print("**************", i, "*******************")
+        data_loader.reset()
 
 
 

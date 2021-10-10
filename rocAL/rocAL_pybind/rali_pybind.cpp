@@ -12,6 +12,7 @@
 #include "rali_api_augmentation.h"
 #include "rali_api_data_transfer.h"
 #include "rali_api_info.h"
+#include <boost/any.hpp>
 namespace py = pybind11;
 
 using float16 = half_float::half;
@@ -196,6 +197,25 @@ namespace rali{
         return py::cast<py::none>(Py_None);
     }
 
+    py::object wrapper_joints_dict_copy(RaliContext context,py::dict joints)
+    {
+       
+        std::map<std::string,boost::any> a = raliGetTestMap(context);
+        typedef std::vector<std::vector<float>> block;
+        typedef std::vector<float> pair;
+    
+        joints["ImgId"] = boost::any_cast<int>(a["ImgId"]);
+        joints["AnnotationId"] = boost::any_cast<int>(a["AnnotationID"]);
+        joints["Center"] = boost::any_cast<pair>(a["Center"]);
+        joints["Scale"] = boost::any_cast<pair>(a["Scale"]);
+        joints["Joints"] = boost::any_cast<block>(a["Joints"]);
+        joints["Joints_Visibility"] = boost::any_cast<block>(a["Joints_Visiblity"]);
+        joints["Score"] = boost::any_cast<float>(a["Score"]);
+        joints["Rotation"] = boost::any_cast<float>(a["Rotation"]);
+
+        return py::cast<py::none>(Py_None);
+    }
+
     py::object wrapper_one_hot_label_copy(RaliContext context, py::array_t<int> array , unsigned numOfClasses)
     {
         auto buf = array.request();
@@ -298,6 +318,7 @@ namespace rali{
         m.def("getBBCords",&wrapper_BB_cord_copy);
         m.def("getImageKeyPoints",&wrapper_keypoint_copy);
         m.def("getImageTargets",&wrapper_target_copy);
+        m.def("getJointsData",&wrapper_joints_dict_copy);
         m.def("raliCopyEncodedBoxesAndLables",&wrapper_encoded_bbox_label);
         m.def("getImgSizes",&wrapper_img_sizes_copy);
         m.def("getBoundingBoxCount",&wrapper_labels_BB_count_copy);

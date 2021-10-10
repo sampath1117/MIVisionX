@@ -335,3 +335,7 @@ class Pipeline(object):
 
     def GetImageTargets(self, array1, array2):
         return b.getImageTargets(self._handle, array1, array2)
+
+    def GetJointsData(self, dictionary):
+        return b.getJointsData(self._handle, dictionary)
+
