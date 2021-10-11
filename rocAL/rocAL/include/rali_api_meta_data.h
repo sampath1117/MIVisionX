@@ -23,6 +23,10 @@ THE SOFTWARE.
 #ifndef MIVISIONX_RALI_API_META_DATA_H
 #define MIVISIONX_RALI_API_META_DATA_H
 #include "rali_api_types.h"
+#include <map>
+#include <boost/any.hpp>
+
+
 ///
 /// \param rali_context
 /// \param source_path path to the folder that contains the dataset or metadata file
@@ -166,4 +170,6 @@ extern "C" void RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *
 /// \param joints_data The user's buffer that will be filled with joints_data values
 extern "C" void RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data[]);
 
+
+extern "C" std::map<std::string,boost::any> RALI_API_CALL raliGetTestMap(RaliContext p_context);
 #endif //MIVISIONX_RALI_API_META_DATA_H

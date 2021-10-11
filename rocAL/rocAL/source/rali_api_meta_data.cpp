@@ -493,3 +493,32 @@ RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_da
         }
     }
 }
+
+std::map<std::string,boost::any>
+RALI_API_CALL raliGetTestMap(RaliContext p_context)
+{
+    std::map<std::string,boost::any> a;
+    typedef std::vector<std::vector<float>> block;
+    typedef std::vector<float> pair;
+    float score = 10.0;
+    float rotation = 45.2;
+
+    pair center{ 150.5 ,223.};
+    pair scale{ 0.79 ,0.96 };
+    block joints{ { 145.2, 185.8 }, 
+                { 255.4, 289.6 }, 
+                { 122.1 , 244.2 }};
+    block joints_vis{ { 0.0 , 0.0 }, 
+                { 1.0 , 1.0 }, 
+                { 0.0 , 0.0 }};
+
+    a.insert({"ImgId",458992});
+    a.insert({"AnnotationID",12366});
+    a.insert({"Center",center});    
+    a.insert({"Scale",scale});
+    a.insert({"Joints",joints});
+    a.insert({"Joints_Visiblity",joints_vis});
+    a.insert({"Score",score});
+    a.insert({"Rotation",rotation});
+    return a;
+}
