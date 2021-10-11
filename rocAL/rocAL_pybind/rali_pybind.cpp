@@ -216,6 +216,29 @@ namespace rali{
         return py::cast<py::none>(Py_None);
     }
 
+    py::object wrapper_joints_meta_copy(RaliContext context,py::dict joints)
+    {
+         
+        JointsTestDummy * test = raliTempJointsData(context);
+        // struct test{
+        //     int imgid;
+        //     int annid;
+        //     std::vector<int> center;
+        // };
+
+
+        // std::vector<int> center_test;
+        // center_test.push_back(115);
+        // center_test.push_back(260);
+
+        // test test1 = { 458992, 120 , center_test};
+        joints["ImgId"] = test->image_id;
+        joints["AnnId"] = test->annotation_id;
+        // joints["Center"] = test.center;
+
+        return py::cast<py::none>(Py_None);
+    }
+
     py::object wrapper_one_hot_label_copy(RaliContext context, py::array_t<int> array , unsigned numOfClasses)
     {
         auto buf = array.request();
@@ -318,7 +341,8 @@ namespace rali{
         m.def("getBBCords",&wrapper_BB_cord_copy);
         m.def("getImageKeyPoints",&wrapper_keypoint_copy);
         m.def("getImageTargets",&wrapper_target_copy);
-        m.def("getJointsData",&wrapper_joints_dict_copy);
+        m.def("getJointsData",&wrapper_joints_meta_copy);
+        //m.def("getJointsMeta",&wrapper_joints_meta_copy);
         m.def("raliCopyEncodedBoxesAndLables",&wrapper_encoded_bbox_label);
         m.def("getImgSizes",&wrapper_img_sizes_copy);
         m.def("getBoundingBoxCount",&wrapper_labels_BB_count_copy);

@@ -522,3 +522,84 @@ RALI_API_CALL raliGetTestMap(RaliContext p_context)
     a.insert({"Rotation",rotation});
     return a;
 }
+
+JointsTestDummy *
+RALI_API_CALL raliTempJointsData(RaliContext p_context)
+{  
+    if (!p_context)
+        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+
+    JointsTest *j2 = new JointsTest();
+    j2->image_id.push_back(45892);
+    j2->annotation_id.push_back(1236);
+    j2->score.push_back(12.3);
+    j2->rotation.push_back(22.5);
+    return ((JointsTestDummy *) j2);
+    // j2->center[0].push_back(125.75);
+    // j2->center[0].push_back(189.56);
+    // j2->scale[0].push_back(125.75);
+    // j2->scale[0].push_back(189.56);
+    // j2->joints[0].push_back(254.7);
+    // j2->joints[0].push_back(295.9);
+    // j2->joints[1].push_back(400.1);
+    // j2->joints[2].push_back(100.45);
+}
+
+
+// void
+// RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data)
+// {  
+//     if (!p_context)
+//         THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+//     auto context = static_cast<Context*>(p_context);
+//     auto meta_data = context->master_graph->meta_data();
+//     size_t meta_data_batch_size = meta_data.second->get_img_joints_data_batch().size();
+
+//     if(context->user_batch_size() != meta_data_batch_size)
+//         THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+//     if(!meta_data.second)
+//     {
+//         WRN("No label has been loaded for this output image")
+//         return;
+//     }
+//     auto num_keypoints = NUMBER_OF_KEYPOINTS;
+
+//     auto *center_ptr =joints_data->center;
+//     auto *scale_ptr =joints_data->scale;
+//     auto *joints_ptr =joints_data->joints;
+//     auto *joints_vis_ptr =joints_data->joints_visibility;
+//     auto *img_id_ptr = joints_data->image_id;
+//     auto *ann_id_ptr = joints_data->annotation_id;
+//     auto *score_ptr = joints_data->score;
+//     auto *rotation_ptr = joints_data->rotation;
+//     auto *img_path_ptr = joints_data->image_path;
+//     int img_path_size;
+
+//     for(unsigned i = 0; i < meta_data_batch_size ; i++)
+//     { 
+//         unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
+//         for(unsigned j = 0; j < annotation_size ; j++)
+//         {
+//             img_path_size = meta_data.second->get_img_joints_data_batch()[i][j].image_path.size();
+//             //std::cout<<"Image path size:"<<img_path_size<<std::endl;
+//             memcpy(img_id_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].image_id),sizeof(int));
+//             memcpy(ann_id_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].annotation_id), sizeof(int));
+//             memcpy(img_path_ptr , meta_data.second->get_img_joints_data_batch()[i][j].image_path.data(), img_path_size);
+//             memcpy(center_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].center), annotation_size * sizeof(BoundingBoxScale));
+//             memcpy(scale_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].scale), annotation_size * sizeof(BoundingBoxScale));
+//             memcpy(joints_ptr ,meta_data.second->get_img_joints_data_batch()[i][j].joints.data(), annotation_size * 17 * sizeof(KeyPoint));
+//             memcpy(joints_vis_ptr ,meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * 17 * sizeof(KeyPointVisibility));
+//             memcpy(score_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].score), sizeof(float));
+//             memcpy(rotation_ptr , &(meta_data.second->get_img_joints_data_batch()[i][j].rotation), sizeof(float));
+//         }
+//         img_id_ptr += (annotation_size);
+//         ann_id_ptr += (annotation_size);
+//         img_path_ptr += (annotation_size * 100);
+//         center_ptr += (annotation_size * 2);
+//         scale_ptr += (annotation_size * 2);
+//         joints_ptr += (annotation_size * num_keypoints * 2);
+//         joints_vis_ptr += (annotation_size * num_keypoints * 2);
+//         score_ptr += (annotation_size);
+//         rotation_ptr += (annotation_size);
+//     }
+// }

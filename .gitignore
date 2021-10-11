@@ -15,3 +15,4 @@ vision_report_Linux*
 dist*
 amd_rali.egg-info*
 core*
+__pycache__

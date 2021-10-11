@@ -67,6 +67,32 @@ struct MetaDataJoints
     float joints_visibility[17 * 2];
 };
 
+struct JointsTest
+{
+    std::vector<int> image_id;
+    std::vector<int> annotation_id;
+    std::vector<float> score;
+    std::vector<float> rotation; 
+    std::vector<std::string> image_path;
+    std::vector<std::vector<float>> center;
+    std::vector<std::vector<float>> scale;
+    std::vector<std::vector<float>> joints;
+    std::vector<std::vector<float>> joints_visibility;
+};
+
+struct JointsTestDummy
+{
+    std::vector<int> image_id;
+    std::vector<int> annotation_id;
+    std::vector<float> score;
+    std::vector<float> rotation; 
+    std::vector<std::string> image_path;
+    std::vector<std::vector<float>> center;
+    std::vector<std::vector<float>> scale;
+    std::vector<std::vector<float>> joints;
+    std::vector<std::vector<float>> joints_visibility;
+};
+
 enum RaliStatus
 {
     RALI_OK = 0,
