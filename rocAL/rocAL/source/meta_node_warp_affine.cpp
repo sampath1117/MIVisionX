@@ -48,6 +48,7 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
     _src_height = _node->get_src_height();
     _affine_array = _node->get_affine_array();
 
+    /*
     vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint), _src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint), _src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_affine_array, 0, (6 * _batch_size), sizeof(float), _affine_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
@@ -173,7 +174,6 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
                 //Multiply scale with random scale factor clipped between [1-sf,1+sf]
                 box_scale.ws = box_scale.ws * scale_factor;
                 box_scale.hs = box_scale.hs * scale_factor;
-                */
 
                 //Get random rotation factor
                 auto r = rotation_factor;
@@ -291,6 +291,7 @@ void WarpAffineMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool 
             input_meta_data->get_img_joints_data_batch()[i] = img_joints_data;
         }
     }
+    */
 }
 
 void get_dir(float point[], float dir[], float r)

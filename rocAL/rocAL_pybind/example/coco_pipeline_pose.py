@@ -117,10 +117,7 @@ class RALICOCOIterator(object):
             print("Transfer time ::", timing_info.transfer_time)
             raise StopIteration
 
-        self.joints = dict({})
-        self.loader.GetJointsData(self.joints)
-        print("Joints data is: ")
-        print(self.joints)
+        
 
         if self.loader.run() != 0:
             raise StopIteration
@@ -134,6 +131,11 @@ class RALICOCOIterator(object):
             self.loader.copyToTensorNHWC(
                 self.out, self.multiplier, self.offset, self.reverse_channels, int(self.tensor_dtype))
 
+        self.joints_data = dict({})
+        self.loader.GetJointsData(self.joints_data)
+        print("Joints data is: ")
+        print(self.joints_data)
+        
         # Image id of a batch of images
         self.image_id = np.zeros(self.bs, dtype="int32")
         self.loader.GetImageId(self.image_id)
@@ -142,28 +144,27 @@ class RALICOCOIterator(object):
         # Image sizes of a batch
         self.img_size = np.zeros((self.bs * 2), dtype="int32")
         self.loader.GetImgSizes(self.img_size)
-        print("Image sizes:", self.img_size)
+        # print("Image sizes:", self.img_size)
 
         self.joints = np.zeros((self.bs * 17 * 2), dtype = "float32")
         self.joints_vis = np.zeros((self.bs * 17 * 2), dtype = "float32")
         self.loader.GetImageKeyPoints(self.joints, self.joints_vis)
+
+        # print(self.joints)
 
         self.targets = np.zeros((self.bs * 17 * 96 * 72), dtype = "float32")
         self.target_weights = np.zeros((self.bs * 17 ), dtype = "float32")
         self.loader.GetImageTargets(self.targets, self.target_weights)
 
         # print(self.targets.reshape((self.bs * 17,96,72)))
-        image_id_tensor = torch.tensor(self.image_id)
-        image_size_tensor = torch.tensor(self.img_size).view(-1, self.bs, 2)
-        joints_tensor = torch.tensor(self.joints).view(-1, self.bs, 2)
-        target_tensor = torch.tensor(self.targets).view(-1, self.bs * 17, 96, 72)
-        target_weights_tensor = torch.tensor(self.target_weights).view( -1, self.bs * 17)
-        # print(joints_tensor)
+        target_tensor = torch.tensor(self.targets).view(-1, self.bs , 17, 96, 72)
+        target_weights_tensor = torch.tensor(self.target_weights).view( -1, self.bs ,  17)
+        # joints_data_tensor = torch.tensor(self.joints_data)
+        joints_data_tensor = self.joints_data
+        # print(target_tensor.shape)
         # print(target_tensor.shape)
 
-        # print("Joints\n", self.joints)
-        # print("Joints Visibility\n", self.joints_vis)
-        # cnt = 0
+        cnt = 0
     
         # for k in range(self.bs * 17):
         #     for i in range(96):
@@ -171,8 +172,8 @@ class RALICOCOIterator(object):
         #             cnt  = cnt+1
         #             if(self.targets[cnt]!=0):
         #                 print(self.targets[cnt],end=" ")
-        #         # print("")
-        #     # print("")
+                # print("")
+            # print("")
 
         #print("Targets\n",self.targets)
         #print("Target Weights\n",self.target_weights)
@@ -181,11 +182,11 @@ class RALICOCOIterator(object):
             if self.display:
                 img = torch.from_numpy(self.out)
                 draw_patches(img[i], self.image_id[i])
-
+        
         if self.tensor_dtype == types.FLOAT:
-            return torch.from_numpy(self.out), target_tensor , target_weights_tensor , image_id_tensor , image_size_tensor
+            return torch.from_numpy(self.out) ,target_tensor , target_weights_tensor , joints_data_tensor
         elif self.tensor_dtype == types.FLOAT16:
-            return torch.from_numpy(self.out.astype(np.float16)),target_tensor, target_weights_tensor , image_id_tensor , image_size_tensor
+            return torch.from_numpy(self.out.astype(np.float16)),target_tensor, target_weights_tensor , joints_data_tensor
 
 
     def reset(self):
@@ -263,12 +264,13 @@ def main(exp_name,
     epochs = 1
     for epoch in range(int(epochs)):
         print("EPOCH:::::", epoch)
-        for i, it in enumerate(data_loader, 0):
+        for i, it in enumerate(data_loader):
             print("**************", i, "*******************")
             print("**************starts*******************")
-            # print("\nTargets:\n", it[1])
-            # print("\nTarget Weights:\n", it[2])
-            # print("\nIMAGE ID's:\n", it[3])
+            print("\nTargets:\n", it[1])
+            print("\nTarget Weights:\n", it[2])
+            print("\nIMAGE ID's:\n", it[3]["imgId"])
+            print("\nKeyPoints's:\n", it[3]["joints"])
             # print("\nIMAGE SIZES:\n", it[4])
             print("**************ends*******************")
             print("**************", i, "*******************")

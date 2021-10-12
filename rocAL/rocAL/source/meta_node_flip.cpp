@@ -39,6 +39,7 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
         _batch_size = input_meta_data->size();
     }
 
+    /*
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
     _flip_axis = _node->get_flip_axis();
@@ -153,4 +154,5 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
             input_meta_data->get_bb_cords_batch()[i] = bb_coords;
             //input_meta_data->get_bb_labels_batch()[i] = bb_labels;
         }
+        */
     }

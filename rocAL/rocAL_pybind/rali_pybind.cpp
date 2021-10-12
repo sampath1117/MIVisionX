@@ -200,18 +200,18 @@ namespace rali{
     py::object wrapper_joints_dict_copy(RaliContext context,py::dict joints)
     {
        
-        std::map<std::string,boost::any> a = raliGetTestMap(context);
-        typedef std::vector<std::vector<float>> block;
-        typedef std::vector<float> pair;
+        // std::map<std::string,boost::any> a = raliGetTestMap(context);
+        // typedef std::vector<std::vector<float>> block;
+        // typedef std::vector<float> pair;
     
-        joints["ImgId"] = boost::any_cast<int>(a["ImgId"]);
-        joints["AnnotationId"] = boost::any_cast<int>(a["AnnotationID"]);
-        joints["Center"] = boost::any_cast<pair>(a["Center"]);
-        joints["Scale"] = boost::any_cast<pair>(a["Scale"]);
-        joints["Joints"] = boost::any_cast<block>(a["Joints"]);
-        joints["Joints_Visibility"] = boost::any_cast<block>(a["Joints_Visiblity"]);
-        joints["Score"] = boost::any_cast<float>(a["Score"]);
-        joints["Rotation"] = boost::any_cast<float>(a["Rotation"]);
+        // joints["ImgId"] = boost::any_cast<int>(a["ImgId"]);
+        // joints["AnnotationId"] = boost::any_cast<int>(a["AnnotationID"]);
+        // joints["Center"] = boost::any_cast<pair>(a["Center"]);
+        // joints["Scale"] = boost::any_cast<pair>(a["Scale"]);
+        // joints["Joints"] = boost::any_cast<block>(a["Joints"]);
+        // joints["Joints_Visibility"] = boost::any_cast<block>(a["Joints_Visiblity"]);
+        // joints["Score"] = boost::any_cast<float>(a["Score"]);
+        // joints["Rotation"] = boost::any_cast<float>(a["Rotation"]);
 
         return py::cast<py::none>(Py_None);
     }
@@ -219,23 +219,16 @@ namespace rali{
     py::object wrapper_joints_meta_copy(RaliContext context,py::dict joints)
     {
          
-        JointsTestDummy * test = raliTempJointsData(context);
-        // struct test{
-        //     int imgid;
-        //     int annid;
-        //     std::vector<int> center;
-        // };
-
-
-        // std::vector<int> center_test;
-        // center_test.push_back(115);
-        // center_test.push_back(260);
-
-        // test test1 = { 458992, 120 , center_test};
-        joints["ImgId"] = test->image_id;
-        joints["AnnId"] = test->annotation_id;
-        // joints["Center"] = test.center;
-
+        auto *test = raliGetJointsDataPtr(context);
+        joints["imgId"] = test->image_ids;
+        joints["annId"] = test->annotation_ids;
+        joints["imgPath"] = test->image_paths;
+        joints["center"] = test->centers;
+        joints["scale"] = test->scales;
+        joints["joints"] = test->joints;
+        joints["joints_visibility"] = test->joints_visibility;
+        joints["score"] = test->scores;
+        joints["rotation"] = test->rotations;
         return py::cast<py::none>(Py_None);
     }
 

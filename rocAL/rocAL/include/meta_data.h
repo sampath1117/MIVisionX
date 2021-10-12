@@ -35,27 +35,28 @@ THE SOFTWARE.
 
 
 typedef  struct { float l; float t; float r; float b; } BoundingBoxCord;
-typedef struct { float xc; float yc; } BoundingBoxCenter;
-typedef struct { float ws; float hs; } BoundingBoxScale;
-typedef  std::vector<BoundingBoxCenter> BoundingBoxCenters;
-typedef  std::vector<BoundingBoxScale> BoundingBoxScales;
-typedef struct {
-    float x; //x-coordinate of keypoint
-    float y; //y-coordinate of keypoint
-} KeyPoint;
-typedef struct
-{
-    float xv; //Visibility of keypoint
-    float yv; //Visibility of keypoint
-}KeyPointVisibility;
+// typedef struct { float xc; float yc; } BoundingBoxCenter;
+// typedef struct { float ws; float hs; } BoundingBoxScale;
+// typedef  std::vector<BoundingBoxCenter> BoundingBoxCenters;
+// typedef  std::vector<BoundingBoxScale> BoundingBoxScales;
+// typedef struct {
+//     float x; //x-coordinate of keypoint
+//     float y; //y-coordinate of keypoint
+// } KeyPoint;
+// typedef struct
+// {
+//     float xv; //Visibility of keypoint
+//     float yv; //Visibility of keypoint
+// }KeyPointVisibility;
 
 typedef  std::vector<BoundingBoxCord> BoundingBoxCords;
 typedef  std::vector<int> BoundingBoxLabels;
 typedef  struct { int w; int h; } ImgSize;
 typedef  std::vector<ImgSize> ImgSizes;
 
-typedef std::vector<KeyPoint> KeyPoints;
-typedef std::vector<KeyPointVisibility> KeyPointsVisibility;
+
+// typedef std::vector<KeyPoint> KeyPoints;
+// typedef std::vector<KeyPointVisibility> KeyPointsVisibility;
 typedef std::vector<std::vector<float> > Target;
 typedef std::vector<Target> Targets;
 typedef std::vector<Targets> ImageTargets;
@@ -63,23 +64,37 @@ typedef float TargetWeight;
 typedef std::vector<TargetWeight> TargetsWeight;
 typedef std::vector<TargetsWeight> ImageTargetsWeight;
 
-typedef std::vector<int> ImageIDs;
-typedef std::vector<int> AnnotationIDs;
-typedef std::vector<float> Scores;
-typedef std::vector<float> Rotations;
+typedef std::vector<int> ImageIDs,AnnotationIDs;
+typedef std::vector<std::string> ImagePaths;
+typedef std::vector<float> Scores,Rotations;
+typedef std::vector<std::vector<float>> Centers,Scales;
+typedef std::vector<std::vector<std::vector<float>>> Joints,Joints_Visibility;
+
 typedef struct
 {
     int image_id;
     int annotation_id;
     std::string image_path;
-    BoundingBoxCenter center;
-    BoundingBoxScale scale;
-    KeyPoints joints;
-    KeyPointsVisibility joints_visibility;
+    std::vector<float> center;
+    std::vector<float> scale;
+    std::vector<std::vector<float>> joints;
+    std::vector<std::vector<float>> joints_visibility;
     float score;
     float rotation;
 }JointsData;
-typedef std::vector<JointsData> ImageJointsData;
+
+typedef struct
+{
+    ImageIDs image_id;
+    AnnotationIDs annotation_id;
+    ImagePaths image_path;
+    Centers center;
+    Scales scale;
+    Joints joints;
+    Joints_Visibility joints_visibility;
+    Scores score;
+    Rotations rotation;
+}JointsDataBatch;
 
 struct MetaData
 {
@@ -89,14 +104,14 @@ struct MetaData
     ImgSizes& get_img_sizes() {return _img_sizes; }
     ImageTargets& get_img_targets() { return _img_targets; }
     ImageTargetsWeight& get_img_targets_weight() { return _img_targets_weight; }
-    ImageJointsData& get_img_joints_data(){ return _img_joints_data; }
+    JointsData& get_joints_data(){ return _joints_data; }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
     BoundingBoxLabels _bb_label_ids = {}; // For bb use
     ImageTargets _img_targets = {};
     ImageTargetsWeight _img_targets_weight = {};
     ImgSizes _img_sizes = {};
-    ImageJointsData _img_joints_data = {};
+    JointsData _joints_data = {};
     int _label_id = -1; // For label use only
 };
 
@@ -121,16 +136,16 @@ struct BoundingBox : public MetaData
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
     }
-    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, ImageJointsData)
+    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, JointsData)
     {
         _bb_cords =std::move(bb_cords);
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
     }
-    BoundingBox(ImgSizes img_sizes, ImageJointsData img_joints_data)
+    BoundingBox(ImgSizes img_sizes, JointsData joints_data)
     {
         _img_sizes = std::move(img_sizes);
-        _img_joints_data = std::move(img_joints_data);
+        _joints_data = std::move(joints_data);
     }
     
     void set_bb_cords(BoundingBoxCords bb_cords) { _bb_cords =std::move(bb_cords); }
@@ -138,7 +153,7 @@ struct BoundingBox : public MetaData
     void set_img_sizes(ImgSizes img_sizes) { _img_sizes =std::move(img_sizes); }
     void set_img_targets(ImageTargets img_targets) { _img_targets = std::move(img_targets); }
     void set_img_targets_weight(ImageTargetsWeight img_targets_weight) { _img_targets_weight = std::move(img_targets_weight); }
-    void set_img_joints_data(ImageJointsData img_joints_data) { _img_joints_data = std::move(img_joints_data); }
+    void set_joints_data(JointsData joints_data) { _joints_data = std::move(joints_data); }
 };
 
 struct MetaDataBatch
@@ -160,7 +175,7 @@ struct MetaDataBatch
     std::vector<ImgSizes>& get_img_sizes_batch() { return _img_sizes; }
     std::vector<ImageTargets>& get_img_targets_batch() { return _img_targets; }
     std::vector<ImageTargetsWeight>& get_img_targets_weight_batch() { return _img_targets_weight; }
-    std::vector<ImageJointsData>& get_img_joints_data_batch(){return _img_joints_data; }
+    JointsDataBatch & get_joints_data_batch(){return _joints_data; }
 protected:
     std::vector<int> _label_id = {}; // For label use only
     std::vector<BoundingBoxCords> _bb_cords = {};
@@ -168,7 +183,7 @@ protected:
     std::vector<ImgSizes> _img_sizes = {};
     std::vector<ImageTargets> _img_targets = {};
     std::vector<ImageTargetsWeight> _img_targets_weight = {};
-    std::vector<ImageJointsData> _img_joints_data = {};
+    JointsDataBatch _joints_data = {};
 };
 
 struct LabelBatch : public MetaDataBatch
@@ -210,16 +225,22 @@ struct BoundingBoxBatch: public MetaDataBatch
         _img_sizes.clear();
         _img_targets.clear();
         _img_targets_weight.clear();
-        _img_joints_data.clear();
+        _joints_data = {};
     }
     MetaDataBatch&  operator += (MetaDataBatch& other) override
     {
+        std::cout<<"batching of meta data started"<<std::endl;
         _bb_cords.insert(_bb_cords.end(),other.get_bb_cords_batch().begin(), other.get_bb_cords_batch().end());
         _bb_label_ids.insert(_bb_label_ids.end(), other.get_bb_labels_batch().begin(), other.get_bb_labels_batch().end());
         _img_sizes.insert(_img_sizes.end(),other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
         _img_targets.insert(_img_targets.end(),other.get_img_targets_batch().begin(),other.get_img_targets_batch().end());
         _img_targets_weight.insert(_img_targets_weight.end(),other.get_img_targets_weight_batch().begin(),other.get_img_targets_weight_batch().end());
-        _img_joints_data.insert(_img_joints_data.end(),other.get_img_joints_data_batch().begin(),other.get_img_joints_data_batch().end());
+        _joints_data.image_id.insert(_joints_data.image_id.end(),other.get_joints_data_batch().image_id.begin(),other.get_joints_data_batch().image_id.end());
+        _joints_data.annotation_id.insert(_joints_data.annotation_id.end(),other.get_joints_data_batch().annotation_id.begin(),other.get_joints_data_batch().annotation_id.end());
+        _joints_data.center.insert(_joints_data.center.end(),other.get_joints_data_batch().center.begin(),other.get_joints_data_batch().center.end());
+        _joints_data.scale.insert(_joints_data.scale.end(),other.get_joints_data_batch().scale.begin(),other.get_joints_data_batch().scale.end());
+        _joints_data.joints.insert(_joints_data.joints.end(),other.get_joints_data_batch().joints.begin(),other.get_joints_data_batch().joints.end());
+        _joints_data.joints_visibility.insert(_joints_data.joints_visibility.end(),other.get_joints_data_batch().joints_visibility.begin(),other.get_joints_data_batch().joints_visibility.end());
         return *this;
     }
     void resize(int batch_size) override
@@ -229,7 +250,7 @@ struct BoundingBoxBatch: public MetaDataBatch
         _img_sizes.resize(batch_size);
         _img_targets.resize(batch_size);
         _img_targets_weight.resize(batch_size);
-        _img_joints_data.resize(batch_size);
+        // _joints_data.resize(batch_size);
     }
     int size() override
     {

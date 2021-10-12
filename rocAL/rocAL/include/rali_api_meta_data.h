@@ -168,11 +168,12 @@ extern "C" void RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *
 //
 /// \param rali_context
 /// \param joints_data The user's buffer that will be filled with joints_data values
-extern "C" void RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data[]);
+extern "C" void RALI_API_CALL raliGetJointsData(RaliContext p_context, RaliJointsData joints_data);
+
+//
+/// \param rali_context
+extern "C" RaliJointsData * RALI_API_CALL raliGetJointsDataPtr(RaliContext p_context);
 
 
-extern "C" std::map<std::string,boost::any> RALI_API_CALL raliGetTestMap(RaliContext p_context);
-
-
-extern "C" JointsTestDummy * RALI_API_CALL raliTempJointsData(RaliContext p_context);
+//extern "C" std::map<std::string,boost::any> RALI_API_CALL raliGetTestMap(RaliContext p_context);
 #endif //MIVISIONX_RALI_API_META_DATA_H

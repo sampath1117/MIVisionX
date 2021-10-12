@@ -43,7 +43,7 @@ typedef void *RaliIntParam;
 typedef void *RaliContext;
 typedef void *RaliImage;
 typedef void *RaliMetaData;
-//typedef void * MetaDataJoints;
+
 
 struct TimingInfo
 {
@@ -53,45 +53,38 @@ struct TimingInfo
     long long unsigned transfer_time;
 };
 
+typedef std::vector<int> ImageIDs,AnnotationIDs;
+typedef std::vector<std::string> ImagePaths;
+typedef std::vector<float> Scores,Rotations;
+typedef std::vector<std::vector<float>> Centers,Scales;
+typedef std::vector<std::vector<std::vector<float>>> Joints,Joints_Visibility;
 
-struct MetaDataJoints
+struct RaliJointsData
 {
-    int image_id;
-    int annotation_id;
-    float score;
-    float rotation; 
-    char image_path[MAX_IMAGE_NAME_LENGTH];
-    float center[2];
-    float scale[2];
-    float joints[17 * 2];
-    float joints_visibility[17 * 2];
+    ImageIDs image_ids;
+    AnnotationIDs annotation_ids;
+    ImagePaths image_paths;
+    Centers centers;
+    Scales scales;
+    Joints joints;
+    Joints_Visibility joints_visibility;
+    Scores scores;
+    Rotations rotations;
 };
 
-struct JointsTest
-{
-    std::vector<int> image_id;
-    std::vector<int> annotation_id;
-    std::vector<float> score;
-    std::vector<float> rotation; 
-    std::vector<std::string> image_path;
-    std::vector<std::vector<float>> center;
-    std::vector<std::vector<float>> scale;
-    std::vector<std::vector<float>> joints;
-    std::vector<std::vector<float>> joints_visibility;
-};
+// struct RaliJointsData
+// {
+//     std::vector<int> image_ids;
+//     std::vector<int> annotation_ids;
+//     std::vector<std::string> image_paths;
+//     std::vector<float> scores;
+//     std::vector<float> rotations; 
+//     std::vector<std::vector<float>> centers;
+//     std::vector<std::vector<float>> scales;
+//     std::vector<std::vector<std::vector<float>>> joints;
+//     std::vector<std::vector<std::vector<float>>> joints_visibility;
+// };
 
-struct JointsTestDummy
-{
-    std::vector<int> image_id;
-    std::vector<int> annotation_id;
-    std::vector<float> score;
-    std::vector<float> rotation; 
-    std::vector<std::string> image_path;
-    std::vector<std::vector<float>> center;
-    std::vector<std::vector<float>> scale;
-    std::vector<std::vector<float>> joints;
-    std::vector<std::vector<float>> joints_visibility;
-};
 
 enum RaliStatus
 {
@@ -156,5 +149,33 @@ enum RaliDecoderType
     RALI_DECODER_VIDEO_FFMPEG_SW = 2,
     RALI_DECODER_VIDEO_FFMPEG_HW = 3
 };
+
+// typedef struct
+// {
+//     ImageIDs image_id;
+//     AnnotationIDs annotation_id;
+//     ImagePaths image_path;
+//     Centers center;
+//     Scales scale;
+//     Joints joints;
+//     Joints_Visibility joints_visibility;
+//     Scores score;
+//     Rotations rotation;
+// }JointsTestDummy;
+
+
+
+// struct MetaDataJoints
+// {
+//     int image_id;
+//     int annotation_id;
+//     float score;
+//     float rotation; 
+//     char image_path[MAX_IMAGE_NAME_LENGTH];
+//     float center[2];
+//     float scale[2];
+//     float joints[17 * 2];
+//     float joints_visibility[17 * 2];
+// };
 
 #endif //MIVISIONX_RALI_API_TYPES_H
