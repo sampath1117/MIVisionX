@@ -64,14 +64,15 @@ void COCOMetaDataReader::lookup(const std::vector<std::string> &image_names)
         _output->get_bb_cords_batch()[i] = it->second->get_bb_cords();
         _output->get_bb_labels_batch()[i] = it->second->get_bb_labels();
         _output->get_img_sizes_batch()[i] = it->second->get_img_sizes();
-        joints_data_batch.image_id.push_back(it->second->get_joints_data().image_id);
-        joints_data_batch.annotation_id.push_back(it->second->get_joints_data().annotation_id);
-        joints_data_batch.center.push_back(it->second->get_joints_data().center);
-        joints_data_batch.scale.push_back(it->second->get_joints_data().scale);
-        joints_data_batch.joints.push_back(it->second->get_joints_data().joints);
-        joints_data_batch.joints_visibility.push_back(it->second->get_joints_data().joints_visibility);
-        joints_data_batch.score.push_back(it->second->get_joints_data().score);
-        joints_data_batch.rotation.push_back(it->second->get_joints_data().rotation);
+        joints_data_batch.image_id_batch.push_back(it->second->get_joints_data().image_id);
+        joints_data_batch.annotation_id_batch.push_back(it->second->get_joints_data().annotation_id);
+        joints_data_batch.image_path_batch.push_back(it->second->get_joints_data().image_path);
+        joints_data_batch.center_batch.push_back(it->second->get_joints_data().center);
+        joints_data_batch.scale_batch.push_back(it->second->get_joints_data().scale);
+        joints_data_batch.joints_batch.push_back(it->second->get_joints_data().joints);
+        joints_data_batch.joints_visibility_batch.push_back(it->second->get_joints_data().joints_visibility);
+        joints_data_batch.score_batch.push_back(it->second->get_joints_data().score);
+        joints_data_batch.rotation_batch.push_back(it->second->get_joints_data().rotation);
     }
     _output->get_joints_data_batch() = joints_data_batch;
 }
@@ -108,6 +109,7 @@ void COCOMetaDataReader::print_map_contents()
     ImgSizes img_sizes;
     JointsData joints_data;
 
+    std::cout<<"Printing Map contents"<<std::endl;
     std::cout << "\nBBox Annotations List: \n";
     for (auto &elem : _map_content)
     {
@@ -399,7 +401,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
     }
     _coco_metadata_read_time.end(); // Debug timing
     //std::cout<<"Printing map contents:"<<std::endl;
-    //print_map_contents();
+    print_map_contents();
     std::cout << "coco read time in sec: " << _coco_metadata_read_time.get_timing() / 1000 << std::endl;
 }
 

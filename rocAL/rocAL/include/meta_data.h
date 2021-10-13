@@ -85,15 +85,15 @@ typedef struct
 
 typedef struct
 {
-    ImageIDs image_id;
-    AnnotationIDs annotation_id;
-    ImagePaths image_path;
-    Centers center;
-    Scales scale;
-    Joints joints;
-    Joints_Visibility joints_visibility;
-    Scores score;
-    Rotations rotation;
+    ImageIDs image_id_batch;
+    AnnotationIDs annotation_id_batch;
+    ImagePaths image_path_batch;
+    Centers center_batch;
+    Scales scale_batch;
+    Joints joints_batch;
+    Joints_Visibility joints_visibility_batch;
+    Scores score_batch;
+    Rotations rotation_batch;
 }JointsDataBatch;
 
 struct MetaData
@@ -235,12 +235,14 @@ struct BoundingBoxBatch: public MetaDataBatch
         _img_sizes.insert(_img_sizes.end(),other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
         _img_targets.insert(_img_targets.end(),other.get_img_targets_batch().begin(),other.get_img_targets_batch().end());
         _img_targets_weight.insert(_img_targets_weight.end(),other.get_img_targets_weight_batch().begin(),other.get_img_targets_weight_batch().end());
-        _joints_data.image_id.insert(_joints_data.image_id.end(),other.get_joints_data_batch().image_id.begin(),other.get_joints_data_batch().image_id.end());
-        _joints_data.annotation_id.insert(_joints_data.annotation_id.end(),other.get_joints_data_batch().annotation_id.begin(),other.get_joints_data_batch().annotation_id.end());
-        _joints_data.center.insert(_joints_data.center.end(),other.get_joints_data_batch().center.begin(),other.get_joints_data_batch().center.end());
-        _joints_data.scale.insert(_joints_data.scale.end(),other.get_joints_data_batch().scale.begin(),other.get_joints_data_batch().scale.end());
-        _joints_data.joints.insert(_joints_data.joints.end(),other.get_joints_data_batch().joints.begin(),other.get_joints_data_batch().joints.end());
-        _joints_data.joints_visibility.insert(_joints_data.joints_visibility.end(),other.get_joints_data_batch().joints_visibility.begin(),other.get_joints_data_batch().joints_visibility.end());
+        _joints_data.image_id_batch.insert(_joints_data.image_id_batch.end(),other.get_joints_data_batch().image_id_batch.begin(),other.get_joints_data_batch().image_id_batch.end());
+        _joints_data.annotation_id_batch.insert(_joints_data.annotation_id_batch.end(),other.get_joints_data_batch().annotation_id_batch.begin(),other.get_joints_data_batch().annotation_id_batch.end());
+        _joints_data.center_batch.insert(_joints_data.center_batch.end(),other.get_joints_data_batch().center_batch.begin(),other.get_joints_data_batch().center_batch.end());
+        _joints_data.scale_batch.insert(_joints_data.scale_batch.end(),other.get_joints_data_batch().scale_batch.begin(),other.get_joints_data_batch().scale_batch.end());
+        _joints_data.joints_batch.insert(_joints_data.joints_batch.end(),other.get_joints_data_batch().joints_batch.begin(),other.get_joints_data_batch().joints_batch.end());
+        _joints_data.joints_visibility_batch.insert(_joints_data.joints_visibility_batch.end(),other.get_joints_data_batch().joints_visibility_batch.begin(),other.get_joints_data_batch().joints_visibility_batch.end());
+        _joints_data.score_batch.insert(_joints_data.score_batch.end(),other.get_joints_data_batch().score_batch.begin(),other.get_joints_data_batch().score_batch.end());
+        _joints_data.rotation_batch.insert(_joints_data.rotation_batch.end(),other.get_joints_data_batch().rotation_batch.begin(),other.get_joints_data_batch().rotation_batch.end());
         return *this;
     }
     void resize(int batch_size) override

@@ -314,6 +314,7 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
 
 void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data)
 {
+    
     //Generate gaussians
     int tmp_size = sigma * 3;
     int gauss_size = 2 * tmp_size + 1;
@@ -341,7 +342,7 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
 
     // std::cout << "full batch size: " << full_batch_meta_data->size() << std::endl;
 
-    auto bb_count = full_batch_meta_data->get_joints_data_batch().annotation_id.size();
+    auto bb_count = full_batch_meta_data->get_joints_data_batch().annotation_id_batch.size();
     //std::cout << "bb count: " << bb_count << std::endl;
     float feat_stride[2] = {output_width / target_width, output_height / target_height};
 
@@ -357,9 +358,9 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
         {
             Target bb_target;
             bb_target.resize(target_height, std::vector<float>(target_width, 0));
-            TargetWeight bb_target_weight = full_batch_meta_data->get_joints_data_batch().joints_visibility[j][k][0];
+            TargetWeight bb_target_weight = full_batch_meta_data->get_joints_data_batch().joints_visibility_batch[j][k][0];
             std::vector<float> key_point;
-            key_point = full_batch_meta_data->get_joints_data_batch().joints[j][k];
+            key_point = full_batch_meta_data->get_joints_data_batch().joints_batch[j][k];
 
             //std::cout << "keypoint values: " << key_point[0] << " " << key_point[1] << std::endl;
 

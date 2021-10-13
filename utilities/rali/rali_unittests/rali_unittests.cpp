@@ -697,11 +697,10 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         float img_key_points[size * 17 * 2];
         float img_key_points_vis[size * 17 * 2];
         raliGetImageKeyPoints(handle, img_key_points, img_key_points_vis);
-        // for (int k = 0; k < size * 17 * 2; k = k + 2)
-        // {
-        //     std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
-        //     // std::cout<<"v : "<<img_key_points_vis[k]<<std::endl;
-        // }
+        for (int k = 0; k < size * 17 * 2; k = k + 2)
+        {
+            std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
+        }
 
         float img_targets[size * 17 * 96 * 72];
         float img_targets_weight[size * 17];
@@ -717,45 +716,34 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
                 for(int j = 0; j < 72 ; j++)
                 {
                     cnt = cnt+1;
-                    if(img_targets[cnt]!=0)
-                    {
+                    // if(img_targets[cnt]!=0)
+                    // {
                         std::cout<<img_targets[cnt]<<" ";
-                    }
+                    // }
                 }
                 std::cout<<std::endl;
             }
             std::cout<<std::endl;
         }
 
-        // auto *ptr  = raliGetJointsDataPtr(handle);
-        // std::cout<<"ImageId"<<ptr->annotation_id[0]<<std::endl;
-        // MetaDataJoints *joints_data[inputBatchSize];
-        // for (int i = 0; i < inputBatchSize; i++)
-        // {
-        //     joints_data[i] = new MetaDataJoints();
-        // }
+        
+        RaliJointsData *joints_data = new RaliJointsData();
+        raliGetJointsData(handle, joints_data);
+        for (int i = 0; i < inputBatchSize; i++)
+        {
+            std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
+            std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
+            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
+            std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
+            std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
+            std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
+            std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
 
-        // raliGetJointsData(handle, joints_data);
-        // for (int i = 0; i < inputBatchSize; i++)
-        // {
-        //     std::cout << "ImageID: " << joints_data[i]->image_id << std::endl;
-        //     std::cout << "AnnotationID: " << joints_data[i]->annotation_id << std::endl;
-        //     std::cout << "ImagePath: ";
-        //     for (int j = 0; j < img_size; j++)
-        //     {
-        //         std::cout << joints_data[i]->image_path[j];
-        //     }
-        //     std::cout << std::endl;
-        //     std::cout << "Center: " << joints_data[i]->center[0] << " " << joints_data[i]->center[1] << std::endl;
-        //     std::cout << "Scale: " << joints_data[i]->scale[0] << " " << joints_data[i]->scale[1] << std::endl;
-        //     std::cout << "Score: " << joints_data[i]->score << std::endl;
-        //     std::cout << "Rotation: " << joints_data[i]->rotation << std::endl;
-
-        //     for (int k = 0; k < 17 * 2; k = k + 2)
-        //     {
-        //         std::cout << "x : " << joints_data[i]->joints[k] << " , y : " << joints_data[i]->joints[k + 1] << " , v : " << joints_data[i]->joints_visibility[k] << std::endl;
-        //     }
-        // }
+            for (int k = 0; k < 17 ; k++)
+            {
+                std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
+            }
+        }
 
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);

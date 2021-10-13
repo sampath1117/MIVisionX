@@ -197,38 +197,20 @@ namespace rali{
         return py::cast<py::none>(Py_None);
     }
 
-    py::object wrapper_joints_dict_copy(RaliContext context,py::dict joints)
-    {
-       
-        // std::map<std::string,boost::any> a = raliGetTestMap(context);
-        // typedef std::vector<std::vector<float>> block;
-        // typedef std::vector<float> pair;
-    
-        // joints["ImgId"] = boost::any_cast<int>(a["ImgId"]);
-        // joints["AnnotationId"] = boost::any_cast<int>(a["AnnotationID"]);
-        // joints["Center"] = boost::any_cast<pair>(a["Center"]);
-        // joints["Scale"] = boost::any_cast<pair>(a["Scale"]);
-        // joints["Joints"] = boost::any_cast<block>(a["Joints"]);
-        // joints["Joints_Visibility"] = boost::any_cast<block>(a["Joints_Visiblity"]);
-        // joints["Score"] = boost::any_cast<float>(a["Score"]);
-        // joints["Rotation"] = boost::any_cast<float>(a["Rotation"]);
 
-        return py::cast<py::none>(Py_None);
-    }
-
-    py::object wrapper_joints_meta_copy(RaliContext context,py::dict joints)
+    py::object wrapper_joints_data_copy(RaliContext context,py::dict joints)
     {
          
         auto *test = raliGetJointsDataPtr(context);
-        joints["imgId"] = test->image_ids;
-        joints["annId"] = test->annotation_ids;
-        joints["imgPath"] = test->image_paths;
-        joints["center"] = test->centers;
-        joints["scale"] = test->scales;
-        joints["joints"] = test->joints;
-        joints["joints_visibility"] = test->joints_visibility;
-        joints["score"] = test->scores;
-        joints["rotation"] = test->rotations;
+        joints["imgId"] = test->image_id_batch;
+        joints["annId"] = test->annotation_id_batch;
+        joints["imgPath"] = test->image_path_batch;
+        joints["center"] = test->center_batch;
+        joints["scale"] = test->scale_batch;
+        joints["joints"] = test->joints_batch;
+        joints["joints_visibility"] = test->joints_visibility_batch;
+        joints["score"] = test->score_batch;
+        joints["rotation"] = test->rotation_batch;
         return py::cast<py::none>(Py_None);
     }
 
@@ -334,8 +316,7 @@ namespace rali{
         m.def("getBBCords",&wrapper_BB_cord_copy);
         m.def("getImageKeyPoints",&wrapper_keypoint_copy);
         m.def("getImageTargets",&wrapper_target_copy);
-        m.def("getJointsData",&wrapper_joints_meta_copy);
-        //m.def("getJointsMeta",&wrapper_joints_meta_copy);
+        m.def("getJointsData",&wrapper_joints_data_copy);
         m.def("raliCopyEncodedBoxesAndLables",&wrapper_encoded_bbox_label);
         m.def("getImgSizes",&wrapper_img_sizes_copy);
         m.def("getBoundingBoxCount",&wrapper_labels_BB_count_copy);

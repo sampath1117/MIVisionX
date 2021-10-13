@@ -61,29 +61,16 @@ typedef std::vector<std::vector<std::vector<float>>> Joints,Joints_Visibility;
 
 struct RaliJointsData
 {
-    ImageIDs image_ids;
-    AnnotationIDs annotation_ids;
-    ImagePaths image_paths;
-    Centers centers;
-    Scales scales;
-    Joints joints;
-    Joints_Visibility joints_visibility;
-    Scores scores;
-    Rotations rotations;
+    ImageIDs image_id_batch;
+    AnnotationIDs annotation_id_batch;
+    ImagePaths image_path_batch;
+    Centers center_batch;
+    Scales scale_batch;
+    Joints joints_batch;
+    Joints_Visibility joints_visibility_batch;
+    Scores score_batch;
+    Rotations rotation_batch;
 };
-
-// struct RaliJointsData
-// {
-//     std::vector<int> image_ids;
-//     std::vector<int> annotation_ids;
-//     std::vector<std::string> image_paths;
-//     std::vector<float> scores;
-//     std::vector<float> rotations; 
-//     std::vector<std::vector<float>> centers;
-//     std::vector<std::vector<float>> scales;
-//     std::vector<std::vector<std::vector<float>>> joints;
-//     std::vector<std::vector<std::vector<float>>> joints_visibility;
-// };
 
 
 enum RaliStatus
@@ -150,19 +137,6 @@ enum RaliDecoderType
     RALI_DECODER_VIDEO_FFMPEG_HW = 3
 };
 
-// typedef struct
-// {
-//     ImageIDs image_id;
-//     AnnotationIDs annotation_id;
-//     ImagePaths image_path;
-//     Centers center;
-//     Scales scale;
-//     Joints joints;
-//     Joints_Visibility joints_visibility;
-//     Scores score;
-//     Rotations rotation;
-// }JointsTestDummy;
-
 
 
 // struct MetaDataJoints
@@ -176,6 +150,19 @@ enum RaliDecoderType
 //     float scale[2];
 //     float joints[17 * 2];
 //     float joints_visibility[17 * 2];
+// };
+
+// struct RaliJointsData
+// {
+//     std::vector<int> image_ids;
+//     std::vector<int> annotation_ids;
+//     std::vector<std::string> image_paths;
+//     std::vector<float> scores;
+//     std::vector<float> rotations; 
+//     std::vector<std::vector<float>> centers;
+//     std::vector<std::vector<float>> scales;
+//     std::vector<std::vector<std::vector<float>>> joints;
+//     std::vector<std::vector<std::vector<float>>> joints_visibility;
 // };
 
 #endif //MIVISIONX_RALI_API_TYPES_H
