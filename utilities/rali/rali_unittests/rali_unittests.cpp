@@ -96,7 +96,7 @@ int main(int argc, const char **argv)
 int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height, int num_of_classes, int display_all)
 {
     size_t num_threads = 1;
-    unsigned int inputBatchSize = 1;
+    unsigned int inputBatchSize = 4;
     int decode_max_width = width;
     int decode_max_height = height;
     float sigma = 3.0;
@@ -693,14 +693,14 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         
         int size = inputBatchSize;
 
-        // Display KeyPoints
+        //Display KeyPoints
         float img_key_points[size * 17 * 2];
         float img_key_points_vis[size * 17 * 2];
         raliGetImageKeyPoints(handle, img_key_points, img_key_points_vis);
-        for (int k = 0; k < size * 17 * 2; k = k + 2)
-        {
-            std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
-        }
+        // for (int k = 0; k < size * 17 * 2; k = k + 2)
+        // {
+        //     std::cout<<"x : "<<img_key_points[k]<<" , y : "<<img_key_points[k+1]<<" , v : "<<img_key_points_vis[k]<<std::endl;
+        // }
 
         float img_targets[size * 17 * 96 * 72];
         float img_targets_weight[size * 17];

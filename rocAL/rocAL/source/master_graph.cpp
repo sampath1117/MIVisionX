@@ -1010,14 +1010,11 @@ MetaDataBatch *MasterGraph::create_coco_meta_data_reader(const char *source_path
         MasterGraph::keypoint_pose(sigma, pose_output_width, pose_output_height);
 
     MetaDataConfig config(MetaDataType::BoundingBox, MetaDataReaderType::COCO_META_DATA_READER, source_path, std::map<std::string, std::string>(), std::string(), keypoint, pose_output_width, pose_output_height);
-    std::cout << "height: " << config.out_img_height() << std::endl;
 
     _meta_data_graph = create_meta_data_graph(config);
     _meta_data_reader = create_meta_data_reader(config);
     _meta_data_reader->init(config);
     _meta_data_reader->read_all(source_path);
-
-    
 
     if (is_output)
     {
@@ -1087,7 +1084,7 @@ void MasterGraph::box_encoder(std::vector<float> anchors, float criteria, std::v
 
 void MasterGraph::keypoint_pose(float sigma, float output_width, float output_height)
 {
-    std::cout << "Comes here to target generation function" << std::endl;
+    //std::cout << "Comes here to target generation function" << std::endl;
     _is_pose_estimation = true;
     _gaussian_sigma = sigma;
     _output_image_width_pose = output_width;

@@ -2550,5 +2550,5 @@ class Flip(Node):
         return self.output
 
     def rali_c_func_call(self, handle, input_image, is_output):
-        output_image = b.Flip(handle, input_image, is_output, None)
+        output_image = b.Flip(handle, input_image, 1, is_output)
         return output_image

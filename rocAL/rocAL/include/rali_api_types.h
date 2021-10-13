@@ -44,6 +44,12 @@ typedef void *RaliContext;
 typedef void *RaliImage;
 typedef void *RaliMetaData;
 
+typedef std::vector<int> ImageIDBatch,AnnotationIDBatch;
+typedef std::vector<std::string> ImagePathBatch;
+typedef std::vector<float> ScoreBatch,RotationBatch;
+typedef std::vector<std::vector<float>> CenterBatch, ScaleBatch;
+typedef std::vector<std::vector<std::vector<float>>> JointsBatch, JointsVisibilityBatch;
+
 
 struct TimingInfo
 {
@@ -53,23 +59,18 @@ struct TimingInfo
     long long unsigned transfer_time;
 };
 
-typedef std::vector<int> ImageIDs,AnnotationIDs;
-typedef std::vector<std::string> ImagePaths;
-typedef std::vector<float> Scores,Rotations;
-typedef std::vector<std::vector<float>> Centers,Scales;
-typedef std::vector<std::vector<std::vector<float>>> Joints,Joints_Visibility;
 
 struct RaliJointsData
 {
-    ImageIDs image_id_batch;
-    AnnotationIDs annotation_id_batch;
-    ImagePaths image_path_batch;
-    Centers center_batch;
-    Scales scale_batch;
-    Joints joints_batch;
-    Joints_Visibility joints_visibility_batch;
-    Scores score_batch;
-    Rotations rotation_batch;
+    ImageIDBatch image_id_batch;
+    AnnotationIDBatch annotation_id_batch;
+    ImagePathBatch image_path_batch;
+    CenterBatch center_batch;
+    ScaleBatch scale_batch;
+    JointsBatch joints_batch;
+    JointsVisibilityBatch joints_visibility_batch;
+    ScoreBatch score_batch;
+    RotationBatch rotation_batch;
 };
 
 

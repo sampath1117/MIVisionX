@@ -44,7 +44,7 @@ class COCOPipeline(Pipeline):
         self.rng2 = ops.Uniform(range=[0.875, 1.125])
         self.rng3 = ops.Uniform(range=[-0.05, 0.05])
         self.coin_flip = ops.CoinFlip(probability=0.5)
-        self.flip = ops.Flip()
+        self.flip = ops.Flip(flip=1)
         
 
     def define_graph(self):
@@ -57,7 +57,7 @@ class COCOPipeline(Pipeline):
         self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
         images = self.res(images)
-        # images = self.flip(images)
+        images = self.flip(images)
         output = self.twist(images)
 
         

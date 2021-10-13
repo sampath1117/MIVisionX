@@ -35,28 +35,11 @@ THE SOFTWARE.
 
 
 typedef  struct { float l; float t; float r; float b; } BoundingBoxCord;
-// typedef struct { float xc; float yc; } BoundingBoxCenter;
-// typedef struct { float ws; float hs; } BoundingBoxScale;
-// typedef  std::vector<BoundingBoxCenter> BoundingBoxCenters;
-// typedef  std::vector<BoundingBoxScale> BoundingBoxScales;
-// typedef struct {
-//     float x; //x-coordinate of keypoint
-//     float y; //y-coordinate of keypoint
-// } KeyPoint;
-// typedef struct
-// {
-//     float xv; //Visibility of keypoint
-//     float yv; //Visibility of keypoint
-// }KeyPointVisibility;
-
 typedef  std::vector<BoundingBoxCord> BoundingBoxCords;
 typedef  std::vector<int> BoundingBoxLabels;
 typedef  struct { int w; int h; } ImgSize;
 typedef  std::vector<ImgSize> ImgSizes;
 
-
-// typedef std::vector<KeyPoint> KeyPoints;
-// typedef std::vector<KeyPointVisibility> KeyPointsVisibility;
 typedef std::vector<std::vector<float> > Target;
 typedef std::vector<Target> Targets;
 typedef std::vector<Targets> ImageTargets;
@@ -64,36 +47,36 @@ typedef float TargetWeight;
 typedef std::vector<TargetWeight> TargetsWeight;
 typedef std::vector<TargetsWeight> ImageTargetsWeight;
 
-typedef std::vector<int> ImageIDs,AnnotationIDs;
-typedef std::vector<std::string> ImagePaths;
-typedef std::vector<float> Scores,Rotations;
-typedef std::vector<std::vector<float>> Centers,Scales;
-typedef std::vector<std::vector<std::vector<float>>> Joints,Joints_Visibility;
+typedef std::vector<int> ImageIDBatch,AnnotationIDBatch;
+typedef std::vector<std::string> ImagePathBatch;
+typedef std::vector<float> Joint,JointVisibility,Center,Scale,ScoreBatch,RotationBatch;
+typedef std::vector<std::vector<float>> Joints,JointsVisibility, CenterBatch, ScaleBatch;
+typedef std::vector<std::vector<std::vector<float>>> JointsBatch, JointsVisibilityBatch;
 
 typedef struct
 {
     int image_id;
     int annotation_id;
     std::string image_path;
-    std::vector<float> center;
-    std::vector<float> scale;
-    std::vector<std::vector<float>> joints;
-    std::vector<std::vector<float>> joints_visibility;
+    Center center;
+    Scale scale;
+    Joints joints;
+    JointsVisibility joints_visibility;
     float score;
     float rotation;
 }JointsData;
 
 typedef struct
 {
-    ImageIDs image_id_batch;
-    AnnotationIDs annotation_id_batch;
-    ImagePaths image_path_batch;
-    Centers center_batch;
-    Scales scale_batch;
-    Joints joints_batch;
-    Joints_Visibility joints_visibility_batch;
-    Scores score_batch;
-    Rotations rotation_batch;
+    ImageIDBatch image_id_batch;
+    AnnotationIDBatch annotation_id_batch;
+    ImagePathBatch image_path_batch;
+    CenterBatch center_batch;
+    ScaleBatch scale_batch;
+    JointsBatch joints_batch;
+    JointsVisibilityBatch joints_visibility_batch;
+    ScoreBatch score_batch;
+    RotationBatch rotation_batch;
 }JointsDataBatch;
 
 struct MetaData
