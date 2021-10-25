@@ -42,6 +42,14 @@ class COCOPipeline(Pipeline):
         self.coin_flip = ops.CoinFlip(probability=0.5)
         self.flip = ops.Flip()
         self.warp_affine = ops.WarpAffine()
+        self.cmnp = ops.CropMirrorNormalize(device="cpu",
+                                                output_dtype=types.FLOAT,
+                                                output_layout=types.NCHW,
+                                                crop=(crop, crop),
+                                                image_type=types.RGB,
+                                                mean=[0.485 * 255,
+                                                      0.456 * 255, 0.406 * 255],
+                                                std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
 
         
 
@@ -49,7 +57,6 @@ class COCOPipeline(Pipeline):
         coin = self.coin_flip()
         self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
-        images = self.res(images)
         images = self.flip(images,flip=coin)
         output = self.warp_affine(images)
 
@@ -262,15 +269,15 @@ def main(exp_name,
             print("**************starts*******************")
             # print("\nTargets:\n", it[1])
             # print("\nTarget Weights:\n", it[2])
-            # print("\nImage ID:", it[3]["imgId"])
-            # print("\nAnnotation ID:", it[3]["annId"])
-            # print("\nImage Path:", it[3]["imgPath"])
-            # print("\nCenter:", it[3]["center"])
-            # print("\nScale:", it[3]["scale"])
-            # print("\nJoints:\n", it[3]["joints"])
-            # print("\nJoints Visibility:\n", it[3]["joints_visibility"])
-            # print("\nScore:", it[3]["score"])
-            # print("\nRotation:", it[3]["rotation"])
+            print("\nImage ID:", it[3]["imgId"])
+            print("\nAnnotation ID:", it[3]["annId"])
+            print("\nImage Path:", it[3]["imgPath"])
+            print("\nCenter:", it[3]["center"])
+            print("\nScale:", it[3]["scale"])
+            print("\nJoints:\n", it[3]["joints"])
+            print("\nJoints Visibility:\n", it[3]["joints_visibility"])
+            print("\nScore:", it[3]["score"])
+            print("\nRotation:", it[3]["rotation"])
             print("**************ends*******************")
             print("**************", i, "*******************")
         data_loader.reset()

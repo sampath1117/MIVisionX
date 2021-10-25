@@ -106,8 +106,8 @@ void WarpAffineNode::update_affine_array()
             float shift[2] = {0.0};
             float *affine_matrix;
             affine_matrix = _affine.data() + (i * 6);
-            int input_img_width = _meta_data_info->get_img_sizes_batch()[i].data()->w;
-            int input_img_height = _meta_data_info->get_img_sizes_batch()[i].data()->h;
+            // int input_img_width = _meta_data_info->get_img_sizes_batch()[i].data()->w;
+            // int input_img_height = _meta_data_info->get_img_sizes_batch()[i].data()->h;
 
             Center box_center;
             Scale box_scale;
@@ -139,7 +139,7 @@ void WarpAffineNode::update_affine_array()
             float rotate_prob = 0.0;
             float r = 0.0;
             float random_rotate_prob = 0.0;//_rotate_probability.get();
-            std::cout<<"Rotate probability: "<< random_rotate_prob<<std::endl;
+            // std::cout<<"Rotate probability: "<< random_rotate_prob<<std::endl;
             if (rotate_prob && random_rotate_prob< rotate_prob)
             {
                 r = _rotation_factor.get();

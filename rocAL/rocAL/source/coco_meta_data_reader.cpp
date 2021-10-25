@@ -249,6 +249,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
             while (parser.NextArrayValue())
             {
                 int id = 1, label = 0, ann_id = 0;
+                float joint_sum = 0.0;
                 std::array<float, 4> bbox = {};
                 std::array<float, NUMBER_OF_KEYPOINTS * 3> keypoint{}; 
                 if (parser.PeekType() != kObjectType)
@@ -282,18 +283,6 @@ void COCOMetaDataReader::read_all(const std::string &path)
                             box_scale.push_back(parser.NextArrayValue() * parser.GetDouble());
                             box_scale.push_back(parser.NextArrayValue() * parser.GetDouble());
 
-                            // box_center[0] +=  (0.5 * box_scale[0]);
-                            // box_center[1] +=  (0.5 * box_scale[1]);
-                            
-                            // box_scale[1] = (box_scale[0] > aspect_ratio * box_scale[1]) ? ((box_scale[1] = box_scale[0] * 1.0 / aspect_ratio) / PIXEL_STD) : box_scale[1] / PIXEL_STD; 
-                            // box_scale[0] =  (box_scale[1] > aspect_ratio * box_scale[0]) ? ((box_scale[0] = aspect_ratio * box_scale[1]) /  PIXEL_STD) : box_scale[0] / PIXEL_STD;
-
-                            // if (box_center[0] != -1) 
-                            // {
-                            //     box_scale[0] = SCALE_CONSTANT_CS * box_scale[0];
-                            //     box_scale[1] = SCALE_CONSTANT_CS * box_scale[1];
-                            // }
-
                             //Move to next section
                             parser.NextArrayValue();
                         }
@@ -315,6 +304,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         while (parser.NextArrayValue())
                         {
                             keypoint[i] = parser.GetDouble();
+                            joint_sum += keypoint[i];
                             ++i;
                         }
                     }
@@ -344,19 +334,27 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     bb_coords.clear();
                     bb_labels.clear();
                 }
-                //Store the keypoint values in Joints, Joints Visibility
                 else
                 {
-                    //Preprocess bbox
+                    //Ignore annotations if 
+                    //label is not person or 
+                    //joint_sum <= 0
+                    if(label!=1||joint_sum<=0)
+                    {
+                        box_center.clear();
+                        box_scale.clear();
+                        continue;
+                    }
+
+                    //Validate bbox values
                     float x1, y1, x2, y2;
                     float aspect_ratio = (288 * 1.0 / _out_img_height);
                     x1 = (box_center[0] > 0)? box_center[0] : 0;
                     y1 = (box_center[1] > 0)? box_center[1] : 0;
-                    float proc_w =  ((box_scale[0] - 1) > 0)? (box_scale[0] - 1) : 0;
-                    float proc_h = ((box_scale[1] - 1) > 0)? (box_scale[1] - 1) : 0;
-
-                    x2 = ((img_size.w - 1) < (x1 + proc_w)) ? (img_size.w - 1) : (x1 + proc_w);
-                    y2 = ((img_size.h - 1) < (y1 + proc_h)) ? (img_size.h - 1) : (y1 + proc_h);
+                    float box_w =  ((box_scale[0] - 1) > 0)? (box_scale[0] - 1) : 0;
+                    float box_h = ((box_scale[1] - 1) > 0)? (box_scale[1] - 1) : 0;
+                    x2 = ((img_size.w - 1) < (x1 + box_w)) ? (img_size.w - 1) : (x1 + box_w);
+                    y2 = ((img_size.h - 1) < (y1 + box_h)) ? (img_size.h - 1) : (y1 + box_h);
 
                     //check area
                     if (x2 >= x1 && y2 >= y1)
@@ -365,15 +363,15 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         box_scale = {x2-x1, y2-y1};
                     }
                    
-                    //xywh2cs
+                    //Convert from xywh to center,scale
                     box_center[0] +=  (0.5 * box_scale[0]);
                     box_center[1] +=  (0.5 * box_scale[1]);
-                    
+        
                     if (box_scale[0] > aspect_ratio * box_scale[1])
                     {
                         box_scale[1] = box_scale[0] * 1.0 / aspect_ratio;
                     }
-                    else
+                    else if(box_scale[0] < aspect_ratio * box_scale[1])
                     {
                         box_scale[0] = box_scale[1] * aspect_ratio;
                     }
@@ -387,6 +385,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         box_scale[1] = SCALE_CONSTANT_CS * box_scale[1];
                     }
 
+                    //Convert raw keypoint values to Joints,Joint Visibilities
                     std::vector<std::vector<float>> key_points(NUMBER_OF_KEYPOINTS),key_points_visibility(NUMBER_OF_KEYPOINTS);
                     unsigned int j = 0; 
                     for (unsigned int i = 0; i < NUMBER_OF_KEYPOINTS; i++)
@@ -398,6 +397,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         j = j + 3;
                     }
 
+                    //Add values to joints_data structure
                     joints_data.annotation_id = ann_id;
                     joints_data.image_id = id;
                     joints_data.image_path = file_name;
