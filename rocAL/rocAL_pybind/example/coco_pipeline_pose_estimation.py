@@ -16,6 +16,7 @@ import amd.rali.types as types
 import sys
 import numpy as np
 
+
 #additional packages used in HRNet
 from datetime import datetime
 import argparse
@@ -25,40 +26,32 @@ class COCOPipeline(Pipeline):
         super(COCOPipeline, self).__init__(batch_size, num_threads,
                                            device_id, seed=seed, rali_cpu=rali_cpu)
         
-        print("Entered init function")
+        # print("Entered init function")
         keypoint = True
         self.input = ops.COCOReader(
             file_root=data_dir, annotations_file=ann_dir, random_shuffle=True, seed=seed, sigma  = sigma, is_keypoint = keypoint, output_image_width = output_image_width, output_image_height = output_image_height)
         
-        print("Complete reading data")
+        # print("Complete reading data")
         rali_device = 'cpu' if rali_cpu else 'gpu'
         decoder_device = 'cpu' if rali_cpu else 'mixed'
 
         self.decode = ops.ImageDecoder(
             device=decoder_device, output_type=types.RGB)
-
         self.res = ops.Resize(device=rali_device, resize_x=crop, resize_y=crop)
         self.twist = ops.ColorTwist(device=rali_device)
-
-        self.rng1 = ops.Uniform(range=[0.5, 1.5])
-        self.rng2 = ops.Uniform(range=[0.875, 1.125])
-        self.rng3 = ops.Uniform(range=[-0.05, 0.05])
         self.coin_flip = ops.CoinFlip(probability=0.5)
-        self.flip = ops.Flip(flip=1)
+        self.flip = ops.Flip()
+        self.warp_affine = ops.WarpAffine()
+
         
 
     def define_graph(self):
         coin = self.coin_flip()
-        saturation = self.rng1()
-        contrast = self.rng1()
-        brightness = self.rng2()
-        hue = self.rng3()
-
         self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
         images = self.res(images)
-        images = self.flip(images)
-        output = self.twist(images)
+        images = self.flip(images,flip=coin)
+        output = self.warp_affine(images)
 
         
         # Encoded Bbox and labels output in "xcycwh" format
@@ -133,8 +126,8 @@ class RALICOCOIterator(object):
 
         self.joints_data = dict({})
         self.loader.GetJointsData(self.joints_data)
-        print("Joints data is: ")
-        print(self.joints_data)
+        # print("Joints data is: ")
+        # print(self.joints_data)
         
         # Image id of a batch of images
         self.image_id = np.zeros(self.bs, dtype="int32")
@@ -267,17 +260,17 @@ def main(exp_name,
         for i, it in enumerate(data_loader):
             print("**************", i, "*******************")
             print("**************starts*******************")
-            print("\nTargets:\n", it[1])
-            print("\nTarget Weights:\n", it[2])
-            print("\nImage ID:", it[3]["imgId"])
-            print("\nAnnotation ID:", it[3]["annId"])
-            print("\nImage Path:", it[3]["imgPath"])
-            print("\nCenter:", it[3]["center"])
-            print("\nScale:", it[3]["scale"])
-            print("\nJoints:\n", it[3]["joints"])
-            print("\nJoints Visibility:\n", it[3]["joints_visibility"])
-            print("\nScore:", it[3]["score"])
-            print("\nRotation:", it[3]["rotation"])
+            # print("\nTargets:\n", it[1])
+            # print("\nTarget Weights:\n", it[2])
+            # print("\nImage ID:", it[3]["imgId"])
+            # print("\nAnnotation ID:", it[3]["annId"])
+            # print("\nImage Path:", it[3]["imgPath"])
+            # print("\nCenter:", it[3]["center"])
+            # print("\nScale:", it[3]["scale"])
+            # print("\nJoints:\n", it[3]["joints"])
+            # print("\nJoints Visibility:\n", it[3]["joints_visibility"])
+            # print("\nScore:", it[3]["score"])
+            # print("\nRotation:", it[3]["rotation"])
             print("**************ends*******************")
             print("**************", i, "*******************")
         data_loader.reset()

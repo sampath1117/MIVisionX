@@ -917,7 +917,7 @@ void MasterGraph::output_routine()
 
                 for (auto node : _nodes)
                 {
-                    if (node->_is_ssd)
+                    if (node->_is_set_meta_data)
                     {
                         node->set_meta_data(_augmented_meta_data);
                     }

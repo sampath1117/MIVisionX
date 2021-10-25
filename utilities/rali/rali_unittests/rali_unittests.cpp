@@ -96,7 +96,7 @@ int main(int argc, const char **argv)
 int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height, int num_of_classes, int display_all)
 {
     size_t num_threads = 1;
-    unsigned int inputBatchSize = 4;
+    unsigned int inputBatchSize = 1;
     int decode_max_width = width;
     int decode_max_height = height;
     float sigma = 3.0;
@@ -308,7 +308,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliWarpAffine" << std::endl;
-        image1 = raliWarpAffine(handle, image0, true);
+        image1 = raliWarpAffine(handle, input1,true, 384, 288);
     }
     break;
     case 10:
@@ -669,7 +669,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         int img_size = raliGetImageNameLen(handle, image_name_length);
         char img_name[img_size];
         raliGetImageName(handle, img_name);
-        std::cerr << "\nPrinting image names of batch: " << img_name << std::endl;
+        // std::cerr << "\nPrinting image names of batch: " << img_name << std::endl;
         
         //Print the bb cords and label if keypoint flag is false
         if (!keypoint)
@@ -705,26 +705,26 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         float img_targets[size * 17 * 96 * 72];
         float img_targets_weight[size * 17];
         raliGetImageTargets(handle, img_targets, img_targets_weight);
-        int cnt = 0;
-        for (int k = 0; k < size*17; k++)
-        {
-            std::cout<<"keypoint : "<<img_key_points[2*k]<<"  "<<img_key_points[2*k+1]<<std::endl;
-            std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
-            std::cout<<"Heat map number: "<<k<<std::endl;
-            for(int i = 0; i < 96 ; i++)
-            {
-                for(int j = 0; j < 72 ; j++)
-                {
-                    cnt = cnt+1;
-                    // if(img_targets[cnt]!=0)
-                    // {
-                        std::cout<<img_targets[cnt]<<" ";
-                    // }
-                }
-                std::cout<<std::endl;
-            }
-            std::cout<<std::endl;
-        }
+        // int cnt = 0;
+        // for (int k = 0; k < size*17; k++)
+        // {
+        //     std::cout<<"keypoint : "<<img_key_points[2*k]<<"  "<<img_key_points[2*k+1]<<std::endl;
+        //     std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
+        //     std::cout<<"Heat map number: "<<k<<std::endl;
+        //     for(int i = 0; i < 96 ; i++)
+        //     {
+        //         for(int j = 0; j < 72 ; j++)
+        //         {
+        //             cnt = cnt+1;
+        //             // if(img_targets[cnt]!=0)
+        //             // {
+        //                 std::cout<<img_targets[cnt]<<" ";
+        //             // }
+        //         }
+        //         std::cout<<std::endl;
+        //     }
+        //     std::cout<<std::endl;
+        // }
 
         
         RaliJointsData *joints_data = new RaliJointsData();
@@ -732,25 +732,25 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         for (int i = 0; i < inputBatchSize; i++)
         {
             std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
-            std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
-            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
-            std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
+            // std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
+            // std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
+            // std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
             std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
-            std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
-            std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
+            // std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
+            // std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
 
-            for (int k = 0; k < 17 ; k++)
-            {
-                std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
-            }
+            // for (int k = 0; k < 17 ; k++)
+            // {
+            //     std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
+            // }
         }
 
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);
         for (int i = 0; i < inputBatchSize; i++)
         {
-            std::cout << "\nwidth:" << img_sizes_batch[i * 2] << std::endl;
-            std::cout << "\nHeight:" << img_sizes_batch[(i * 2) + 1] << std::endl;
+            // std::cout << "\nwidth:" << img_sizes_batch[i * 2] << std::endl;
+            // std::cout << "\nHeight:" << img_sizes_batch[(i * 2) + 1] << std::endl;
         }
 
 #else

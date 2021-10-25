@@ -314,7 +314,6 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
 
 void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data)
 {
-    
     //Generate gaussians
     int tmp_size = sigma * 3;
     int gauss_size = 2 * tmp_size + 1;
@@ -340,13 +339,11 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
     // std::cout << "Target Width:" << target_width << std::endl;
     // std::cout << "Target Height:" << target_height << std::endl;
 
-    // std::cout << "full batch size: " << full_batch_meta_data->size() << std::endl;
-
-    auto bb_count = full_batch_meta_data->get_joints_data_batch().annotation_id_batch.size();
+    int ann_count = full_batch_meta_data->get_joints_data_batch().annotation_id_batch.size();
     //std::cout << "bb count: " << bb_count << std::endl;
-    float feat_stride[2] = {output_width / target_width, output_height / target_height};
+    float feat_stride[2] = { (float) output_width / target_width, (float) output_height  / target_height};
 
-    for (int j = 0; j < bb_count; j++)
+    for (int j = 0; j < ann_count; j++)
     {
         ImageTargets img_targets;
         ImageTargetsWeight img_targets_weight;
@@ -361,7 +358,6 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
             TargetWeight bb_target_weight = full_batch_meta_data->get_joints_data_batch().joints_visibility_batch[j][k][0];
             std::vector<float> key_point;
             key_point = full_batch_meta_data->get_joints_data_batch().joints_batch[j][k];
-
             //std::cout << "keypoint values: " << key_point[0] << " " << key_point[1] << std::endl;
 
             int mu_x = (key_point[0] / feat_stride[0]) + 0.5;
@@ -372,12 +368,6 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
 
             if (ul[0] >= target_width || ul[1] >= target_height || br[0] < 0 || br[1] < 0)
             {
-                // std::cout << "Invalid condition:" << std::endl;
-                // std::cout << "keypoint x:" << key_point[0] << std::endl;
-                // std::cout << "keypoint y:" << key_point[1] << std::endl;
-
-                // std::cout << "UL:" << ul[0] << " " << ul[1] << std::endl;
-                // std::cout << "BR:" << br[0] << " " << br[1] << std::endl;
                 bb_target_weight = 0;
                 bb_targets_weight.push_back(bb_target_weight);
                 bb_targets.push_back(bb_target);
@@ -392,17 +382,8 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
             int img_x[2] = {std::max(0, ul[0]), std::min(br[0], target_width)};
             int img_y[2] = {std::max(0, ul[1]), std::min(br[1], target_height)};
 
-            // std::cout << "Computed range" << std::endl;
-            // std::cout << "UL:" << ul[0] << " " << ul[1] << std::endl;
-            // std::cout << "BR:" << br[0] << " " << br[1] << std::endl;
-
             if (bb_target_weight > 0.5)
             {
-                // std::cout << "Image X range:" << img_x[0] << " " << img_x[1] << std::endl;
-                // std::cout << "Image Y range:" << img_y[0] << " " << img_y[1] << std::endl;
-                // std::cout << "Gaussian X range:" << g_x[0] << " " << g_x[1] << std::endl;
-                // std::cout << "Gaussian Y range:" << g_y[0] << " " << g_y[1] << std::endl;
-
                 int y_range = img_y[1] - img_y[0];
                 int x_range = img_x[1] - img_x[0];
 
@@ -413,15 +394,6 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
                         bb_target[img_y[0] + y][img_x[0] + x] = g[g_y[0] + y][g_x[0] + x];
                     }
                 }
-            }
-
-            for (int y = 0; y < target_height; y++)
-            {
-                for (int x = 0; x < target_width; x++)
-                {
-                    // std::cout << bb_target[y][x] << " ";
-                }
-                // std::cout << std::endl;
             }
 
             bb_targets.push_back(bb_target);

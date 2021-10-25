@@ -691,7 +691,7 @@ namespace rali{
             py::arg("is_output"),
             py::arg("min") = NULL,
             py::arg("max") = NULL);
-        //m.def("Flip",&raliFlip);
+        m.def("Flip",&raliFlip);
         m.def("Jitter",&raliJitter,
             py::return_value_policy::reference,
             py::arg("context"),
@@ -723,6 +723,8 @@ namespace rali{
             py::arg("context"),
             py::arg("input"),
             py::arg("is_output"),
+            py::arg("p_scale_factor") = 0,
+            py::arg("p_rotation_factor") = 0,
             py::arg("dest_width") = 0,
             py::arg("dest_height") = 0,
             py::arg("x0") = NULL,
@@ -772,12 +774,6 @@ namespace rali{
             py::arg("input2"),
             py::arg("is_output"),
             py::arg("ratio") = NULL);
-        m.def("Flip",&raliFlipFixed,
-            py::return_value_policy::reference,
-            py::arg("context"),
-            py::arg("input"),
-            py::arg("flip_axis"),
-            py::arg("is_output"));
         m.def("RandomCrop",&raliRandomCrop,
             py::return_value_policy::reference,
             py::arg("context"),
