@@ -339,100 +339,72 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
     // std::cout << "Target Width:" << target_width << std::endl;
     // std::cout << "Target Height:" << target_height << std::endl;
 
-    //Loop through all the keypoints and generate heat maps
-    for (int i = 0; i < full_batch_meta_data->size(); i++)
-    {
-        auto bb_count = full_batch_meta_data->get_img_joints_data_batch()[i].size();
-        //std::cout << "bb count: " << bb_count << std::endl;
-        float feat_stride[2] = {output_width / target_width, output_height / target_height};
+    int ann_count = full_batch_meta_data->get_joints_data_batch().annotation_id_batch.size();
+    //std::cout << "bb count: " << bb_count << std::endl;
+    float feat_stride[2] = { (float) output_width / target_width, (float) output_height  / target_height};
 
+    for (int j = 0; j < ann_count; j++)
+    {
         ImageTargets img_targets;
         ImageTargetsWeight img_targets_weight;
 
-        for (int j = 0; j < bb_count; j++)
+        Targets bb_targets;
+        TargetsWeight bb_targets_weight;
+
+        for (int k = 0; k < NUMBER_OF_KEYPOINTS; k++)
         {
-            //std::cout << "New BBox" << std::endl;
-            Targets bb_targets;
-            TargetsWeight bb_targets_weight;
+            Target bb_target;
+            bb_target.resize(target_height, std::vector<float>(target_width, 0));
+            TargetWeight bb_target_weight = full_batch_meta_data->get_joints_data_batch().joints_visibility_batch[j][k][0];
+            std::vector<float> key_point;
+            key_point = full_batch_meta_data->get_joints_data_batch().joints_batch[j][k];
+            //std::cout << "keypoint values: " << key_point[0] << " " << key_point[1] << std::endl;
 
-            for (int k = 0; k < NUMBER_OF_KEYPOINTS; k++)
+            int mu_x = (key_point[0] / feat_stride[0]) + 0.5;
+            int mu_y = (key_point[1] / feat_stride[1]) + 0.5;
+
+            int ul[2] = {mu_x - tmp_size, mu_y - tmp_size};
+            int br[2] = {mu_x + tmp_size + 1, mu_y + tmp_size + 1};
+
+            if (ul[0] >= target_width || ul[1] >= target_height || br[0] < 0 || br[1] < 0)
             {
-                Target bb_target;
-                bb_target.resize(target_height, std::vector<float>(target_width, 0));
-                TargetWeight bb_target_weight = full_batch_meta_data->get_img_joints_data_batch()[i][j].joints_visibility[k].xv;
-                KeyPoint key_point;
-                key_point = full_batch_meta_data->get_img_joints_data_batch()[i][j].joints[k];
-
-                int mu_x = (key_point.x / feat_stride[0]) + 0.5;
-                int mu_y = (key_point.y / feat_stride[1]) + 0.5;
-
-                int ul[2] = {mu_x - tmp_size, mu_y - tmp_size};
-                int br[2] = {mu_x + tmp_size + 1, mu_y + tmp_size + 1};
-
-                if (ul[0] >= target_width || ul[1] >= target_height || br[0] < 0 || br[1] < 0)
-                {
-                    // std::cout << "Invalid condition:" << std::endl;
-                    // std::cout << "keypoint x:" << key_point.x << std::endl;
-                    // std::cout << "keypoint y:" << key_point.y << std::endl;
-
-                    // std::cout << "UL:" << ul[0] << " " << ul[1] << std::endl;
-                    // std::cout << "BR:" << br[0] << " " << br[1] << std::endl;
-                    bb_target_weight = 0;
-                    bb_targets_weight.push_back(bb_target_weight);
-                    bb_targets.push_back(bb_target);
-                    continue;
-                }
-
-                //Gaussian range
-                int g_x[2] = {std::max(0, -ul[0]), std::min(br[0], target_width) - ul[0]};
-                int g_y[2] = {std::max(0, -ul[1]), std::min(br[1], target_height) - ul[1]};
-
-                //Image range
-                int img_x[2] = {std::max(0, ul[0]), std::min(br[0], target_width)};
-                int img_y[2] = {std::max(0, ul[1]), std::min(br[1], target_height)};
-
-                // std::cout << "Computed range" << std::endl;
-                // std::cout << "UL:" << ul[0] << " " << ul[1] << std::endl;
-                // std::cout << "BR:" << br[0] << " " << br[1] << std::endl;
-
-                if (bb_target_weight > 0.5)
-                {
-                    // std::cout << "Image X range:" << img_x[0] << " " << img_x[1] << std::endl;
-                    // std::cout << "Image Y range:" << img_y[0] << " " << img_y[1] << std::endl;
-                    // std::cout << "Gaussian X range:" << g_x[0] << " " << g_x[1] << std::endl;
-                    // std::cout << "Gaussian Y range:" << g_y[0] << " " << g_y[1] << std::endl;
-
-                    int y_range = img_y[1] - img_y[0];
-                    int x_range = img_x[1] - img_x[0];
-
-                    for (int y = 0; y < y_range; y++)
-                    {
-                        for (int x = 0; x < x_range; x++)
-                        {
-                            bb_target[img_y[0] + y][img_x[0] + x] = g[g_y[0] + y][g_x[0] + x];
-                        }
-                    }
-                }
-
-                for (int y = 0; y < target_height; y++)
-                {
-                    for (int x = 0; x < target_width; x++)
-                    {
-                        // std::cout << bb_target[y][x] << " ";
-                    }
-                    // std::cout << std::endl;
-                }
-
-                bb_targets.push_back(bb_target);
+                bb_target_weight = 0;
                 bb_targets_weight.push_back(bb_target_weight);
-                bb_target.clear();
+                bb_targets.push_back(bb_target);
+                continue;
             }
-            img_targets.push_back(bb_targets);
-            img_targets_weight.push_back(bb_targets_weight);
-            bb_targets.clear();
-            bb_targets_weight.clear();
+
+            //Gaussian range
+            int g_x[2] = {std::max(0, -ul[0]), std::min(br[0], target_width) - ul[0]};
+            int g_y[2] = {std::max(0, -ul[1]), std::min(br[1], target_height) - ul[1]};
+
+            //Image range
+            int img_x[2] = {std::max(0, ul[0]), std::min(br[0], target_width)};
+            int img_y[2] = {std::max(0, ul[1]), std::min(br[1], target_height)};
+
+            if (bb_target_weight > 0.5)
+            {
+                int y_range = img_y[1] - img_y[0];
+                int x_range = img_x[1] - img_x[0];
+
+                for (int y = 0; y < y_range; y++)
+                {
+                    for (int x = 0; x < x_range; x++)
+                    {
+                        bb_target[img_y[0] + y][img_x[0] + x] = g[g_y[0] + y][g_x[0] + x];
+                    }
+                }
+            }
+
+            bb_targets.push_back(bb_target);
+            bb_targets_weight.push_back(bb_target_weight);
+            bb_target.clear();
         }
-        full_batch_meta_data->get_img_targets_batch()[i] = img_targets;
-        full_batch_meta_data->get_img_targets_weight_batch()[i] = img_targets_weight;
+        img_targets.push_back(bb_targets);
+        img_targets_weight.push_back(bb_targets_weight);
+        bb_targets.clear();
+        bb_targets_weight.clear();
+        full_batch_meta_data->get_img_targets_batch()[j] = img_targets;
+        full_batch_meta_data->get_img_targets_weight_batch()[j] = img_targets_weight;
     }
 }

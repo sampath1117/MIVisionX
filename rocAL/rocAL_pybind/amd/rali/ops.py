@@ -2298,7 +2298,7 @@ size (float or list of float, optional, default = []) – Output size, in pixels
         return self.output
 
     def rali_c_func_call(self, handle, input_image, is_output):
-        output_image = b.WarpAffine(handle, input_image, is_output, 0, 0, None, None, None, None, None , None)
+        output_image = b.WarpAffine(handle, input_image, is_output, 0, 0, None, None, None, None, None, None, None , None)
         return output_image
 
 
@@ -2540,15 +2540,20 @@ class Flip(Node):
         self._flip = flip
         self.output = Node()
 
-    def __call__(self, input):
+    def __call__(self, input, flip):
         input.next = self
         self.data = "Flip"
         self.prev = input
         self.next = self.output
         self.output.prev = self
         self.output.next = None
+        self._check_flip = flip
         return self.output
 
     def rali_c_func_call(self, handle, input_image, is_output):
-        output_image = b.Flip(handle, input_image, is_output, None)
+        if self._check_flip is not None:
+            flip = self._check_flip.rali_c_func_call(handle)
+            output_image = b.Flip(handle, input_image,is_output,flip)
+        else:
+            output_image = b.Flip(handle, input_image,is_output,None)
         return output_image

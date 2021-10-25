@@ -42,7 +42,8 @@ public:
     void add_previous(const std::shared_ptr<Node>& node) {} //To be implemented
     std::shared_ptr<Graph> graph() { return _graph; }
     void set_meta_data(MetaDataBatch* meta_data_info){_meta_data_info = meta_data_info;}
-    bool _is_ssd = false;
+    // bool _is_ssd = false;
+    bool _is_set_meta_data = false;
 protected:
     virtual void create_node() = 0;
     virtual void update_node() = 0;

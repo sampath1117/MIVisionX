@@ -33,7 +33,7 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
     //std::cout<<"flip meta node is called:"<<std::endl;
 
     initialize();
-    
+
     if (_batch_size != input_meta_data->size())
     {
         _batch_size = input_meta_data->size();
@@ -43,79 +43,72 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
     _src_height = _node->get_src_height();
     _flip_axis = _node->get_flip_axis();
 
-
     vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint), _src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint), _src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_flip_axis, 0, _batch_size, sizeof(int), _flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
 
-    for (int i = 0; i < _batch_size; i++)
+    if (pose_estimation)
     {
-        float img_width = input_meta_data->get_img_sizes_batch()[i].data()->w;
-        //std::cout<<"src_width:"<<img_width<<std::endl;
+        unsigned int ann_count = input_meta_data->get_joints_data_batch().center_batch.size();
 
-        auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();
-        //int labels_buf[bb_count];
-        float coords_buf[bb_count * 4];
-
-        //memcpy(labels_buf, input_meta_data->get_bb_labels_batch()[i].data(),  sizeof(int)*bb_count);
-        memcpy(coords_buf, input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
-
-        BoundingBoxCords bb_coords;
-        ImageJointsData img_joints_data;
-        //BoundingBoxLabels bb_labels;
-        
-        if (pose_estimation)
+        for (unsigned int ann_index = 0; ann_index < ann_count; ann_index++)
         {
-            for (unsigned int object_index = 0; object_index < bb_count; object_index++)
+            float img_width = input_meta_data->get_img_sizes_batch()[ann_index].data()->w;
+            Joint joint0;
+            JointVisibility joint0_visiblity;
+            Joints joints;
+            JointsVisibility joints_visibility;
+
+            joint0 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][0];
+            joint0_visiblity = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][0];
+            joint0[0] = (img_width - joint0[0] - 1) * (joint0_visiblity[0]);
+
+            Center center = input_meta_data->get_joints_data_batch().center_batch[ann_index];
+            center[0] = img_width - center[0] - 1;
+
+            joints.push_back(joint0);
+            joints_visibility.push_back(joint0_visiblity);
+            //std::cout<<"Difference:"<<key_point0.x<<std::endl;
+
+            for (unsigned int joint_index = 1; joint_index < NUMBER_OF_KEYPOINTS; joint_index = joint_index + 2)
             {
-                KeyPoints key_points;
-                KeyPointsVisibility key_points_visibility;
-                KeyPoint key_point0;
-                KeyPointVisibility key_point0_vis;
-                BoundingBoxCenter bb_center;
-                JointsData joints_data;
-                
-                joints_data = input_meta_data->get_img_joints_data_batch()[i][object_index];
-                key_point0 = joints_data.joints[0];
-                key_point0_vis = joints_data.joints_visibility[0];
-                key_point0.x = (img_width - key_point0.x - 1) * (key_point0_vis.xv);
-                bb_center = joints_data.center;
-                bb_center.xc = img_width - bb_center.xc - 1;
-                
-                key_points.push_back(key_point0);
-                key_points_visibility.push_back(key_point0_vis);
-                //std::cout<<"Difference:"<<key_point0.x<<std::endl;
+                //std::cout<<"Flipping keypoints: "<<  joint_index<<" "<< joint_index+1<<std::endl;
+                Joint joint1, joint2;
+                JointVisibility joint1_visibility, joint2_visibility;
+                joint1 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index];
+                joint2 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index + 1];
+                joint1_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index];
+                joint2_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index + 1];
 
-                for (unsigned int keypoint_index = 1; keypoint_index < NUMBER_OF_KEYPOINTS; keypoint_index = keypoint_index + 2)
-                {
-                    //std::cout<<"Flipping keypoints: "<< keypoint_index<<" "<<keypoint_index+1<<std::endl;
-                    KeyPoint key_point1, key_point2;
-                    KeyPointVisibility key_point1_vis,key_point2_vis;
-                    key_point1 = joints_data.joints[keypoint_index];
-                    key_point2 = joints_data.joints[keypoint_index+1];
-                    key_point1_vis = joints_data.joints_visibility[keypoint_index];
-                    key_point2_vis = joints_data.joints_visibility[keypoint_index+1];
-                    
-                    //Update the keypoint co-ordinates
-                    key_point1.x = (img_width - key_point1.x - 1) * (key_point1_vis.xv);
-                    key_point2.x = (img_width - key_point2.x - 1) * (key_point2_vis.xv);
+                //Update the keypoint co-ordinates
+                joint1[0] = (img_width - joint1[0] - 1) * (joint1_visibility[0]);
+                joint2[0] = (img_width - joint2[0] - 1) * (joint2_visibility[0]);
 
-                    key_points.push_back(key_point2);
-                    key_points.push_back(key_point1);
-                    key_points_visibility.push_back(key_point2_vis);
-                    key_points_visibility.push_back(key_point1_vis);   
-                }
-                joints_data.joints = key_points;
-                joints_data.joints_visibility = key_points_visibility;
-                joints_data.center = bb_center;
-                img_joints_data.push_back(joints_data);
-                key_points.clear();
-                key_points_visibility.clear();
+                joints.push_back(joint2);
+                joints.push_back(joint1);
+                joints_visibility.push_back(joint2_visibility);
+                joints_visibility.push_back(joint1_visibility);
             }
-            input_meta_data->get_img_joints_data_batch()[i] = img_joints_data;
-            // input_meta_data->get_img_key_points_visibility_batch()[i] = img_key_points_visibility;
-            // input_meta_data->get_bb_centers_batch()[i] = bb_centers;
+            input_meta_data->get_joints_data_batch().joints_batch[ann_index] = joints;
+            input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index] = joints_visibility;
+            input_meta_data->get_joints_data_batch().center_batch[ann_index] = center;
+            joints.clear();
+            joints_visibility.clear();
         }
+    }
+    else
+    {
+        for (int i = 0; i < _batch_size; i++)
+        {
+            auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();
+            //int labels_buf[bb_count];
+            float coords_buf[bb_count * 4];
+
+            //memcpy(labels_buf, input_meta_data->get_bb_labels_batch()[i].data(),  sizeof(int)*bb_count);
+            memcpy(coords_buf, input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
+
+            BoundingBoxCords bb_coords;
+            //BoundingBoxLabels bb_labels;
 
             for (uint j = 0, m = 0; j < bb_count; j++)
             {
@@ -154,3 +147,4 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
             //input_meta_data->get_bb_labels_batch()[i] = bb_labels;
         }
     }
+}

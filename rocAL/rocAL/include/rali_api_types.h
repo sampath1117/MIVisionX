@@ -43,7 +43,13 @@ typedef void *RaliIntParam;
 typedef void *RaliContext;
 typedef void *RaliImage;
 typedef void *RaliMetaData;
-//typedef void * MetaDataJoints;
+
+typedef std::vector<int> ImageIDBatch,AnnotationIDBatch;
+typedef std::vector<std::string> ImagePathBatch;
+typedef std::vector<float> ScoreBatch,RotationBatch;
+typedef std::vector<std::vector<float>> CenterBatch, ScaleBatch;
+typedef std::vector<std::vector<std::vector<float>>> JointsBatch, JointsVisibilityBatch;
+
 
 struct TimingInfo
 {
@@ -54,18 +60,19 @@ struct TimingInfo
 };
 
 
-struct MetaDataJoints
+struct RaliJointsData
 {
-    int image_id;
-    int annotation_id;
-    float score;
-    float rotation; 
-    char image_path[MAX_IMAGE_NAME_LENGTH];
-    float center[2];
-    float scale[2];
-    float joints[17 * 2];
-    float joints_visibility[17 * 2];
+    ImageIDBatch image_id_batch;
+    AnnotationIDBatch annotation_id_batch;
+    ImagePathBatch image_path_batch;
+    CenterBatch center_batch;
+    ScaleBatch scale_batch;
+    JointsBatch joints_batch;
+    JointsVisibilityBatch joints_visibility_batch;
+    ScoreBatch score_batch;
+    RotationBatch rotation_batch;
 };
+
 
 enum RaliStatus
 {
@@ -130,5 +137,33 @@ enum RaliDecoderType
     RALI_DECODER_VIDEO_FFMPEG_SW = 2,
     RALI_DECODER_VIDEO_FFMPEG_HW = 3
 };
+
+
+
+// struct MetaDataJoints
+// {
+//     int image_id;
+//     int annotation_id;
+//     float score;
+//     float rotation; 
+//     char image_path[MAX_IMAGE_NAME_LENGTH];
+//     float center[2];
+//     float scale[2];
+//     float joints[17 * 2];
+//     float joints_visibility[17 * 2];
+// };
+
+// struct RaliJointsData
+// {
+//     std::vector<int> image_ids;
+//     std::vector<int> annotation_ids;
+//     std::vector<std::string> image_paths;
+//     std::vector<float> scores;
+//     std::vector<float> rotations; 
+//     std::vector<std::vector<float>> centers;
+//     std::vector<std::vector<float>> scales;
+//     std::vector<std::vector<std::vector<float>>> joints;
+//     std::vector<std::vector<std::vector<float>>> joints_visibility;
+// };
 
 #endif //MIVISIONX_RALI_API_TYPES_H

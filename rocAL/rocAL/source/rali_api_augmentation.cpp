@@ -654,6 +654,7 @@ raliWarpAffine(
         RaliImage p_input,
         bool is_output,
         unsigned dest_height, unsigned dest_width,
+        RaliFloatParam p_scale_factor, RaliFloatParam p_rotation_factor,
         RaliFloatParam p_x0, RaliFloatParam p_x1,
         RaliFloatParam p_y0, RaliFloatParam p_y1,
         RaliFloatParam p_o0, RaliFloatParam p_o1)
@@ -663,6 +664,9 @@ raliWarpAffine(
     Image* output = nullptr;
     auto context = static_cast<Context*>(p_context);
     auto input = static_cast<Image*>(p_input);
+    auto scale_factor = static_cast<FloatParam*>(p_scale_factor);
+    auto rotation_factor = static_cast<FloatParam*>(p_rotation_factor);
+    // auto rotation_probability = static_cast<FloatParam*>(p_rotation_probability);
     auto x0 = static_cast<FloatParam*>(p_x0);
     auto x1 = static_cast<FloatParam*>(p_x1);
     auto y0 = static_cast<FloatParam*>(p_y0);
@@ -690,7 +694,7 @@ raliWarpAffine(
         std::shared_ptr<WarpAffineNode> warp_node = context->master_graph->add_node<WarpAffineNode>({input}, {output});
         
         //Init values for the warp node
-        warp_node->init(x0,x1,y0,y1,o0,o1);
+        warp_node->init(scale_factor, rotation_factor, x0, x1, y0, y1, o0, o1);
         
         if (context->master_graph->meta_data_graph())
         {

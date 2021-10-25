@@ -222,6 +222,7 @@ extern "C"  RaliImage  RALI_API_CALL raliBlendFixed(RaliContext context,RaliImag
 /// \return
 extern "C"  RaliImage  RALI_API_CALL raliWarpAffine(RaliContext context, RaliImage input, bool is_output,
                                                      unsigned dest_height = 0, unsigned dest_width = 0,
+                                                     RaliFloatParam scale_factor = NULL , RaliFloatParam rotation_factor = NULL,
                                                      RaliFloatParam x0 = NULL, RaliFloatParam x1 = NULL,
                                                      RaliFloatParam y0= NULL, RaliFloatParam y1 = NULL,
                                                      RaliFloatParam o0 = NULL, RaliFloatParam o1 = NULL);

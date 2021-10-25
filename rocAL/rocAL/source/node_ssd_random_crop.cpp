@@ -8,7 +8,8 @@ SSDRandomCropNode::SSDRandomCropNode(const std::vector<Image *> &inputs, const s
                                                                                                           _dest_height(_outputs[0]->info().height_batch())
 {
     _crop_param = std::make_shared<RaliRandomCropParam>(_batch_size);
-    _is_ssd     = true;
+    // _is_ssd     = true;
+    _is_set_meta_data = true;
 }
 
 void SSDRandomCropNode::create_node()

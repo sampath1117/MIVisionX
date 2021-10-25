@@ -382,13 +382,14 @@ RALI_API_CALL raliCopyEncodedBoxesAndLables(RaliContext p_context, float* boxes_
 void
 RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *buf2)
 {
+    
     if (!p_context)
-        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+        THROW("Invalid rali context passed to raliGetImageKeyPoints")
     auto context = static_cast<Context*>(p_context);
     auto meta_data = context->master_graph->meta_data();
     
-    size_t meta_data_batch_size = meta_data.second->get_img_joints_data_batch().size();
-    //std::cout<<"meta_data_vis_size :"<<meta_data_vis_size<<std::endl;
+    size_t meta_data_batch_size = meta_data.second->get_joints_data_batch().image_id_batch.size();
+    // std::cout<<"meta_data  :"<<meta_data_batch_size<<std::endl;
 
     if(context->user_batch_size() != meta_data_batch_size)
         THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
@@ -400,14 +401,13 @@ RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *bu
 
     for(unsigned i = 0; i < meta_data_batch_size ; i++)
     { 
-        unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
-        for(unsigned j = 0; j < annotation_size ; j++)
+        for(unsigned j = 0 ; j < 17 ;  j++)
         {
-            memcpy(buf1, meta_data.second->get_img_joints_data_batch()[i][j].joints.data() , annotation_size * NUMBER_OF_KEYPOINTS * sizeof(KeyPoint));
-            memcpy(buf2, meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * NUMBER_OF_KEYPOINTS * sizeof(KeyPointVisibility));
+            memcpy(buf1, meta_data.second->get_joints_data_batch().joints_batch[i][j].data() ,  2 * sizeof(float));
+            memcpy(buf2, meta_data.second->get_joints_data_batch().joints_visibility_batch[i][j].data(), 2 * sizeof(float));
 
-            buf1 += (annotation_size * NUMBER_OF_KEYPOINTS * 2);
-            buf2 += (annotation_size * NUMBER_OF_KEYPOINTS * 2);
+            buf1 += 2;
+            buf2 += 2;
         }
     }
 }
@@ -415,8 +415,9 @@ RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1,float *bu
 void
 RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2)
 {
+    
     if (!p_context)
-        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+        THROW("Invalid rali context passed to raliGetImageTargets")
     auto context = static_cast<Context*>(p_context);
     auto meta_data = context->master_graph->meta_data();
     size_t meta_data_batch_size = meta_data.second->get_img_targets_batch().size();
@@ -455,70 +456,120 @@ RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2
     }
 }
 
-void
-RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data[])
+
+RaliJointsData *
+RALI_API_CALL raliGetJointsDataPtr(RaliContext p_context)
 {  
     if (!p_context)
         THROW("Invalid rali context passed to raliGetBoundingBoxCords")
-    auto context = static_cast<Context *>(p_context);
+    auto context = static_cast<Context*>(p_context);
     auto meta_data = context->master_graph->meta_data();
-    size_t meta_data_batch_size = meta_data.second->get_img_joints_data_batch().size();
+    size_t meta_data_batch_size = meta_data.second->get_joints_data_batch().center_batch.size();
 
-    if (context->user_batch_size() != meta_data_batch_size)
-        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != " + TOSTR(context->user_batch_size()))
-    if (!meta_data.second)
+    if(context->user_batch_size() != meta_data_batch_size)
+        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+    if(!meta_data.second)
+    {
+        WRN("No label has been loaded for this output image")
+        return NULL;
+    }
+
+    return((RaliJointsData *)(&(meta_data.second->get_joints_data_batch())));
+}
+
+
+void
+RALI_API_CALL raliGetJointsData(RaliContext p_context, RaliJointsData *joints_data)
+{  
+    if (!p_context)
+        THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+    auto context = static_cast<Context*>(p_context);
+    auto meta_data = context->master_graph->meta_data();
+    size_t meta_data_batch_size = meta_data.second->get_joints_data_batch().image_id_batch.size();
+
+    if(context->user_batch_size() != meta_data_batch_size)
+        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+    if(!meta_data.second)
     {
         WRN("No label has been loaded for this output image")
         return;
     }
+
+    joints_data->image_id_batch = meta_data.second->get_joints_data_batch().image_id_batch;
+    joints_data->annotation_id_batch = meta_data.second->get_joints_data_batch().annotation_id_batch;
+    joints_data->image_path_batch = meta_data.second->get_joints_data_batch().image_path_batch;
+    joints_data->center_batch = meta_data.second->get_joints_data_batch().center_batch;
+    joints_data->scale_batch = meta_data.second->get_joints_data_batch().scale_batch;
+    joints_data->joints_batch = meta_data.second->get_joints_data_batch().joints_batch;
+    joints_data->joints_visibility_batch = meta_data.second->get_joints_data_batch().joints_visibility_batch;
+    joints_data->score_batch = meta_data.second->get_joints_data_batch().score_batch;
+    joints_data->rotation_batch = meta_data.second->get_joints_data_batch().rotation_batch;
+}
+
+// void
+// RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data[])
+// {  
+//     if (!p_context)
+//         THROW("Invalid rali context passed to raliGetBoundingBoxCords")
+//     auto context = static_cast<Context *>(p_context);
+//     auto meta_data = context->master_graph->meta_data();
+//     size_t meta_data_batch_size = meta_data.second->get_img_joints_data_batch().size();
+
+//     if (context->user_batch_size() != meta_data_batch_size)
+//         THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != " + TOSTR(context->user_batch_size()))
+//     if (!meta_data.second)
+//     {
+//         WRN("No label has been loaded for this output image")
+//         return;
+//     }
     
 
-    for (unsigned i = 0; i < meta_data_batch_size; i++)
-    {
-        int img_path_size;
-        unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
-        for (unsigned j = 0; j < annotation_size; j++)
-        {
-            img_path_size = meta_data.second->get_img_joints_data_batch()[i][j].image_path.size();
-            //std::cout<<"Image path size:"<<img_path_size<<std::endl;
-            joints_data[i]->image_id = meta_data.second->get_img_joints_data_batch()[i][j].image_id;
-            joints_data[i]->annotation_id = meta_data.second->get_img_joints_data_batch()[i][j].annotation_id;
-            memcpy(joints_data[i]->image_path, meta_data.second->get_img_joints_data_batch()[i][j].image_path.data(), img_path_size);
-            memcpy(&(joints_data[i]->center), &(meta_data.second->get_img_joints_data_batch()[i][j].center), annotation_size * sizeof(BoundingBoxScale));
-            memcpy(&(joints_data[i]->scale), &(meta_data.second->get_img_joints_data_batch()[i][j].scale), annotation_size * sizeof(BoundingBoxScale));
-            memcpy(&(joints_data[i]->joints), meta_data.second->get_img_joints_data_batch()[i][j].joints.data(), annotation_size * 17 * sizeof(KeyPoint));
-            memcpy(&(joints_data[i]->joints_visibility), meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * 17 * sizeof(KeyPointVisibility));
-            joints_data[i]->score = meta_data.second->get_img_joints_data_batch()[i][j].score;
-            joints_data[i]->rotation = meta_data.second->get_img_joints_data_batch()[i][j].rotation;
-        }
-    }
-}
+//     for (unsigned i = 0; i < meta_data_batch_size; i++)
+//     {
+//         int img_path_size;
+//         unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
+//         for (unsigned j = 0; j < annotation_size; j++)
+//         {
+//             img_path_size = meta_data.second->get_img_joints_data_batch()[i][j].image_path.size();
+//             //std::cout<<"Image path size:"<<img_path_size<<std::endl;
+//             joints_data[i]->image_id = meta_data.second->get_img_joints_data_batch()[i][j].image_id;
+//             joints_data[i]->annotation_id = meta_data.second->get_img_joints_data_batch()[i][j].annotation_id;
+//             memcpy(joints_data[i]->image_path, meta_data.second->get_img_joints_data_batch()[i][j].image_path.data(), img_path_size);
+//             memcpy(&(joints_data[i]->center), &(meta_data.second->get_img_joints_data_batch()[i][j].center), annotation_size * sizeof(BoundingBoxScale));
+//             memcpy(&(joints_data[i]->scale), &(meta_data.second->get_img_joints_data_batch()[i][j].scale), annotation_size * sizeof(BoundingBoxScale));
+//             memcpy(&(joints_data[i]->joints), meta_data.second->get_img_joints_data_batch()[i][j].joints.data(), annotation_size * 17 * sizeof(KeyPoint));
+//             memcpy(&(joints_data[i]->joints_visibility), meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * 17 * sizeof(KeyPointVisibility));
+//             joints_data[i]->score = meta_data.second->get_img_joints_data_batch()[i][j].score;
+//             joints_data[i]->rotation = meta_data.second->get_img_joints_data_batch()[i][j].rotation;
+//         }
+//     }
+// }
 
-std::map<std::string,boost::any>
-RALI_API_CALL raliGetTestMap(RaliContext p_context)
-{
-    std::map<std::string,boost::any> a;
-    typedef std::vector<std::vector<float>> block;
-    typedef std::vector<float> pair;
-    float score = 10.0;
-    float rotation = 45.2;
+// std::map<std::string,boost::any>
+// RALI_API_CALL raliGetTestMap(RaliContext p_context)
+// {
+//     std::map<std::string,boost::any> a;
+//     typedef std::vector<std::vector<float>> block;
+//     typedef std::vector<float> pair;
+//     float score = 10.0;
+//     float rotation = 45.2;
 
-    pair center{ 150.5 ,223.};
-    pair scale{ 0.79 ,0.96 };
-    block joints{ { 145.2, 185.8 }, 
-                { 255.4, 289.6 }, 
-                { 122.1 , 244.2 }};
-    block joints_vis{ { 0.0 , 0.0 }, 
-                { 1.0 , 1.0 }, 
-                { 0.0 , 0.0 }};
+//     pair center{ 150.5 ,223.};
+//     pair scale{ 0.79 ,0.96 };
+//     block joints{ { 145.2, 185.8 }, 
+//                 { 255.4, 289.6 }, 
+//                 { 122.1 , 244.2 }};
+//     block joints_vis{ { 0.0 , 0.0 }, 
+//                 { 1.0 , 1.0 }, 
+//                 { 0.0 , 0.0 }};
 
-    a.insert({"ImgId",458992});
-    a.insert({"AnnotationID",12366});
-    a.insert({"Center",center});    
-    a.insert({"Scale",scale});
-    a.insert({"Joints",joints});
-    a.insert({"Joints_Visiblity",joints_vis});
-    a.insert({"Score",score});
-    a.insert({"Rotation",rotation});
-    return a;
-}
+//     a.insert({"ImgId",458992});
+//     a.insert({"AnnotationID",12366});
+//     a.insert({"Center",center});    
+//     a.insert({"Scale",scale});
+//     a.insert({"Joints",joints});
+//     a.insert({"Joints_Visiblity",joints_vis});
+//     a.insert({"Score",score});
+//     a.insert({"Rotation",rotation});
+//     return a;
+// }
