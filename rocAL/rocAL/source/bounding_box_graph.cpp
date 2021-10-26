@@ -78,7 +78,6 @@ inline double ssd_BBoxIntersectionOverUnion(const BoundingBoxCord &box1, const B
     float yA = std::max(box1.t, box2.t);
     float xB = std::min(box1.r, box2.r);
     float yB = std::min(box1.b, box2.b);
-    // std::cout << "\tl:" << xA << "\t t:" << yA << "\tr:" << xB << "\t b:" << yB;
     float intersection_area = std::max((float)0.0, xB - xA) * std::max((float)0.0, yB - yA);
     // std::cout << "\n intersection area: " << intersection_area;
     float box1_area = (box1.b - box1.t) * (box1.r - box1.l);
@@ -89,7 +88,6 @@ inline double ssd_BBoxIntersectionOverUnion(const BoundingBoxCord &box1, const B
     if (is_iou)
     {
         iou = intersection_area / float(box1_area + box2_area - intersection_area);
-        // std::cout << "\niou inside iou:" << iou;
     }
     else
         iou = intersection_area / float(box1_area);
@@ -107,10 +105,12 @@ void BoundingBoxGraph::update_random_bbox_meta_data(MetaDataBatch *input_meta_da
     for (int i = 0; i < input_meta_data->size(); i++)
     {
         auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();
-        int labels_buf[bb_count];
-        float coords_buf[bb_count * 4];
-        memcpy(labels_buf, input_meta_data->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
-        memcpy(coords_buf, input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
+        BoundingBoxCords coords_buf;
+        BoundingBoxLabels labels_buf;
+        coords_buf.resize(bb_count);
+        labels_buf.resize(bb_count);
+        memcpy(labels_buf.data(), input_meta_data->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
+        memcpy(coords_buf.data(), input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
         BoundingBoxCords bb_coords;
         BoundingBoxLabels bb_labels;
         BoundingBoxCord crop_box;
@@ -121,27 +121,20 @@ void BoundingBoxGraph::update_random_bbox_meta_data(MetaDataBatch *input_meta_da
         // std::cout << "\n BB count" << bb_count;
         for (uint j = 0; j < bb_count; j++)
         {
-            int m = j * 4; // change if required
             //Mask Criteria
-            BoundingBoxCord box;
-            box.l = coords_buf[m];
-            box.t = coords_buf[m + 1];
-            box.r = coords_buf[m + 2];
-            box.b = coords_buf[m + 3];
-            // std::cout << "\nbox_l:" << box.l << "\tbox_t:" << box.t << "\tbox_r:" << box.r << "\tbox_b:" << box.b;
-            auto x_c = 0.5 * (box.l + box.r);
-            auto y_c = 0.5 * (box.t + box.b);
+            auto x_c = 0.5 * (coords_buf[j].l + coords_buf[j].r);
+            auto y_c = 0.5 * (coords_buf[j].t + coords_buf[j].b);
             if ((x_c > crop_box.l) && (x_c < crop_box.r) && (y_c > crop_box.t) && (y_c < crop_box.b))
             {
-                float xA = std::max(crop_box.l, box.l);
-                float yA = std::max(crop_box.t, box.t);
-                float xB = std::min(crop_box.r, box.r);
-                float yB = std::min(crop_box.b, box.b);
-                box.l = (xA - crop_box.l) / (crop_box.r - crop_box.l);
-                box.t = (yA - crop_box.t) / (crop_box.b - crop_box.t);
-                box.r = (xB - crop_box.l) / (crop_box.r - crop_box.l);
-                box.b = (yB - crop_box.t) / (crop_box.b - crop_box.t);
-                bb_coords.push_back(box);
+                float xA = std::max(crop_box.l, coords_buf[j].l);
+                float yA = std::max(crop_box.t, coords_buf[j].t);
+                float xB = std::min(crop_box.r, coords_buf[j].r);
+                float yB = std::min(crop_box.b, coords_buf[j].b);
+                coords_buf[j].l = (xA - crop_box.l) / (crop_box.r - crop_box.l);
+                coords_buf[j].t = (yA - crop_box.t) / (crop_box.b - crop_box.t);
+                coords_buf[j].r = (xB - crop_box.l) / (crop_box.r - crop_box.l);
+                coords_buf[j].b = (yB - crop_box.t) / (crop_box.b - crop_box.t);
+                bb_coords.push_back(coords_buf[j]);
                 bb_labels.push_back(labels_buf[j]);
             }
         }
@@ -155,27 +148,15 @@ void BoundingBoxGraph::update_random_bbox_meta_data(MetaDataBatch *input_meta_da
     }
 }
 
-inline void calculate_ious_for_box(float *ious, BoundingBoxCord box, std::vector<float> anchors)
+inline void calculate_ious_for_box(float *ious, BoundingBoxCord &box, BoundingBoxCord *anchors, unsigned int num_anchors)
 {
-    BoundingBoxCord _anchor;
-    _anchor.l = anchors[0];
-    _anchor.t = anchors[1];
-    _anchor.r = anchors[2];
-    _anchor.b = anchors[3];
-    ious[0] = ssd_BBoxIntersectionOverUnion(box, _anchor, true);
     int best_idx = 0;
+    ious[0] = ssd_BBoxIntersectionOverUnion(box, anchors[0], true);
     float best_iou = ious[0];
 
-    for (unsigned int anchor_idx = 1; anchor_idx < (anchors.size() / 4); anchor_idx++)
+    for (unsigned int anchor_idx = 1; anchor_idx < num_anchors; anchor_idx++)
     {
-        int m = anchor_idx * 4;
-        BoundingBoxCord _anchor;
-        _anchor.l = anchors[m];
-        _anchor.t = anchors[m + 1];
-        _anchor.r = anchors[m + 2];
-        _anchor.b = anchors[m + 3];
-        float x = ssd_BBoxIntersectionOverUnion(box, _anchor, true);
-        ious[anchor_idx] = x;
+        ious[anchor_idx] = ssd_BBoxIntersectionOverUnion(box, anchors[anchor_idx], true);
         if (ious[anchor_idx] > best_iou)
         {
             best_iou = ious[anchor_idx];
@@ -202,78 +183,64 @@ inline int find_best_box_for_anchor(unsigned anchor_idx, const std::vector<float
     return best_idx;
 }
 
-void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, pMetaDataBatch full_batch_meta_data, float criteria, bool offset, float scale, std::vector<float> means, std::vector<float> stds)
+void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> *anchors, pMetaDataBatch full_batch_meta_data, float criteria, bool offset, float scale, std::vector<float>& means, std::vector<float>& stds)
 {
-#pragma omp parallel for
+    #pragma omp parallel for 
     for (int i = 0; i < full_batch_meta_data->size(); i++)
     {
+        BoundingBoxCord *bbox_anchors = reinterpret_cast<BoundingBoxCord *>(anchors->data());
         auto bb_count = full_batch_meta_data->get_bb_labels_batch()[i].size();
-        int labels_buf[bb_count];
-        float coords_buf[bb_count * 4];
-        memcpy(labels_buf, full_batch_meta_data->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
-        memcpy(coords_buf, full_batch_meta_data->get_bb_cords_batch()[i].data(), full_batch_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
-        BoundingBoxCords encoded_bb;
-        BoundingBoxLabels encoded_labels;
-        BoundingBoxCords bb_coords;
+        //int labels_buf[bb_count];
+        BoundingBoxCord bb_coords[bb_count];
         BoundingBoxLabels bb_labels;
-        unsigned anchors_size = anchors.size() / 4; // divide the anchors_size by 4 to get the total number of anchors
+        bb_labels.resize(bb_count);
+        memcpy(bb_labels.data(), full_batch_meta_data->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
+        memcpy(bb_coords, full_batch_meta_data->get_bb_cords_batch()[i].data(), full_batch_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
+        BoundingBoxCords_xcycwh encoded_bb;
+        BoundingBoxLabels encoded_labels;
+        unsigned anchors_size = anchors->size() / 4; // divide the anchors_size by 4 to get the total number of anchors
         //Calculate Ious
         //ious size - bboxes count x anchors count
         std::vector<float> ious(bb_count * anchors_size);
-        bb_coords.resize(bb_count);
-        bb_labels.resize(bb_count);
         encoded_bb.resize(anchors_size);
         encoded_labels.resize(anchors_size);
-
         for (uint bb_idx = 0; bb_idx < bb_count; bb_idx++)
         {
-            int m = bb_idx * 4;
-            BoundingBoxCord box;
-            box.l = coords_buf[m];
-            box.t = coords_buf[m + 1];
-            box.r = coords_buf[m + 2];
-            box.b = coords_buf[m + 3];
             auto iou_rows = ious.data() + (bb_idx * (anchors_size));
-            calculate_ious_for_box(iou_rows, box, anchors);
-            bb_coords[bb_idx] = box;
-            bb_labels[bb_idx] = labels_buf[bb_idx];
+            calculate_ious_for_box(iou_rows, bb_coords[bb_idx], bbox_anchors, anchors_size);
         }
-
+        
         // Depending on the matches ->place the best bbox instead of the corresponding anchor_idx in anchor
         for (unsigned anchor_idx = 0; anchor_idx < anchors_size; anchor_idx++)
         {
-            int m = anchor_idx * 4;
-            BoundingBoxCord box_bestidx, _anchor, _anchor_xcyxwh;
-            _anchor.l = anchors[m];
-            _anchor.t = anchors[m + 1];
-            _anchor.r = anchors[m + 2];
-            _anchor.b = anchors[m + 3];
+            BoundingBoxCord_xcycwh box_bestidx, anchor_xcyxwh;
+            BoundingBoxCord *p_anchor = &bbox_anchors[anchor_idx];
             const auto best_idx = find_best_box_for_anchor(anchor_idx, ious, bb_count, anchors_size);
             // Filter matches by criteria
             if (ious[(best_idx * anchors_size) + anchor_idx] > criteria) //Its a match
             {
-                //YTD: Need to add a new structure for xc,yc,w,h similar to l,t,r,b as a part of metadata
-                box_bestidx.l = 0.5 * (bb_coords.at(best_idx).l + bb_coords.at(best_idx).r); //xc
-                box_bestidx.t = 0.5 * (bb_coords.at(best_idx).t + bb_coords.at(best_idx).b); //yc
-                box_bestidx.r = (-bb_coords.at(best_idx).l + bb_coords.at(best_idx).r);      //w
-                box_bestidx.b = (-bb_coords.at(best_idx).t + bb_coords.at(best_idx).b);      //h
-
+                //Convert the "ltrb" format to "xcycwh"
+                box_bestidx.xc = 0.5 * (bb_coords[best_idx].l + bb_coords[best_idx].r); //xc
+                box_bestidx.yc = 0.5 * (bb_coords[best_idx].t + bb_coords[best_idx].b); //yc
+                box_bestidx.w = bb_coords[best_idx].r - bb_coords[best_idx].l;      //w
+                box_bestidx.h = bb_coords[best_idx].b - bb_coords[best_idx].t;      //h
                 if (offset)
                 {
-                    box_bestidx.l *= scale; //xc
-                    box_bestidx.t *= scale; //yc
-                    box_bestidx.r *= scale; //w
-                    box_bestidx.b *= scale; //h
-                    //YTD: Need to add a new structure for xc,yc,w,h similar to l,t,r,b as a part of metadata
-                    _anchor_xcyxwh.l = 0.5 * (_anchor.l + _anchor.r) * scale; //xc
-                    _anchor_xcyxwh.t = 0.5 * (_anchor.t + _anchor.b) * scale; //yc
-                    _anchor_xcyxwh.r = (-_anchor.l + _anchor.r) * scale;      //w
-                    _anchor_xcyxwh.b = (-_anchor.t + _anchor.b) * scale;      //h
-
-                    box_bestidx.l = ((box_bestidx.l - _anchor_xcyxwh.l) / _anchor_xcyxwh.r - means[0]) / stds[0];
-                    box_bestidx.t = ((box_bestidx.t - _anchor_xcyxwh.t) / _anchor_xcyxwh.b - means[1]) / stds[1];
-                    box_bestidx.r = (std::log(box_bestidx.r / _anchor_xcyxwh.r) - means[2]) / stds[2];
-                    box_bestidx.b = (std::log(box_bestidx.b / _anchor_xcyxwh.b) - means[3]) / stds[3];
+                    box_bestidx.xc *= scale; //xc
+                    box_bestidx.yc *= scale; //yc
+                    box_bestidx.w *= scale; //w
+                    box_bestidx.h *= scale; //h
+                    //Convert the "ltrb" format to "xcycwh"
+                    anchor_xcyxwh.xc = 0.5 * (p_anchor->l + p_anchor->r) * scale; //xc
+                    anchor_xcyxwh.yc = 0.5 * (p_anchor->t + p_anchor->b) * scale; //yc
+                    anchor_xcyxwh.w = (-p_anchor->l + p_anchor->r) * scale;      //w
+                    anchor_xcyxwh.h = (-p_anchor->t + p_anchor->b) * scale;      //h
+                    // Reference for offset calculation between the Ground Truth bounding boxes & anchor boxes in <xc,yc,w,h> format
+                    // https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Object-Detection#predictions-vis-%C3%A0-vis-priors
+                    box_bestidx.xc = ((box_bestidx.xc - anchor_xcyxwh.xc) / anchor_xcyxwh.w - means[0]) / stds[0];
+                    box_bestidx.yc = ((box_bestidx.yc - anchor_xcyxwh.yc) / anchor_xcyxwh.h - means[1]) / stds[1];
+                    box_bestidx.w = (std::log(box_bestidx.w / anchor_xcyxwh.w) - means[2]) / stds[2];
+                    box_bestidx.h = (std::log(box_bestidx.h / anchor_xcyxwh.h) - means[3]) / stds[3];
                     encoded_bb[anchor_idx] = box_bestidx;
                     encoded_labels[anchor_idx] = bb_labels.at(best_idx);
                 }
@@ -287,25 +254,22 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> anchors, 
             {
                 if (offset)
                 {
-                    _anchor_xcyxwh.l = _anchor_xcyxwh.t = _anchor_xcyxwh.r = _anchor_xcyxwh.b = 0;
-                    encoded_bb[anchor_idx] = _anchor_xcyxwh;
+                    encoded_bb[anchor_idx] = {0, 0, 0, 0};
                     encoded_labels[anchor_idx] = 0;
                 }
                 else
                 {
-                    //YTD: Need to add a new structure for xc,yc,w,h similar to l,t,r,b as a part of metadata
-                    _anchor_xcyxwh.l = 0.5 * (_anchor.l + _anchor.r); //xc
-                    _anchor_xcyxwh.t = 0.5 * (_anchor.t + _anchor.b); //yc
-                    _anchor_xcyxwh.r = (-_anchor.l + _anchor.r);      //w
-                    _anchor_xcyxwh.b = (-_anchor.t + _anchor.b);      //h
-                    encoded_bb[anchor_idx] = _anchor_xcyxwh;
+                    //Convert the "ltrb" format to "xcycwh"
+                    encoded_bb[anchor_idx].xc = 0.5 * (p_anchor->l + p_anchor->r); //xc
+                    encoded_bb[anchor_idx].yc = 0.5 * (p_anchor->t + p_anchor->b); //yc
+                    encoded_bb[anchor_idx].w = (-p_anchor->l + p_anchor->r);      //w
+                    encoded_bb[anchor_idx].h = (-p_anchor->t + p_anchor->b);      //h
                     encoded_labels[anchor_idx] = 0;
                 }
             }
         }
-        bb_coords.clear();
-        bb_labels.clear();
-        full_batch_meta_data->get_bb_cords_batch()[i] = encoded_bb;
+        BoundingBoxCords * encoded_bb_ltrb = (BoundingBoxCords*)&encoded_bb;
+        full_batch_meta_data->get_bb_cords_batch()[i] = (*encoded_bb_ltrb);
         full_batch_meta_data->get_bb_labels_batch()[i] = encoded_labels;
         encoded_bb.clear();
         encoded_labels.clear();

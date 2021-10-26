@@ -12,28 +12,40 @@ def runCompileCommand(platform, project, jobName, boolean debug=false, boolean s
     String installPackageDeps = ''
     String cmake = 'cmake'
     String codeCovFlags = ''
+    String installPrefixHIP = '-D CMAKE_INSTALL_PREFIX=/opt/rocm/mivisionx/hip'
+    String installPrefixOCL = ''
 
     if (platform.jenkinsLabel.contains('centos')) {
         osInfo = 'cat /etc/os-release && uname -r'
-        update = 'sudo yum -y update && sudo yum -y --nogpgcheck install lcov zip'
+        update = 'sudo yum -y --nogpgcheck update && sudo yum -y --nogpgcheck install lcov zip'
+        installPackageDeps = 'python MIVisionX-setup.py --reinstall yes --ffmpeg yes'
         if (platform.jenkinsLabel.contains('centos7')) {
             update = 'echo scl enable devtoolset-7 bash | sudo tee /etc/profile.d/ree.sh && sudo chmod +x /etc/profile.d/ree.sh && . /etc/profile && scl enable devtoolset-7 bash && sudo yum -y --nogpgcheck install lcov zip && sudo yum -y --nogpgcheck update'
             cmake = 'cmake3'
             codeCovFlags = '-D CMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage"'
         }
-        installPackageDeps = 'python3 MIVisionX-setup.py --reinstall yes --ffmpeg yes'
+        else {
+            installPackageDeps = 'python MIVisionX-setup.py --reinstall yes --ffmpeg yes --backend HIP'
+            installPrefixOCL = '-D CMAKE_INSTALL_PREFIX=/opt/rocm/mivisionx/OCL'
+            installPrefixHIP = ''
+        }
     }
     else if (platform.jenkinsLabel.contains('sles')) {
         osInfo = 'cat /etc/os-release && uname -r'
-        update = 'sudo zypper --non-interactive install lcov zip && sudo zypper --non-interactive update'
-        installPackageDeps = 'python3 MIVisionX-setup.py --reinstall yes --ffmpeg yes --installer "zypper --non-interactive"'
+        update = 'sudo zypper -n --no-gpg-checks install lcov zip && sudo zypper -n --no-gpg-checks update'
+        installPackageDeps = 'python MIVisionX-setup.py --reinstall yes --ffmpeg yes'
     }
     else if (platform.jenkinsLabel.contains('ubuntu')) {
         osInfo = 'cat /etc/lsb-release && uname -r'
-        update = 'sudo apt-get -y update && sudo apt-get -y --allow-unauthenticated install lcov zip'
-        installPackageDeps = 'python3 MIVisionX-setup.py --reinstall yes --ffmpeg yes'
+        update = 'sudo apt-get -y --allow-unauthenticated update && sudo apt-get -y --allow-unauthenticated install lcov zip'
+        installPackageDeps = 'python MIVisionX-setup.py --reinstall yes --ffmpeg yes'
         if (platform.jenkinsLabel.contains('ubuntu18')) {
             codeCovFlags = '-D CMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage"'
+        }
+        else {
+           installPackageDeps = 'python MIVisionX-setup.py --reinstall yes --ffmpeg yes --backend HIP'
+           installPrefixOCL = '-D CMAKE_INSTALL_PREFIX=/opt/rocm/mivisionx/OCL'
+           installPrefixHIP = ''
         }
     }
 
@@ -46,14 +58,14 @@ def runCompileCommand(platform, project, jobName, boolean debug=false, boolean s
                 ${installPackageDeps}
                 echo Build MIVisionX OpenCL - ${buildTypeDir}
                 mkdir -p build/${buildTypeDir}-opencl && cd build/${buildTypeDir}-opencl
-                ${cmake} ${buildTypeArg} ${codeCovFlags} ../..
+                ${cmake} ${buildTypeArg} ${codeCovFlags} ${installPrefixOCL} -D BACKEND=OCL ../..
                 make -j\$(nproc)
                 sudo make package
                 sudo make install
                 cd ../
                 echo Build MIVisionX HIP - ${buildTypeDir}
                 mkdir -p ${buildTypeDir}-hip && cd ${buildTypeDir}-hip
-                ${cmake} ${buildTypeArg} ${codeCovFlags} -D BACKEND=HIP -D CMAKE_INSTALL_PREFIX=/opt/rocm/mivisionx/hip ../..
+                ${cmake} ${buildTypeArg} ${codeCovFlags} ${installPrefixHIP} -D BACKEND=HIP ../..
                 make -j\$(nproc)
                 sudo make package
                 sudo make install
@@ -78,6 +90,8 @@ def runTestCommand (platform, project) {
     String codeCovListHIP = ''
     String codeCovPackageOCL = 'echo Code Coverage - NOT Supported ON THIS PLATFORM'
     String codeCovPackageHIP = 'echo Code Coverage - NOT Supported ON THIS PLATFORM'
+    String nnTestsHIP = 'echo NN TESTS -  Backend set to OCL'
+    String nnTestsOCL = 'sudo python ../../tests/neural_network_tests/runNeuralNetworkTests.py --backend_type OCL'
 
     if (platform.jenkinsLabel.contains('centos7')) {
         platformOS = 'centos7'
@@ -95,7 +109,6 @@ def runTestCommand (platform, project) {
         platformOS = 'sles'
     }
 
-
     if (platform.jenkinsLabel.contains('centos') || platform.jenkinsLabel.contains('ubuntu')) {
         conformaceCPU_OCL = "AGO_DEFAULT_TARGET=CPU LD_LIBRARY_PATH=./lib ./bin/vx_test_conformance | tee OpenVX-CPU-CTS-OCL-${platformOS}.md"
         conformaceOpenCL = "AGO_DEFAULT_TARGET=GPU LD_LIBRARY_PATH=./lib ./bin/vx_test_conformance  | tee OpenVX-GPU-CTS-OCL-${platformOS}.md"
@@ -112,17 +125,19 @@ def runTestCommand (platform, project) {
             codeCovPackageOCL = "genhtml ocl-coverage-${platformOS}.info --output-directory coverage-${platformOS} && zip -r ocl-coverage-info-${platformOS}.zip coverage-${platformOS}"
             codeCovPackageHIP = "genhtml hip-coverage-${platformOS}.info --output-directory coverage-${platformOS} && zip -r hip-coverage-info-${platformOS}.zip coverage-${platformOS}"
         }
+        else {
+            nnTestsHIP = 'sudo python ../../tests/neural_network_tests/runNeuralNetworkTests.py --backend_type HIP'
+            nnTestsOCL = 'echo NN TESTS -  Backend set to HIP'
+        }
     }
 
     def command = """#!/usr/bin/env bash
                 set -x
                 echo MIVisionX - with OpenCL Tests
                 cd ${project.paths.project_build_prefix}/build/release-opencl
-                python3 ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode CPU --num_frames 100
-                python3 ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode GPU --num_frames 100 --backend_type OCL
-                export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/miopen/lib
-                export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/opt/rocm/miopengemm/lib
-                sudo python3 ../../tests/neural_network_tests/runNeuralNetworkTests.py
+                python ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode CPU --num_frames 100
+                python ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode GPU --num_frames 100 --backend_type OCL
+                ${nnTestsOCL}
                 export OPENVX_DIR=\$(pwd)/.
                 export OPENVX_INC=\$(pwd)/../../amd_openvx/openvx
                 mkdir conformance_tests
@@ -146,8 +161,9 @@ def runTestCommand (platform, project) {
                 ${codeCovPackageOCL}
                 echo MIVisionX - with HIP Tests
                 cd ../release-hip
-                python3 ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode CPU --num_frames 100
-                python3 ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode GPU --num_frames 100 --backend_type HIP
+                python ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode CPU --num_frames 100
+                python ../../tests/vision_tests/runVisionTests.py --runvx_directory ./bin --hardware_mode GPU --num_frames 100 --backend_type HIP
+                ${nnTestsHIP}
                 export OPENVX_DIR=\$(pwd)/.
                 export OPENVX_INC=\$(pwd)/../../amd_openvx/openvx
                 mkdir conformance_tests
@@ -203,7 +219,7 @@ def runPackageCommand(platform, project) {
                 sudo make package
                 mkdir -p package
                 mv *.${packageType} package/
-                python3 ../../tests/library_tests/runLibraryTests.py
+                python ../../tests/library_tests/runLibraryTests.py --install_directory ./ --backend_type OCL
                 mv *.md package/
                 ${packageInfo} package/*.${packageType}
                 echo Make MIVisionX Package - with HIP support
@@ -212,12 +228,15 @@ def runPackageCommand(platform, project) {
                 (for file in *.${packageType}; do mv "\$file" "HIP-\$file"; done;)
                 mkdir -p package
                 mv *.${packageType} package/
+                python ../../tests/library_tests/runLibraryTests.py --install_directory ./ --backend_type HIP
+                mv *.md package/
                 ${packageInfo} package/*.${packageType}
                 """
 
     platform.runCommand(this, command)
     platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release-opencl/package/*.md""")
     platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release-opencl/package/*.${packageType}""")
+    platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release-hip/package/*.md""")
     platform.archiveArtifacts(this, """${project.paths.project_build_prefix}/build/release-hip/package/*.${packageType}""")
 }
 

@@ -573,7 +573,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliFlipFixed" << std::endl;
-        image1 = raliFlipFixed(handle, image0, 2, true);
+        image1 = raliFlipFixed(handle, image0, 1, true);
     }
     break;
     case 48:

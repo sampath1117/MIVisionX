@@ -344,8 +344,8 @@ RALI_API_CALL raliCreateTextCifar10LabelReader(RaliContext p_context, const char
 
 }
 
-void RALI_API_CALL raliBoxEncoder(RaliContext p_context, std::vector<float> anchors, float criteria,
-                                  std::vector<float> means, std::vector<float> stds, bool offset, float scale)
+void RALI_API_CALL raliBoxEncoder(RaliContext p_context, std::vector<float>& anchors, float criteria,
+                                  std::vector<float> &means, std::vector<float> &stds, bool offset, float scale)
 {
     if (!p_context)
         THROW("Invalid rali context passed to raliBoxEncoder")
@@ -368,14 +368,24 @@ RALI_API_CALL raliCopyEncodedBoxesAndLables(RaliContext p_context, float* boxes_
         WRN("No encoded labels and bounding boxes has been loaded for this output image")
         return;
     }
-    // copy labels buffer & bboxes buffer
+    
+
+    unsigned sum = 0;
+    unsigned sum_bb_count[meta_data_batch_size];
+    for (unsigned i = 0; i < meta_data_batch_size; i++)
+    {
+        sum_bb_count[i] = sum;
+        sum = sum + meta_data.second->get_bb_labels_batch()[i].size();
+    }
+    // copy labels buffer & bboxes buffer parallely
+    #pragma omp parallel for
     for (unsigned i = 0; i < meta_data_batch_size; i++)
     {
         unsigned bb_count = meta_data.second->get_bb_labels_batch()[i].size();
-        memcpy(labels_buf, meta_data.second->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
-        labels_buf += bb_count;
-        memcpy(boxes_buf, meta_data.second->get_bb_cords_batch()[i].data(), sizeof(BoundingBoxCord) * bb_count);
-        boxes_buf += (bb_count * 4);
+        int *temp_labels_buf = labels_buf + sum_bb_count[i];
+        float *temp_bbox_buf = boxes_buf + (sum_bb_count[i] * 4);
+        memcpy(temp_labels_buf, meta_data.second->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
+        memcpy(temp_bbox_buf, meta_data.second->get_bb_cords_batch()[i].data(), sizeof(BoundingBoxCord) * bb_count);
     }
 }
 
@@ -505,71 +515,3 @@ RALI_API_CALL raliGetJointsData(RaliContext p_context, RaliJointsData *joints_da
     joints_data->score_batch = meta_data.second->get_joints_data_batch().score_batch;
     joints_data->rotation_batch = meta_data.second->get_joints_data_batch().rotation_batch;
 }
-
-// void
-// RALI_API_CALL raliGetJointsData(RaliContext p_context, MetaDataJoints *joints_data[])
-// {  
-//     if (!p_context)
-//         THROW("Invalid rali context passed to raliGetBoundingBoxCords")
-//     auto context = static_cast<Context *>(p_context);
-//     auto meta_data = context->master_graph->meta_data();
-//     size_t meta_data_batch_size = meta_data.second->get_img_joints_data_batch().size();
-
-//     if (context->user_batch_size() != meta_data_batch_size)
-//         THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != " + TOSTR(context->user_batch_size()))
-//     if (!meta_data.second)
-//     {
-//         WRN("No label has been loaded for this output image")
-//         return;
-//     }
-    
-
-//     for (unsigned i = 0; i < meta_data_batch_size; i++)
-//     {
-//         int img_path_size;
-//         unsigned annotation_size = meta_data.second->get_img_joints_data_batch()[i].size();
-//         for (unsigned j = 0; j < annotation_size; j++)
-//         {
-//             img_path_size = meta_data.second->get_img_joints_data_batch()[i][j].image_path.size();
-//             //std::cout<<"Image path size:"<<img_path_size<<std::endl;
-//             joints_data[i]->image_id = meta_data.second->get_img_joints_data_batch()[i][j].image_id;
-//             joints_data[i]->annotation_id = meta_data.second->get_img_joints_data_batch()[i][j].annotation_id;
-//             memcpy(joints_data[i]->image_path, meta_data.second->get_img_joints_data_batch()[i][j].image_path.data(), img_path_size);
-//             memcpy(&(joints_data[i]->center), &(meta_data.second->get_img_joints_data_batch()[i][j].center), annotation_size * sizeof(BoundingBoxScale));
-//             memcpy(&(joints_data[i]->scale), &(meta_data.second->get_img_joints_data_batch()[i][j].scale), annotation_size * sizeof(BoundingBoxScale));
-//             memcpy(&(joints_data[i]->joints), meta_data.second->get_img_joints_data_batch()[i][j].joints.data(), annotation_size * 17 * sizeof(KeyPoint));
-//             memcpy(&(joints_data[i]->joints_visibility), meta_data.second->get_img_joints_data_batch()[i][j].joints_visibility.data(), annotation_size * 17 * sizeof(KeyPointVisibility));
-//             joints_data[i]->score = meta_data.second->get_img_joints_data_batch()[i][j].score;
-//             joints_data[i]->rotation = meta_data.second->get_img_joints_data_batch()[i][j].rotation;
-//         }
-//     }
-// }
-
-// std::map<std::string,boost::any>
-// RALI_API_CALL raliGetTestMap(RaliContext p_context)
-// {
-//     std::map<std::string,boost::any> a;
-//     typedef std::vector<std::vector<float>> block;
-//     typedef std::vector<float> pair;
-//     float score = 10.0;
-//     float rotation = 45.2;
-
-//     pair center{ 150.5 ,223.};
-//     pair scale{ 0.79 ,0.96 };
-//     block joints{ { 145.2, 185.8 }, 
-//                 { 255.4, 289.6 }, 
-//                 { 122.1 , 244.2 }};
-//     block joints_vis{ { 0.0 , 0.0 }, 
-//                 { 1.0 , 1.0 }, 
-//                 { 0.0 , 0.0 }};
-
-//     a.insert({"ImgId",458992});
-//     a.insert({"AnnotationID",12366});
-//     a.insert({"Center",center});    
-//     a.insert({"Scale",scale});
-//     a.insert({"Joints",joints});
-//     a.insert({"Joints_Visiblity",joints_vis});
-//     a.insert({"Score",score});
-//     a.insert({"Rotation",rotation});
-//     return a;
-// }
