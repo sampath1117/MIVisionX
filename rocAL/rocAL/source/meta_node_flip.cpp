@@ -70,7 +70,7 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
             joints_visibility.push_back(joint0_visiblity);
             //std::cout<<"Difference:"<<key_point0.x<<std::endl;
 
-            for (unsigned int joint_index = 1; joint_index < NUMBER_OF_KEYPOINTS; joint_index = joint_index + 2)
+            for (unsigned int joint_index = 1; joint_index < NUMBER_OF_JOINTS; joint_index = joint_index + 2)
             {
                 //std::cout<<"Flipping keypoints: "<<  joint_index<<" "<< joint_index+1<<std::endl;
                 Joint joint1, joint2;

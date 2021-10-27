@@ -52,6 +52,7 @@ void WarpAffineNode::create_node()
 
     vx_status width_status, height_status;
     _affine.resize(6 * _batch_size);
+    _inv_affine.resize(6 * _batch_size);
 
     uint batch_size = _batch_size;
     for (uint i = 0; i < batch_size; i++)
@@ -88,6 +89,7 @@ void WarpAffineNode::update_affine_array()
     {
         //Start of Half body transform
         auto scale_factor = _scale_factor.get();
+        // std::cout<<"scale factor: "<<scale_factor<<std::endl;
         int output_size[2] = {(int)_outputs[0]->info().width(), (int)_outputs[0]->info().height_single()};
         float pi = 3.14;
 
@@ -105,14 +107,16 @@ void WarpAffineNode::update_affine_array()
             float dst_dir[2] = {0.0};
             float shift[2] = {0.0};
             float *affine_matrix;
+            float *inverse_affine_matrix;
             affine_matrix = _affine.data() + (i * 6);
-            // int input_img_width = _meta_data_info->get_img_sizes_batch()[i].data()->w;
-            // int input_img_height = _meta_data_info->get_img_sizes_batch()[i].data()->h;
+            inverse_affine_matrix = _inv_affine.data() + (i * 6);
+            int input_img_width = _meta_data_info->get_img_sizes_batch()[i].data()->w;
+            int input_img_height = _meta_data_info->get_img_sizes_batch()[i].data()->h;
 
             Center box_center;
             Scale box_scale;
 
-            // std::cout<<"imageID: "<<_meta_data_info->get_joints_data_batch().image_id_batch[i]<<std::endl;
+            // std::cout<<std::endl<<"imageID: "<<_meta_data_info->get_joints_data_batch().image_id_batch[i]<<std::endl;
             box_center = _meta_data_info->get_joints_data_batch().center_batch[i];
             box_scale = _meta_data_info->get_joints_data_batch().scale_batch[i];
 
@@ -160,9 +164,6 @@ void WarpAffineNode::update_affine_array()
             get_dir(src_point, src_dir, r_rad);
             get_dir(dst_point, dst_dir, r_rad);
 
-            //std::cout << "Got the direction" << std::endl;
-            // std::cout << std::endl<<"xc,yc:" << box_center[0] <<" "<< box_center[1];
-            // std::cout << std::endl<<"xs,ys:" << box_scale[0] <<" "<< box_scale[1];
             src[0][0] = box_center[0] + (shift[0] * scale_temp[0]);
             src[1][0] = box_center[1] + (shift[1] * scale_temp[1]);
             src[0][1] = box_center[0] + src_dir[0] + (shift[0] * scale_temp[0]);
@@ -189,13 +190,14 @@ void WarpAffineNode::update_affine_array()
             //Get the affine array
             matrix_mult(src, inv_dst, affine_matrix);
 
-            //TO DO 
+            invert_affine_tranform(affine_matrix,inverse_affine_matrix);
+
             //Subtract the width and height of source image from the translation parameters 
 
-            // affine_matrix[2] = affine_matrix[2] + ((input_img_width/2)*affine_matrix[0]+(input_img_height/2)*affine_matrix[1]-input_img_width/2);
-            // affine_matrix[5] = affine_matrix[5] + ((input_img_height/2)*affine_matrix[3]+(input_img_width/2)*affine_matrix[4]-input_img_height/2);
+            affine_matrix[2] = affine_matrix[2] + ((input_img_width/2)*affine_matrix[0]+(input_img_height/2)*affine_matrix[1]-input_img_width/2);
+            affine_matrix[5] = affine_matrix[5] + ((input_img_height/2)*affine_matrix[4]+(input_img_width/2)*affine_matrix[3]-input_img_height/2);
 
-            // std::cout << std::endl<<"Affine matrix:" << std::endl
+            // std::cout <<"Affine matrix in node_warp_affine.cpp:" << std::endl
             //           << affine_matrix[0] << " " << affine_matrix[1] << " " << affine_matrix[2] << std::endl
             //           << affine_matrix[3] << " " << affine_matrix[4] << " " << affine_matrix[5] << std::endl<<std::endl;
 
@@ -246,7 +248,7 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     JointsVisibility joints_visibility = _meta_data_info->get_joints_data_batch().joints_visibility_batch[i];
 
     //Seperate the keypoints into upper body and lower body
-    for (uint kp_idx = 0; kp_idx < NUMBER_OF_KEYPOINTS; kp_idx++)
+    for (uint kp_idx = 0; kp_idx < NUMBER_OF_JOINTS; kp_idx++)
     {
         auto v = joints_visibility[kp_idx][0];
         if (v > 0)
@@ -323,3 +325,4 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     lower_joints.clear();
     selected_joints.clear();
 }
+

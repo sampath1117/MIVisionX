@@ -315,7 +315,7 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
         Targets bb_targets;
         TargetsWeight bb_targets_weight;
 
-        for (int k = 0; k < NUMBER_OF_KEYPOINTS; k++)
+        for (int k = 0; k < NUMBER_OF_JOINTS; k++)
         {
             Target bb_target;
             bb_target.resize(target_height, std::vector<float>(target_width, 0));

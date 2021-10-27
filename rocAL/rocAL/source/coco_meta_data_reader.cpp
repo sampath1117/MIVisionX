@@ -132,7 +132,7 @@ void COCOMetaDataReader::print_map_contents()
             std::cout << " scale (w,h) : " << joints_data.scale[0] << " " << joints_data.scale[1] << std::endl;
         }
 
-        for (unsigned int i = 0; i < NUMBER_OF_KEYPOINTS; i++)
+        for (unsigned int i = 0; i < NUMBER_OF_JOINTS; i++)
         {
             std::cout << " x : " << joints_data.joints[i][0]<< " , y : " << joints_data.joints[i][1] << " , v : " << joints_data.joints_visibility[i][0] << std::endl;
         }
@@ -174,8 +174,8 @@ void COCOMetaDataReader::read_all(const std::string &path)
     ImgSize img_size;
     float score = 1.0;
     float rotation = 0.0;
-    // KeyPoints key_points(NUMBER_OF_KEYPOINTS);
-    // KeyPointsVisibility key_points_visibility(NUMBER_OF_KEYPOINTS);
+    // KeyPoints key_points(NUMBER_OF_JOINTS);
+    // KeyPointsVisibility key_points_visibility(NUMBER_OF_JOINTS);
 
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
     parser.EnterObject();
@@ -250,10 +250,10 @@ void COCOMetaDataReader::read_all(const std::string &path)
             parser.EnterArray();
             while (parser.NextArrayValue())
             {
-                int id = 1, label = 0, ann_id = 0;
+                int id = 1, label = 0, ann_id = 0,is_crowd = 0;
                 float joint_sum = 0.0;
                 std::array<float, 4> bbox = {};
-                std::array<float, NUMBER_OF_KEYPOINTS * 3> keypoint{}; 
+                std::array<float, NUMBER_OF_JOINTS * 3> keypoint{}; 
                 if (parser.PeekType() != kObjectType)
                 {
                     continue;
@@ -272,6 +272,10 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     else if (0 == std::strcmp(internal_key, "id"))
                     {   
                         ann_id = parser.GetInt();
+                    }
+                    else if (0 == std::strcmp(internal_key, "is_crowd"))
+                    {   
+                        is_crowd = parser.GetInt();
                     }
                     else if (0 == std::strcmp(internal_key, "bbox"))
                     {
@@ -341,7 +345,8 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     //Ignore annotations if 
                     //label is not person or 
                     //joint_sum <= 0
-                    if(label!=1||joint_sum<=0)
+                    //is_crowd==1
+                    if(label != 1 || joint_sum <= 0 || is_crowd == 1)
                     {
                         box_center.clear();
                         box_scale.clear();
@@ -388,9 +393,9 @@ void COCOMetaDataReader::read_all(const std::string &path)
                     }
 
                     //Convert raw keypoint values to Joints,Joint Visibilities
-                    std::vector<std::vector<float>> key_points(NUMBER_OF_KEYPOINTS),key_points_visibility(NUMBER_OF_KEYPOINTS);
+                    std::vector<std::vector<float>> key_points(NUMBER_OF_JOINTS),key_points_visibility(NUMBER_OF_JOINTS);
                     unsigned int j = 0; 
-                    for (unsigned int i = 0; i < NUMBER_OF_KEYPOINTS; i++)
+                    for (unsigned int i = 0; i < NUMBER_OF_JOINTS; i++)
                     {
                         key_points[i].push_back(keypoint[j]);
                         key_points[i].push_back(keypoint[j+1]);

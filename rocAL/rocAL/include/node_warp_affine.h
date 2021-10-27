@@ -35,7 +35,7 @@ public:
     void init(FloatParam *scale_factor, FloatParam *rotation_factor, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1);
     vx_array get_src_width() { return _src_roi_width; }
     vx_array get_src_height() { return _src_roi_height; }
-    vx_array get_affine_array() { return _affine_array; }
+    float* get_affine_array() { return _inv_affine.data(); }
     void half_body_transform(int index, Center & box_center, Scale  & box_scale, float aspect_ratio);
 
 protected:
@@ -54,6 +54,7 @@ private:
     //ParameterVX<float> _rotate_probability;
 
     std::vector<float> _affine;
+    std::vector<float> _inv_affine;
     vx_array _dst_roi_width, _dst_roi_height;
     vx_array _affine_array;
     std::vector<float> _dst_width, _dst_height;
@@ -116,9 +117,30 @@ inline void matrix_mult(float src[2][3], float dst[3][3], float *affine)
             for (int k = 0; k < 3; k++)
             {
                 *affine += src[i][k] * dst[k][j];
-                // affine_mat[i][j] += src[i][k] * dst[k][j];
             }
             affine++;
         }
     }
+}
+
+inline void invert_affine_tranform(float *affine,float *inv_affine)
+{
+    // std::vector<float> inv_affine;
+    int step = 3;
+    float det = affine[0]*affine[step+1]- affine[1]*affine[step];
+    det = det!=0? (1.0/det):0;
+    float a11,a12,a21,a22,b1,b2;
+    a11 = affine[step+1]*det ;
+    a12 = -affine[1]*det;
+    a21 =  -affine[step]*det;
+    a22 = affine[0]*det;
+    b1 = -a11*affine[2] - a12*affine[step+2];
+    b2 = -a21*affine[2] - a22*affine[step+2];
+
+    inv_affine[0] = a11;
+    inv_affine[1] = a12;
+    inv_affine[2] = b1;
+    inv_affine[3] = a21;
+    inv_affine[4] = a22;
+    inv_affine[5] = b2;
 }

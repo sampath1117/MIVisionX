@@ -57,7 +57,8 @@ class COCOPipeline(Pipeline):
         coin = self.coin_flip()
         self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
-        images = self.flip(images,flip=coin)
+        images = self.res(images)
+        # images = self.flip(images,flip=coin)
         output = self.warp_affine(images)
 
         

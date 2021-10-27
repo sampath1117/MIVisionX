@@ -449,7 +449,7 @@ RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1,float *buf2
         {
             unsigned kps = meta_data.second->get_img_targets_batch()[i][j].size();
             memcpy(buf2, meta_data.second->get_img_targets_weight_batch()[i][j].data() , sizeof(float)* meta_data.second->get_img_targets_weight_batch()[i][j].size());
-            buf2 += (annotation_size * NUMBER_OF_KEYPOINTS);
+            buf2 += (annotation_size * NUMBER_OF_JOINTS);
 
             for (unsigned k = 0; k < kps ; k++)
             {

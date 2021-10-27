@@ -214,7 +214,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false);
     else
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false,
-                                        RALI_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
+                                        RALI_USE_MAX_SIZE, decode_max_width, decode_max_height);
 #elif defined COCO_READER_PARTIAL
     input1 = raliJpegCOCOFileSourcePartial(handle, path, json_path, color_format, num_threads, false, true, false);
 #else
@@ -494,16 +494,25 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliWarpAffineFixed" << std::endl;
-        float x0 = 0.5;
-        float x1 = 0.25;
-        float y0 = 10.0;
-        float y1 = 0.25;
-        float t0 = 0.5;
-        float t1 = 10.0;
-        std::cout << "Affine matrix for warp affine:" << std::endl;
+       
+        int w = 640;
+        int h = 427;
+        // float x0 = 0.932;
+        // float x1 = 0;
+        // float y0 = -88.18+(w/2)*x0+(h/2)*x1-(w/2);
+        // float y1 = 0;
+        // float t0 = 0.932;
+        // float t1 = 36.6+(h/2)*t0+(w/2)*y1 - (h/2);
+        float x0 = 1.07;
+        float x1 = 0;
+        float y0 = 94.5+(w/2)*x0+(h/2)*x1-(w/2);
+        float y1 = 0;
+        float t0 = 1.07;
+        float t1 = -39.2+(h/2)*t0+(w/2)*y1 - (h/2);
+        std::cout << "Affine matrix passed from unittests" << std::endl;
         std::cout << x0 << " " << x1 << " " << y0 << std::endl;
         std::cout << y1 << " " << t0 << " " << t1 << std::endl;
-        image1 = raliWarpAffineFixed(handle, image0, x0, y0, x1, y1, t0, t1, true, 288, 384);
+        image1 = raliWarpAffineFixed(handle, input1, x0, y0, x1, y1, t0, t1, true, 288, 384);
     }
     break;
     case 38:
