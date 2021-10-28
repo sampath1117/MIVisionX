@@ -57,7 +57,7 @@ class COCOPipeline(Pipeline):
         coin = self.coin_flip()
         self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
-        images = self.res(images)
+        # images = self.res(images)
         # images = self.flip(images,flip=coin)
         output = self.warp_affine(images)
 
@@ -290,8 +290,8 @@ def main(exp_name,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image_path", help="Path for images", type=str, default="../../../datasets/COCO/val2017_person_10_img/val2017",required = False)
-    parser.add_argument("--ann_path", help="Path for JSON file", type=str, default="../../../datasets/COCO/val2017_person_10_img/annotations/person_keypoints_val2017.json",required = False)
+    parser.add_argument("--image_path", help="Path for images", type=str, default="/media/coco_keypoint/coco_10_img_person/val2017",required = False)
+    parser.add_argument("--ann_path", help="Path for JSON file", type=str, default="/media/coco_keypoint/coco_10_img_person/annotations/person_keypoints_val2017.json",required = False)
     parser.add_argument("--device", "-d", help="device", type=str, default="cpu", required = True)
     parser.add_argument("--batch_size", "-b", help="batch size", type=int, default=1,required = True)
     parser.add_argument("--display", help="display", type=int, default=None, required = True)

@@ -2296,7 +2296,7 @@ size (float or list of float, optional, default = []) – Output size, in pixels
         return self.output
 
     def rali_c_func_call(self, handle, input_image, is_output):
-        output_image = b.WarpAffine(handle, input_image, is_output, 0, 0, None, None, None, None, None, None, None , None)
+        output_image = b.WarpAffine(handle, input_image, is_output, 384, 288, None, None, None, None, None, None, None , None)
         return output_image
 
 
