@@ -214,7 +214,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false);
     else
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false,
-                                        RALI_USE_MAX_SIZE, decode_max_width, decode_max_height);
+                                        RALI_USE_MAX_SIZE_RESTRICTED, decode_max_width, decode_max_height);
 #elif defined COCO_READER_PARTIAL
     input1 = raliJpegCOCOFileSourcePartial(handle, path, json_path, color_format, num_threads, false, true, false);
 #else
@@ -740,18 +740,18 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         raliGetJointsData(handle, joints_data);
         for (int i = 0; i < inputBatchSize; i++)
         {
-            std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
-            std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
-            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
-            std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
-            std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
-            std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
-            std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
+            // std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
+            // std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
+            // std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
+            // std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
+            // std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
+            // std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
+            // std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
 
-            for (int k = 0; k < 17 ; k++)
-            {
-                std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
-            }
+            // for (int k = 0; k < 17 ; k++)
+            // {
+            //     std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
+            // }
         }
 
         int img_sizes_batch[inputBatchSize * 2];

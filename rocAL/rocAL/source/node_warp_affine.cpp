@@ -25,11 +25,6 @@ THE SOFTWARE.
 #include "node_warp_affine.h"
 #include "exception.h"
 
-// void get_dir(float point[], float dir[], float r);
-// void get_3rd_point(float mat[][3]);
-// void get_inverse(float m[][3],float inv_m[3][3]);
-// void matrix_mult(float src[2][3] , float dst[3][3] ,float affine[2][3]);
-
 WarpAffineNode::WarpAffineNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs) : 
         Node(inputs, outputs),
         _scale_factor(SCALE_RANGE[0], SCALE_RANGE[1]),
@@ -40,7 +35,6 @@ WarpAffineNode::WarpAffineNode(const std::vector<Image *> &inputs, const std::ve
         _y1(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
         _o0(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1]),
         _o1(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1])
-        //_rotate_probability(ROTATION_PROBABILITY_RANGE[0],ROTATION_PROBABILITY_RANGE[1])
 {
     _is_set_meta_data = true;
 }
@@ -192,10 +186,10 @@ void WarpAffineNode::update_affine_array()
 
             invert_affine_tranform(affine_matrix,inverse_affine_matrix);
 
-            //Subtract the width and height of source image from the translation parameters 
-
-            affine_matrix[2] = affine_matrix[2] + ((input_img_width/2)*affine_matrix[0]+(input_img_height/2)*affine_matrix[1]-input_img_width/2);
-            affine_matrix[5] = affine_matrix[5] + ((input_img_height/2)*affine_matrix[4]+(input_img_width/2)*affine_matrix[3]-input_img_height/2);
+            // //Subtract the width and height of source image from the translation parameters 
+            // std::cout<<"in node warp affine src w,h: "<<input_img_width<<" , "<<input_img_height<<std::endl;
+            // affine_matrix[2] = affine_matrix[2] + ((input_img_width/2)*affine_matrix[0]+(input_img_height/2)*affine_matrix[1]-input_img_width/2);
+            // affine_matrix[5] = affine_matrix[5] + ((input_img_height/2)*affine_matrix[4]+(input_img_width/2)*affine_matrix[3]-input_img_height/2);
 
             // std::cout <<"Affine matrix in node_warp_affine.cpp:" << std::endl
             //           << affine_matrix[0] << " " << affine_matrix[1] << " " << affine_matrix[2] << std::endl
@@ -231,9 +225,8 @@ void WarpAffineNode::init(FloatParam *scale_factor, FloatParam *rotate_probablit
     _y1.set_param(core(y1));
     _o0.set_param(core(o0));
     _o1.set_param(core(o1));
-    // _scale_factor.set_param(core(scale_factor));
-    // _rotation_factor.set_param(core(rotation_factor));
-    // _rotate_probability.set_param(core(rotate_probablity));
+    _scale_factor.set_param(core(scale_factor));
+    _rotation_factor.set_param(core(rotation_factor));
 }
 
 void WarpAffineNode::update_node()
