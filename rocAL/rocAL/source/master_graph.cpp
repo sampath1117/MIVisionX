@@ -983,7 +983,7 @@ MetaDataBatch *MasterGraph::create_coco_meta_data_reader(const char *source_path
 
     if (keypoint)
         MasterGraph::keypoint_pose(sigma, pose_output_width, pose_output_height);
-
+    
     MetaDataConfig config(MetaDataType::BoundingBox, MetaDataReaderType::COCO_META_DATA_READER, source_path, std::map<std::string, std::string>(), std::string(), keypoint, pose_output_width, pose_output_height);
 
     _meta_data_graph = create_meta_data_graph(config);

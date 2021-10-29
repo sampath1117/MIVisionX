@@ -373,7 +373,7 @@ namespace rali{
             py::arg("is_output"),
             py::arg("shuffle") = false,
             py::arg("loop") = false,
-            py::arg("decode_size_policy") = RALI_USE_MOST_FREQUENT_SIZE,
+            py::arg("decode_size_policy") = RALI_USE_MAX_SIZE_RESTRICTED,
             py::arg("max_width") = 0,
             py::arg("max_height") = 0,
             py::arg("area_factor") = NULL,
@@ -390,7 +390,7 @@ namespace rali{
             py::arg("is_output"),
             py::arg("shuffle") = false,
             py::arg("loop") = false,
-            py::arg("decode_size_policy") = RALI_USE_MOST_FREQUENT_SIZE,
+            py::arg("decode_size_policy") = RALI_USE_MAX_SIZE_RESTRICTED,
             py::arg("max_width") = 0,
             py::arg("max_height") = 0,
             py::arg("dec_type") = 0);
@@ -417,7 +417,7 @@ namespace rali{
             py::arg("is_output"),
             py::arg("shuffle") = false,
             py::arg("loop") = false,
-            py::arg("decode_size_policy") = RALI_USE_MOST_FREQUENT_SIZE,
+            py::arg("decode_size_policy") = RALI_USE_MAX_SIZE_RESTRICTED,
             py::arg("max_width") = 0,
             py::arg("max_height") = 0);
         m.def("COCO_ImageDecoderShard",&raliJpegCOCOFileSourceSingleShard,"Reads file from the source given and decodes it according to the shard id and number of shards",

@@ -210,34 +210,34 @@ def draw_patches(img, idx):
 
 
 def main(exp_name,
-         epochs=210,
-         batch_size=1,
-         num_workers=4,
-         lr=0.001,
-         disable_lr_decay=False,
-         lr_decay_steps='(170, 200)',
-         lr_decay_gamma=0.1,
-         optimizer='Adam',
-         weight_decay=0.,
-         momentum=0.9,
-         nesterov=False,
-         pretrained_weight_path=None,
-         checkpoint_path=None,
-         log_path='./logs',
-         disable_tensorboard_log=False,
-         model_c=48,
-         model_nof_joints=17,
-         model_bn_momentum=0.1,
-         disable_flip_test_images=False,
-         image_width = 288,
-         image_height = 384,
-         image_path="../../../datasets/COCO/val2017_person_10_img/val2017",
-         ann_path = "../../../datasets/COCO/val2017_person_10_img/annotations/person_keypoints_val2017.json",
-         coco_bbox_path=None,
-         seed=1,
-         device="cpu",
-         display=0,
-         device_id =0):
+         epochs,
+         batch_size,
+         num_workers,
+         lr,
+         disable_lr_decay,
+         lr_decay_steps,
+         lr_decay_gamma,
+         optimizer,
+         weight_decay,
+         momentum,
+         nesterov,
+         pretrained_weight_path,
+         checkpoint_path,
+         log_path,
+         disable_tensorboard_log,
+         model_c,
+         model_nof_joints,
+         model_bn_momentum,
+         disable_flip_test_images,
+         image_width,
+         image_height,
+         image_path,
+         ann_path,
+         coco_bbox_path,
+         seed,
+         device,
+         display,
+         device_id):
 
     if(device == "cpu"):
         _rali_cpu = True
@@ -290,15 +290,15 @@ def main(exp_name,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image_path", help="Path for images", type=str, default="/media/coco_keypoint/coco_10_img_person/val2017",required = False)
-    parser.add_argument("--ann_path", help="Path for JSON file", type=str, default="/media/coco_keypoint/coco_10_img_person/annotations/person_keypoints_val2017.json",required = False)
+    parser.add_argument("--image_path", help="Path for images", type=str, default="/media/datasets/coco_20_img_person/train2017",required = False)
+    parser.add_argument("--ann_path", help="Path for JSON file", type=str, default="/media/datasets/coco_20_img_person/annotations/person_keypoints_train2017.json",required = False)
     parser.add_argument("--device", "-d", help="device", type=str, default="cpu", required = True)
     parser.add_argument("--batch_size", "-b", help="batch size", type=int, default=1,required = True)
     parser.add_argument("--display", help="display", type=int, default=None, required = True)
     parser.add_argument("--num_workers", "-w", help="number of DataLoader workers", type=int, default=1,required = False)
     parser.add_argument("--device_id", "-id", help="Device id", type=int, default=0,required = False)
-    parser.add_argument("--image_width", "-iw", help="output image width", type=int, default= 288, required = False)
-    parser.add_argument("--image_height", "-ih", help="output image height", type=int, default= 384,required = False)
+    parser.add_argument("--image_width", "-iw", help="output image width", type=int, default= 192, required = False)
+    parser.add_argument("--image_height", "-ih", help="output image height", type=int, default= 256,required = False)
     parser.add_argument("--exp_name", "-n",
                         help="experiment name. A folder with this name will be created in the log_path.",
                         type=str, default=str(datetime.now().strftime("%Y%m%d_%H%M")),required = False)

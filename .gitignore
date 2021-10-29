@@ -16,3 +16,4 @@ dist*
 amd_rali.egg-info*
 core*
 __pycache__
+png*

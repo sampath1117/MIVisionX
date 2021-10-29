@@ -34,7 +34,7 @@ void COCOMetaDataReader::init(const MetaDataConfig &cfg)
     _path = cfg.path();
     _output = new BoundingBoxBatch();
     _keypoint = cfg.keypoint();
-    _out_img_width = cfg.out_img_height();
+    _out_img_width = cfg.out_img_width();
     _out_img_height = cfg.out_img_height();
 }
 
@@ -355,7 +355,8 @@ void COCOMetaDataReader::read_all(const std::string &path)
 
                     //Validate bbox values
                     float x1, y1, x2, y2;
-                    float aspect_ratio = (288 * 1.0 / _out_img_height);
+                    // std::cout<<"w,h "<<_out_img_width<<" "<<_out_img_height<<std::endl;
+                    float aspect_ratio = (_out_img_width * 1.0 / _out_img_height);
                     x1 = (box_center[0] > 0)? box_center[0] : 0;
                     y1 = (box_center[1] > 0)? box_center[1] : 0;
                     float box_w =  ((box_scale[0] - 1) > 0)? (box_scale[0] - 1) : 0;
