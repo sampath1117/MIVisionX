@@ -100,6 +100,8 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     int decode_max_width = width;
     int decode_max_height = height;
     float sigma = 3.0;
+    float scale_factor = 0.35;
+    float rotate_factor = 45.0;
     int pose_output_width = width;
     int pose_output_height = height;
     std::cout << ">>> test case " << test_case << std::endl;
@@ -124,6 +126,8 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 
     // Creating uniformly distributed random objects to override some of the default augmentation parameters
     RaliIntParam color_temp_adj = raliCreateIntParameter(-50);
+    RaliFloatParam scale_range = raliCreateFloatUniformRand(1 - scale_factor , 1 + scale_factor);
+    RaliFloatParam rotate_range = raliCreateFloatUniformRand(-2 * rotate_factor , 2*rotate_factor);
 
     /*>>>>>>>>>>>>>>>>>>> Graph description <<<<<<<<<<<<<<<<<<<*/
 
@@ -154,7 +158,8 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
     //const char *json_path = "/media/simple-HRNet/datasets/COCO_small/annotations/person_keypoints_val2017.json";
-    const char *json_path = "/media/datasets/coco_20_img_person/annotations/person_keypoints_train2017.json";
+    //const char *json_path = "/home/svcbuild/sampath/datasets/COCO/coco_10_img_person/annotations/person_keypoints_val2017.json";
+    const char *json_path = "/media/datasets/COCO/coco_10_img_person/annotations/person_keypoints_val2017.json";
 
     if (strcmp(json_path, "") == 0)
     {
@@ -308,7 +313,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliWarpAffine" << std::endl;
-        image1 = raliWarpAffine(handle, input1,true, 256, 192);
+        image1 = raliWarpAffine(handle, input1,true, 256, 192, scale_range, rotate_range);
     }
     break;
     case 10:
@@ -741,17 +746,17 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         for (int i = 0; i < inputBatchSize; i++)
         {
             std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
-            std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
-            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;
-            std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
-            std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
-            std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
-            std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
+            // std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
+            // std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
+            // std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
+            // std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
+            // std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
+            // std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
 
-            for (int k = 0; k < 17 ; k++)
-            {
-                std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
-            }
+            // for (int k = 0; k < 17 ; k++)
+            // {
+            //     std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
+            // }
         }
 
         int img_sizes_batch[inputBatchSize * 2];

@@ -49,6 +49,7 @@ void WarpAffineNode::create_node()
     _inv_affine.resize(6 * _batch_size);
 
     uint batch_size = _batch_size;
+    
     for (uint i = 0; i < batch_size; i++)
     {
         _affine[i * 6 + 0] = _x0.renew();
@@ -82,8 +83,6 @@ void WarpAffineNode::update_affine_array()
     if (_is_set_meta_data)
     {
         //Start of Half body transform
-        auto scale_factor = _scale_factor.get();
-        // std::cout<<"scale factor: "<<scale_factor<<std::endl;
         int output_size[2] = {(int)_outputs[0]->info().width(), (int)_outputs[0]->info().height_single()};
         float pi = 3.14;
 
@@ -122,9 +121,9 @@ void WarpAffineNode::update_affine_array()
                 half_body_transform(i, box_center, box_scale, aspect_ratio);
             }
 
-            //TO DO for scale
-            //add the flag for is_scale passed from user
+            float scale_factor = _scale_factor.renew();
             bool is_scale = false;
+            // std::cout<<"scale factor: "<< scale_factor<<std::endl;
             if (is_scale)
             {
                 box_scale[0] = box_scale[0] * scale_factor;
@@ -132,15 +131,14 @@ void WarpAffineNode::update_affine_array()
             }
 
             //TO DO for rotate
-            //1.add the constant value for rotate probability from the user 
-            //2.get random probability for rotate
+            //add the constant value for rotate probability from the user 
             float rotate_prob = 0.0;
             float r = 0.0;
-            float random_rotate_prob = 0.0;//_rotate_probability.get();
-            // std::cout<<"Rotate probability: "<< random_rotate_prob<<std::endl;
+            float random_rotate_prob = 0.0;
+            // std::cout<<"Rotate factor: "<<_rotation_factor.renew()<<std::endl;
             if (rotate_prob && random_rotate_prob< rotate_prob)
             {
-                r = _rotation_factor.get();
+                r = _rotation_factor.renew();
             }
 
             _meta_data_info->get_joints_data_batch().rotation_batch[i] = r;
@@ -217,7 +215,7 @@ void WarpAffineNode::init(float x0, float x1, float y0, float y1, float o0, floa
     _o1.set_param(o1);
 }
 
-void WarpAffineNode::init(FloatParam *scale_factor, FloatParam *rotate_probablity, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1)
+void WarpAffineNode::init(FloatParam *scale_factor, FloatParam *rotation_factor, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1)
 {
     _x0.set_param(core(x0));
     _x1.set_param(core(x1));
@@ -226,7 +224,7 @@ void WarpAffineNode::init(FloatParam *scale_factor, FloatParam *rotate_probablit
     _o0.set_param(core(o0));
     _o1.set_param(core(o1));
     _scale_factor.set_param(core(scale_factor));
-    _rotation_factor.set_param(core(rotate_probablity));
+    _rotation_factor.set_param(core(rotation_factor));
 }
 
 void WarpAffineNode::update_node()
