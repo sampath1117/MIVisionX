@@ -2274,7 +2274,7 @@ seed (int, optional, default = -1) – Random seed (If not provided it will be p
 size (float or list of float, optional, default = []) – Output size, in pixels/points. Non-integer sizes are rounded to nearest integer. Channel dimension should be excluded (e.g. for RGB images specify (480,640), not (480,640,3).
     """
 
-    def __init__(self, bytes_per_sample_hint=0, fill_value=0.0, interp_type = 1, matrix = None, output_dtype = -1, preserve = False, seed = -1, size = None, device = None):
+    def __init__(self, bytes_per_sample_hint=0, fill_value=0.0, interp_type = 1, matrix = None, output_dtype = -1, preserve = False, seed = -1, size = None, device = None, is_train = False, rotate_probability = 0, half_body_probability = 0, rotation_factor = None, scale_factor = None):
         Node().__init__()
         self._bytes_per_sample_hint = bytes_per_sample_hint
         self._fill_value = fill_value
@@ -2284,19 +2284,28 @@ size (float or list of float, optional, default = []) – Output size, in pixels
         self._preserve = preserve
         self._seed = seed
         self._size = size
+        self._is_train = is_train
+        self._rotate_probability = rotate_probability
+        self._half_body_probability = half_body_probability
+        self._scale_factor = scale_factor
+        self._rotation_factor = rotation_factor
         self.output = Node()
 
-    def __call__(self, input):
+    def __call__(self, input, size):
         input.next = self
         self.data = "WarpAffine"
         self.prev = input
         self.next = self.output
         self.output.prev = self
         self.output.next = None
+        self.check_warp = size
         return self.output
 
     def rali_c_func_call(self, handle, input_image, is_output):
-        output_image = b.WarpAffine(handle, input_image, is_output, 256, 192, None, None, None, None, None, None, None , None)
+        if self.check_warp is not None:
+            output_image = b.WarpAffine(handle, input_image, is_output, self._is_train, int(self._size[0]), int(self._size[1]), self._rotate_probability, self._half_body_probability, self._scale_factor, self._rotation_factor, None, None, None, None, None , None)
+        else:
+            output_image = b.WarpAffine(handle, input_image, is_output, False, 256, 192, 0, 0, None, None, None, None, None, None, None , None)
         return output_image
 
 

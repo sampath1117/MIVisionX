@@ -4,7 +4,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-from math import sqrt
+from math import fabs, sqrt
 
 import torch
 import random
@@ -22,18 +22,20 @@ from datetime import datetime
 import argparse
 
 class COCOPipeline(Pipeline):
-    def __init__(self, batch_size, num_threads, device_id, seed, data_dir, ann_dir, default_boxes,  crop, rali_cpu=True, display=False, output_image_width = 288, output_image_height = 384, sigma = 3.0):
+    def __init__(self, batch_size, num_threads, device_id, seed, data_dir, ann_dir, default_boxes,  crop, rali_cpu=True, display=False, output_image_width = 288, output_image_height = 384, sigma = 3.0, is_train = False, rotate_probability = 0.5,
+                 half_body_probability = 0.35, scale_factor = None, rotation_factor=None):
         super(COCOPipeline, self).__init__(batch_size, num_threads,
                                            device_id, seed=seed, rali_cpu=rali_cpu)
         
         # print("Entered init function")
         keypoint = True
         self.input = ops.COCOReader(
-            file_root=data_dir, annotations_file=ann_dir, random_shuffle=True, seed=seed, sigma  = sigma, is_keypoint = keypoint, output_image_width = output_image_width, output_image_height = output_image_height)
+            file_root = data_dir, annotations_file = ann_dir, random_shuffle = True, seed = seed, sigma  = sigma, is_keypoint = keypoint, output_image_width = output_image_width, output_image_height = output_image_height)
         
         # print("Complete reading data")
         rali_device = 'cpu' if rali_cpu else 'gpu'
         decoder_device = 'cpu' if rali_cpu else 'mixed'
+        self.output_image_size = (output_image_height,output_image_width)
 
         self.decode = ops.ImageDecoder(
             device=decoder_device, output_type=types.RGB)
@@ -41,15 +43,21 @@ class COCOPipeline(Pipeline):
         self.twist = ops.ColorTwist(device=rali_device)
         self.coin_flip = ops.CoinFlip(probability=0.5)
         self.flip = ops.Flip()
-        self.warp_affine = ops.WarpAffine()
+        self.is_train = is_train
+        self.warp_affine = ops.WarpAffine(is_train = is_train,
+                                          rotate_probability = rotate_probability,
+                                          half_body_probability = half_body_probability,
+                                          scale_factor = scale_factor,
+                                          rotation_factor = rotation_factor,
+                                          size = self.output_image_size)
+        
         self.cmnp = ops.CropMirrorNormalize(device="cpu",
-                                                output_dtype=types.FLOAT,
-                                                output_layout=types.NCHW,
-                                                crop=(crop, crop),
-                                                image_type=types.RGB,
-                                                mean=[0.485 * 255,
-                                                      0.456 * 255, 0.406 * 255],
-                                                std=[0.229 * 255, 0.224 * 255, 0.225 * 255])
+                                                output_dtype = types.FLOAT,
+                                                output_layout = types.NCHW,
+                                                crop = self.output_image_size,
+                                                image_type = types.RGB,
+                                                mean = [0.485, 0.456, 0.406],
+                                                std = [0.229, 0.224, 0.225])
 
         
 
@@ -57,10 +65,10 @@ class COCOPipeline(Pipeline):
         coin = self.coin_flip()
         self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
-        # images = self.res(images)
-        # images = self.flip(images,flip=coin)
-        output = self.warp_affine(images)
-
+        # if self.is_train:
+            # images = self.flip(images,flip=coin)
+        images = self.warp_affine(images,size = self.output_image_size)
+        output = self.cmnp(images)
         
         # Encoded Bbox and labels output in "xcycwh" format
         return [output,self.bb,self.labels]
@@ -203,10 +211,11 @@ def draw_patches(img, idx):
     image = img.detach().numpy()
     image = image.transpose([1, 2, 0])
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    _, htot, wtot = img.shape
-    
     image = cv2.UMat(image).get()
-    cv2.imwrite(str(idx)+"_"+"train"+".png", image)
+    image = cv2.normalize(image, None, alpha = 0, beta = 255, norm_type = cv2.NORM_MINMAX, dtype = cv2.CV_32F)
+    image = image.astype(np.uint8)
+    image = cv2.UMat(image).get()
+    cv2.imwrite(str(idx)+"_"+"rali_train"+".png", image)
 
 
 def main(exp_name,
@@ -290,8 +299,8 @@ def main(exp_name,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--image_path", help="Path for images", type=str, default="/media/datasets/coco_20_img_person/train2017",required = False)
-    parser.add_argument("--ann_path", help="Path for JSON file", type=str, default="/media/datasets/coco_20_img_person/annotations/person_keypoints_train2017.json",required = False)
+    parser.add_argument("--image_path", help="Path for images", type=str, default="/media/datasets/COCO/coco_10_img_person/val2017",required = False)
+    parser.add_argument("--ann_path", help="Path for JSON file", type=str, default="/media/datasets/COCO/coco_10_img_person/annotations/person_keypoints_val2017.json",required = False)
     parser.add_argument("--device", "-d", help="device", type=str, default="cpu", required = True)
     parser.add_argument("--batch_size", "-b", help="batch size", type=int, default=1,required = True)
     parser.add_argument("--display", help="display", type=int, default=None, required = True)

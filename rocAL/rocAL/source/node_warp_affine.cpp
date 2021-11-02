@@ -25,15 +25,16 @@ THE SOFTWARE.
 #include "node_warp_affine.h"
 #include "exception.h"
 
-WarpAffineNode::WarpAffineNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs) : Node(inputs, outputs),
-                                                                                                          _scale_factor(SCALE_RANGE[0], SCALE_RANGE[1]),
-                                                                                                          _rotation_factor(ROTATION_RANGE[0], ROTATION_RANGE[1]),
-                                                                                                          _x0(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
-                                                                                                          _x1(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
-                                                                                                          _y0(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
-                                                                                                          _y1(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
-                                                                                                          _o0(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1]),
-                                                                                                          _o1(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1])
+WarpAffineNode::WarpAffineNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs) : 
+        Node(inputs, outputs),
+        _scale_factor(SCALE_RANGE[0], SCALE_RANGE[1]),
+        _rotation_factor(ROTATION_RANGE[0], ROTATION_RANGE[1]),
+        _x0(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
+        _x1(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
+        _y0(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
+        _y1(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
+        _o0(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1]),
+        _o1(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1])
 {
     _is_set_meta_data = true;
 }
@@ -117,10 +118,11 @@ void WarpAffineNode::update_affine_array()
             box_center = _meta_data_info->get_joints_data_batch().center_batch[i];
             box_scale = _meta_data_info->get_joints_data_batch().scale_batch[i];
             rotate_deg = _meta_data_info->get_joints_data_batch().rotation_batch[i];
+            
             int input_img_width = _meta_data_info->get_img_sizes_batch()[i].data()->w;
             int input_img_height = _meta_data_info->get_img_sizes_batch()[i].data()->h;
             
-             // std::cout<<std::endl<<"imageID: "<<_meta_data_info->get_joints_data_batch().image_id_batch[i]<<std::endl;
+            // std::cout<<std::endl<<"imageID: "<<_meta_data_info->get_joints_data_batch().image_id_batch[i]<<std::endl;
             if (_is_train)
             {
                 if (_half_body_probability > 0  && half_body_probability[i] < _half_body_probability)
@@ -253,7 +255,7 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
         return;
     }
 
-    std::cout<<"Proceeding for HalfBody Augmentation , Number of visible joints: "<<num_vis_joints<<std::endl;
+    // std::cout<<"Proceeding for HalfBody Augmentation , Number of visible joints: "<<num_vis_joints<<std::endl;
     
     //Seperate the keypoints into upper body and lower body
     for (uint kp_idx = 0; kp_idx < NUMBER_OF_JOINTS; kp_idx++)
@@ -281,7 +283,7 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
 
     //select any of upper body and lower body joints
     float temp = ((float)rand() / (RAND_MAX));
-    std::cout<<"Random value in halfbody: "<<temp<<std::endl;
+    // std::cout<<"Random value in halfbody: "<<temp<<std::endl;
     selected_joints = upper_joints;
     if(upper_joints.size() > 2 && temp < 0.5)
     {
@@ -290,12 +292,6 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     else if (lower_joints.size() > 2) 
     {
         selected_joints = lower_joints;
-    }
-
-    //Return if number of joints in selected body less than 2
-    if(selected_joints.size()<2)
-    {
-        return;
     }
 
     auto mean_center_x = 0.0;

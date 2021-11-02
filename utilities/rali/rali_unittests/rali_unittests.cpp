@@ -96,7 +96,7 @@ int main(int argc, const char **argv)
 int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height, int num_of_classes, int display_all)
 {
     size_t num_threads = 1;
-    unsigned int inputBatchSize = 9;
+    unsigned int inputBatchSize = 1;
     int decode_max_width = width;
     int decode_max_height = height;
     float sigma = 3.0;
@@ -154,7 +154,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #if defined COCO_READER || defined COCO_READER_PARTIAL
     //const char *json_path = "/media/simple-HRNet/datasets/COCO_small/annotations/person_keypoints_val2017.json";
     //const char *json_path = "/home/svcbuild/sampath/datasets/COCO/coco_10_img_person/annotations/person_keypoints_val2017.json";
-    const char *json_path = "/media/datasets/COCO/coco_20_img_person/annotations/person_keypoints_val2017.json";
+    const char *json_path = "/media/datasets/COCO/coco_10_img_person/annotations/person_keypoints_val2017.json";
 
     if (strcmp(json_path, "") == 0)
     {
