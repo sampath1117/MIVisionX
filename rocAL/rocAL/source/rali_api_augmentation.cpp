@@ -690,12 +690,12 @@ raliWarpAffine(
         // If the user has provided the output size the dimension of all the images after this node will be fixed and equal to that size
         if(dest_width != 0 && dest_height != 0)
             output->reset_image_roi();
-        
+
         std::shared_ptr<WarpAffineNode> warp_node = context->master_graph->add_node<WarpAffineNode>({input}, {output});
-        
+
         //Init values for the warp node
         warp_node->init(scale_factor, rotation_factor, x0, x1, y0, y1, o0, o1);
-        
+
         if (context->master_graph->meta_data_graph())
         {
             //std::cout<<"adding meta node for Warp"<<std::endl;
@@ -753,7 +753,7 @@ raliWarpAffineFixed(
         //context->master_graph->add_node<WarpAffineNode>({input}, {output})->init(x0, x1, y0, y1, o0, o1);
         std::shared_ptr<WarpAffineNode> warp_node = context->master_graph->add_node<WarpAffineNode>({input}, {output});
         warp_node->init(x0, x1, y0, y1, o0, o1);
-        
+
         if (context->master_graph->meta_data_graph())
         {
             //std::cout<<"adding meta node for Warp"<<std::endl;
@@ -972,22 +972,24 @@ raliFlip(
         RaliContext p_context,
         RaliImage p_input,
         bool is_output,
-        RaliIntParam p_flip_axis)
+        RaliIntParam p_horizontal_flip_axis,
+        RaliIntParam p_vertical_flip_axis)
 {
     if(!p_context || !p_input)
         THROW("Null values passed as input")
     Image* output = nullptr;
     auto context = static_cast<Context*>(p_context);
     auto input = static_cast<Image*>(p_input);
-    auto flip_axis = static_cast<IntParam*>(p_flip_axis);
+    auto horizontal_flip_axis = static_cast<IntParam*>(p_horizontal_flip_axis);
+    auto vertical_flip_axis = static_cast<IntParam*>(p_vertical_flip_axis);
     try
     {
 
         output = context->master_graph->create_image(input->info(), is_output);
 
         std::shared_ptr<FlipNode> flip_node =  context->master_graph->add_node<FlipNode>({input}, {output});
-        flip_node->init(flip_axis);
-        
+        flip_node->init(horizontal_flip_axis,vertical_flip_axis );
+
         if (context->master_graph->meta_data_graph())
         {
             std::cout<<"adding meta node for flip"<<std::endl;
@@ -1010,7 +1012,8 @@ RaliImage RALI_API_CALL
 raliFlipFixed(
         RaliContext p_context,
         RaliImage p_input,
-        int flip_axis,
+        int horizontal_flip_axis,
+        int vertical_flip_axis,
         bool is_output)
 {
     Image* output = nullptr;
@@ -1023,7 +1026,7 @@ raliFlipFixed(
 
         output = context->master_graph->create_image(input->info(), is_output);
 
-        context->master_graph->add_node<FlipNode>({input}, {output})->init(flip_axis);
+        context->master_graph->add_node<FlipNode>({input}, {output})->init(horizontal_flip_axis,vertical_flip_axis);
     }
     catch(const std::exception& e)
     {

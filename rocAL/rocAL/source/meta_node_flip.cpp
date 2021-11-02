@@ -26,7 +26,8 @@ void FlipMetaNode::initialize()
     //std::cout<<"Initialize called:"<<std::endl;
     _src_height_val.resize(_batch_size);
     _src_width_val.resize(_batch_size);
-    _flip_axis_val.resize(_batch_size);
+    _horizontal_flip_axis_val.resize(_batch_size);
+    _vertical_flip_axis_val.resize(_batch_size);
 }
 void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_estimation)
 {
@@ -41,11 +42,13 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
 
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
-    _flip_axis = _node->get_flip_axis();
+    _horizontal_flip_axis = _node->get_horizontal_flip_axis();
+    _vertical_flip_axis = _node->get_vertical_flip_axis();
 
     vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint), _src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint), _src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyArrayRange((vx_array)_flip_axis, 0, _batch_size, sizeof(int), _flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_horizontal_flip_axis, 0, _batch_size, sizeof(int), _horizontal_flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_vertical_flip_axis, 0, _batch_size, sizeof(int), _vertical_flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
 
     if (pose_estimation)
     {
@@ -108,16 +111,16 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
             memcpy(labels_buf.data(), input_meta_data->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
             memcpy(coords_buf.data(), input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
             BoundingBoxCords bb_coords;
-            
+
             for (uint j = 0; j < bb_count; j++)
             {
-                if (_flip_axis_val[i] == 0)
+                if (_horizontal_flip_axis_val[i] == 1)
                 {
                     float l = 1 - coords_buf[j].r;
                     coords_buf[j].r = 1 - coords_buf[j].l;
                     coords_buf[j].l = l;
                 }
-                else if (_flip_axis_val[i] == 1)
+                if (_vertical_flip_axis_val[i] == 1)
                 {
                     float t = 1 - coords_buf[j].b;
                     coords_buf[j].b = 1 - coords_buf[j].t;

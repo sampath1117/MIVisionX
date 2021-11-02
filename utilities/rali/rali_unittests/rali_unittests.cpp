@@ -37,7 +37,7 @@ THE SOFTWARE.
 using namespace cv;
 
 //#define PARTIAL_DECODE
-#define COCO_READER
+// #define COCO_READER
 //#define COCO_READER_PARTIAL
 // #define TF_READER
 // #define TF_READER_DETECTION
@@ -286,7 +286,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliFlip" << std::endl;
-        image1 = raliFlip(handle, image0, true, 0);
+        image1 = raliFlip(handle, image0, true);
     }
     break;
     case 7:
@@ -494,7 +494,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliWarpAffineFixed" << std::endl;
-       
+
         int w = 640;
         int h = 427;
         // float x0 = 0.932;
@@ -582,7 +582,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliFlipFixed" << std::endl;
-        image1 = raliFlipFixed(handle, image0, 1, true);
+        image1 = raliFlipFixed(handle, image0, 1, 0, true);
     }
     break;
     case 48:
@@ -679,7 +679,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         char img_name[img_size];
         raliGetImageName(handle, img_name);
         // std::cerr << "\nPrinting image names of batch: " << img_name << std::endl;
-        
+
         //Print the bb cords and label if keypoint flag is false
         if (!keypoint)
         {
@@ -699,7 +699,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
             }
         }
 
-        
+
         int size = inputBatchSize;
 
         //Display KeyPoints
@@ -735,14 +735,14 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         //     std::cout<<std::endl;
         // }
 
-        
+
         RaliJointsData *joints_data = new RaliJointsData();
         raliGetJointsData(handle, joints_data);
         for (int i = 0; i < inputBatchSize; i++)
         {
             std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
             std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
-            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
+            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;
             std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
             std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
             std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;

@@ -27,7 +27,8 @@ THE SOFTWARE.
 
 FlipNode::FlipNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs) :
         Node(inputs, outputs),
-        _flip_axis(FLIP_SIZE[0], FLIP_SIZE[1])
+        _horizontal_flip_axis(FLIP_SIZE[0], FLIP_SIZE[1]),
+        _vertical_flip_axis(FLIP_SIZE[0], FLIP_SIZE[1])
 {
 }
 
@@ -37,8 +38,9 @@ void FlipNode::create_node()
         return;
 
 
-    _flip_axis.create_array(_graph ,VX_TYPE_UINT32 ,_batch_size);
-    _node = vxExtrppNode_FlipbatchPD(_graph->get(), _inputs[0]->handle(), _src_roi_width, _src_roi_height, _outputs[0]->handle(), _flip_axis.default_array(), _batch_size);
+    _horizontal_flip_axis.create_array(_graph ,VX_TYPE_UINT32 ,_batch_size);
+    _vertical_flip_axis.create_array(_graph ,VX_TYPE_UINT32 ,_batch_size);
+    _node = vxExtrppNode_FlipbatchPD(_graph->get(), _inputs[0]->handle(), _src_roi_width, _src_roi_height, _outputs[0]->handle(), _horizontal_flip_axis.default_array(), _vertical_flip_axis.default_array(), _batch_size);
 
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
@@ -46,17 +48,20 @@ void FlipNode::create_node()
 
 }
 
-void FlipNode::init(int flip_axis)
+void FlipNode::init(int horizontal_flip_axis, int vertical_flip_axis)
 {
-    _flip_axis.set_param(flip_axis);
+    _horizontal_flip_axis.set_param(horizontal_flip_axis);
+    _vertical_flip_axis.set_param(vertical_flip_axis);
 }
 
-void FlipNode::init(IntParam* flip_axis)
+void FlipNode::init(IntParam* horizontal_flip_axis, IntParam* vertical_flip_axis)
 {
-    _flip_axis.set_param(core(flip_axis));
+    _horizontal_flip_axis.set_param(core(horizontal_flip_axis));
+    _vertical_flip_axis.set_param(core(vertical_flip_axis));
 }
 
 void FlipNode::update_node()
 {
-    _flip_axis.update_array();
+    _horizontal_flip_axis.update_array();
+    _vertical_flip_axis.update_array();
 }

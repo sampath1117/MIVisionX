@@ -805,7 +805,7 @@ VX_API_ENTRY vx_node VX_API_CALL vxExtrppNode_MeanStddev(vx_graph graph, vx_imag
     return node;
 }
 
-VX_API_ENTRY vx_node VX_API_CALL vxExtrppNode_FlipbatchPD(vx_graph graph, vx_image pSrc, vx_array srcImgWidth, vx_array srcImgHeight, vx_image pDst, vx_array flipAxis, vx_uint32 nbatchSize)
+VX_API_ENTRY vx_node VX_API_CALL vxExtrppNode_FlipbatchPD(vx_graph graph, vx_image pSrc, vx_array srcImgWidth, vx_array srcImgHeight, vx_image pDst, vx_array horizontalFlipAxis, vx_array  verticalFlipAxis, vx_uint32 nbatchSize)
 {
     vx_node node = NULL;
     vx_context context = vxGetContext((vx_reference)graph);
@@ -819,10 +819,11 @@ VX_API_ENTRY vx_node VX_API_CALL vxExtrppNode_FlipbatchPD(vx_graph graph, vx_ima
             (vx_reference)srcImgWidth,
             (vx_reference)srcImgHeight,
             (vx_reference)pDst,
-            (vx_reference)flipAxis,
+            (vx_reference)horizontalFlipAxis,
+            (vx_reference)verticalFlipAxis,
             (vx_reference)NBATCHSIZE,
             (vx_reference)DEV_TYPE};
-        node = createNode(graph, VX_KERNEL_RPP_FLIPBATCHPD, params, 7);
+        node = createNode(graph, VX_KERNEL_RPP_FLIPBATCHPD, params, 8);
     }
     return node;
 }

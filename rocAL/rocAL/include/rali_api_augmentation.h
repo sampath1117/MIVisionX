@@ -159,7 +159,7 @@ extern "C"  RaliImage  RALI_API_CALL raliContrastFixed(RaliContext context, Rali
 /// \param is_output
 /// \return
 extern "C"  RaliImage  RALI_API_CALL raliFlip(RaliContext context, RaliImage input, bool is_output,
-                                                RaliIntParam flip_axis = NULL);
+                                                RaliIntParam horizontal_flip_axis = NULL, RaliIntParam p_vertical_flip_axis = NULL);
 
 ///
 /// \param context
@@ -167,7 +167,7 @@ extern "C"  RaliImage  RALI_API_CALL raliFlip(RaliContext context, RaliImage inp
 /// \param axis
 /// \param is_output
 /// \return
-extern "C"  RaliImage  RALI_API_CALL raliFlipFixed(RaliContext context, RaliImage input, int flip_axis, bool is_output );
+extern "C"  RaliImage  RALI_API_CALL raliFlipFixed(RaliContext context, RaliImage input, int horizontal_flip_axis, int vertical_flip_axis, bool is_output );
 
 /// Accepts U8 and RGB24 inputs
 /// \param context
