@@ -32,7 +32,7 @@ public:
     WarpAffineNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs);
     WarpAffineNode() = delete;
     void init(float x0, float x1, float y0, float y1, float o0, float o1);
-    void init(FloatParam *scale_factor, FloatParam *rotation_factor, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1);
+    void init(bool is_train, float rotate_probability, float half_body_probability, FloatParam *scale_factor, FloatParam *rotation_factor, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1);
     vx_array get_src_width() { return _src_roi_width; }
     vx_array get_src_height() { return _src_roi_height; }
     float* get_affine_array() { return _inv_affine.data(); }
@@ -58,6 +58,9 @@ private:
     vx_array _dst_roi_width, _dst_roi_height;
     vx_array _affine_array;
     std::vector<float> _dst_width, _dst_height;
+    float _rotate_probability = 0.5;
+    float _half_body_probability = 0.35;
+    bool _is_train = false;
     constexpr static float COEFFICIENT_RANGE_0[2] = {-0.35, 0.35};
     constexpr static float COEFFICIENT_RANGE_1[2] = {0.65, 1.35};
     constexpr static float COEFFICIENT_RANGE_OFFSET[2] = {-10.0, 10.0};

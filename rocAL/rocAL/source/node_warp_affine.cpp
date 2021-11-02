@@ -25,16 +25,15 @@ THE SOFTWARE.
 #include "node_warp_affine.h"
 #include "exception.h"
 
-WarpAffineNode::WarpAffineNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs) : 
-        Node(inputs, outputs),
-        _scale_factor(SCALE_RANGE[0], SCALE_RANGE[1]),
-        _rotation_factor(ROTATION_RANGE[0], ROTATION_RANGE[1]),
-        _x0(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
-        _x1(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
-        _y0(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
-        _y1(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
-        _o0(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1]),
-        _o1(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1])
+WarpAffineNode::WarpAffineNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs) : Node(inputs, outputs),
+                                                                                                          _scale_factor(SCALE_RANGE[0], SCALE_RANGE[1]),
+                                                                                                          _rotation_factor(ROTATION_RANGE[0], ROTATION_RANGE[1]),
+                                                                                                          _x0(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
+                                                                                                          _x1(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
+                                                                                                          _y0(COEFFICIENT_RANGE_0[0], COEFFICIENT_RANGE_0[1]),
+                                                                                                          _y1(COEFFICIENT_RANGE_1[0], COEFFICIENT_RANGE_1[1]),
+                                                                                                          _o0(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1]),
+                                                                                                          _o1(COEFFICIENT_RANGE_OFFSET[0], COEFFICIENT_RANGE_OFFSET[1])
 {
     _is_set_meta_data = true;
 }
@@ -49,7 +48,7 @@ void WarpAffineNode::create_node()
     _inv_affine.resize(6 * _batch_size);
 
     uint batch_size = _batch_size;
-    
+
     for (uint i = 0; i < batch_size; i++)
     {
         _affine[i * 6 + 0] = _x0.renew();
@@ -82,14 +81,23 @@ void WarpAffineNode::update_affine_array()
 {
     if (_is_set_meta_data)
     {
-        //Start of Half body transform
+        int ann_count = _meta_data_info->get_joints_data_batch().image_id_batch.size();
         int output_size[2] = {(int)_outputs[0]->info().width(), (int)_outputs[0]->info().height_single()};
         float pi = 3.14;
-
-        int ann_count = _meta_data_info->get_joints_data_batch().image_id_batch.size();
         std::vector<int> UPPER_BODY_IDS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         std::vector<int> LOWER_BODY_IDS = {11, 12, 13, 14, 15, 16};
-        // std::cout<<"Entered affine calculation code: "<<std::endl;
+        std::vector<float> rotate_probability;
+        std::vector<float> half_body_probability;
+
+        //Generate vector for rotate, halfbody probabilities
+        for (int i = 0; i < ann_count; i++)
+        {
+            rotate_probability.push_back(((float)rand() / (RAND_MAX)));
+            half_body_probability.push_back(((float)rand() / (RAND_MAX)));
+        }
+
+        // std::cout<<"is_train flag: "<<_is_train<<std::endl;
+
         for (int i = 0; i < ann_count; i++)
         {
             float src[2][3] = {0.0};
@@ -99,56 +107,46 @@ void WarpAffineNode::update_affine_array()
             float src_dir[2] = {0.0};
             float dst_dir[2] = {0.0};
             float shift[2] = {0.0};
-            float *affine_matrix;
-            float *inverse_affine_matrix;
-            affine_matrix = _affine.data() + (i * 6);
-            inverse_affine_matrix = _inv_affine.data() + (i * 6);
-            int input_img_width = _meta_data_info->get_img_sizes_batch()[i].data()->w;
-            int input_img_height = _meta_data_info->get_img_sizes_batch()[i].data()->h;
-
+            float *affine_matrix,*inverse_affine_matrix,rotate_deg;
             Center box_center;
             Scale box_scale;
 
-            // std::cout<<std::endl<<"imageID: "<<_meta_data_info->get_joints_data_batch().image_id_batch[i]<<std::endl;
+            //Get the variables needed for affine calculation
+            affine_matrix = _affine.data() + (i * 6);
+            inverse_affine_matrix = _inv_affine.data() + (i * 6);
             box_center = _meta_data_info->get_joints_data_batch().center_batch[i];
             box_scale = _meta_data_info->get_joints_data_batch().scale_batch[i];
-
-            //TO DO perform halfboady only based on the random probability and 2 other conditions
-            bool is_half_body = false;
-            if (is_half_body)
+            rotate_deg = _meta_data_info->get_joints_data_batch().rotation_batch[i];
+            int input_img_width = _meta_data_info->get_img_sizes_batch()[i].data()->w;
+            int input_img_height = _meta_data_info->get_img_sizes_batch()[i].data()->h;
+            
+             // std::cout<<std::endl<<"imageID: "<<_meta_data_info->get_joints_data_batch().image_id_batch[i]<<std::endl;
+            if (_is_train)
             {
-                float aspect_ratio = output_size[0] * 1.0 / output_size[1];
-                half_body_transform(i, box_center, box_scale, aspect_ratio);
-            }
+                if (_half_body_probability > 0  && half_body_probability[i] < _half_body_probability)
+                {
+                    float aspect_ratio = output_size[0] * 1.0 / output_size[1];
+                    half_body_transform(i, box_center, box_scale, aspect_ratio);
+                }
 
-            float scale_factor = _scale_factor.renew();
-            bool is_scale = false;
-            // std::cout<<"scale factor: "<< scale_factor<<std::endl;
-            if (is_scale)
-            {
+                float scale_factor = _scale_factor.renew();
                 box_scale[0] = box_scale[0] * scale_factor;
                 box_scale[1] = box_scale[1] * scale_factor;
+                // std::cout<<"scale factor: "<< scale_factor<<std::endl;
+            
+                if (_rotate_probability > 0 && rotate_probability[i] < _rotate_probability)
+                {
+                    rotate_deg = _rotation_factor.renew();
+                    // std::cout<<"Rotate factor: "<<r<<std::endl;
+                }
             }
-
-            //TO DO for rotate
-            //add the constant value for rotate probability from the user 
-            float rotate_prob = 0.0;
-            float r = 0.0;
-            float random_rotate_prob = 0.0;
-            // std::cout<<"Rotate factor: "<<_rotation_factor.renew()<<std::endl;
-            if (rotate_prob && random_rotate_prob< rotate_prob)
-            {
-                r = _rotation_factor.renew();
-            }
-
-            _meta_data_info->get_joints_data_batch().rotation_batch[i] = r;
 
             //Get the correct scale values
             float scale_temp[2] = {PIXEL_STD * box_scale[0], PIXEL_STD * box_scale[1]};
             float src_w = scale_temp[0];
             float dst_w = output_size[0] * 1.0;
             float dst_h = output_size[1] * 1.0;
-            auto r_rad = pi * r / 180;
+            auto r_rad = pi * rotate_deg / 180;
 
             float src_point[2] = {0.0, -src_w / 2};
             float dst_point[2] = {0.0, -dst_w / 2};
@@ -182,12 +180,12 @@ void WarpAffineNode::update_affine_array()
             //Get the affine array
             matrix_mult(src, inv_dst, affine_matrix);
 
-            invert_affine_tranform(affine_matrix,inverse_affine_matrix);
+            invert_affine_tranform(affine_matrix, inverse_affine_matrix);
 
-            // //Subtract the width and height of source image from the translation parameters 
+            // //Subtract the width and height of source image from the translation parameters
             // std::cout<<"in node warp affine src w,h: "<<input_img_width<<" , "<<input_img_height<<std::endl;
-            affine_matrix[2] = affine_matrix[2] + ((input_img_width/2)*affine_matrix[0]+(input_img_height/2)*affine_matrix[1]-input_img_width/2);
-            affine_matrix[5] = affine_matrix[5] + ((input_img_height/2)*affine_matrix[4]+(input_img_width/2)*affine_matrix[3]-input_img_height/2);
+            affine_matrix[2] = affine_matrix[2] + ((input_img_width / 2) * affine_matrix[0] + (input_img_height / 2) * affine_matrix[1] - input_img_width / 2);
+            affine_matrix[5] = affine_matrix[5] + ((input_img_height / 2) * affine_matrix[4] + (input_img_width / 2) * affine_matrix[3] - input_img_height / 2);
 
             // std::cout <<"Affine matrix in node_warp_affine.cpp:" << std::endl
             //           << affine_matrix[0] << " " << affine_matrix[1] << " " << affine_matrix[2] << std::endl
@@ -196,6 +194,7 @@ void WarpAffineNode::update_affine_array()
             //Copy these values to local bb_centers,bb_scales
             _meta_data_info->get_joints_data_batch().center_batch[i] = box_center;
             _meta_data_info->get_joints_data_batch().scale_batch[i] = box_scale;
+            _meta_data_info->get_joints_data_batch().rotation_batch[i] = rotate_deg;
         }
     }
 
@@ -215,8 +214,11 @@ void WarpAffineNode::init(float x0, float x1, float y0, float y1, float o0, floa
     _o1.set_param(o1);
 }
 
-void WarpAffineNode::init(FloatParam *scale_factor, FloatParam *rotation_factor, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1)
+void WarpAffineNode::init(bool is_train, float rotate_probability, float half_body_probability, FloatParam *scale_factor, FloatParam *rotation_factor, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1)
 {
+    _rotate_probability = rotate_probability;
+    _half_body_probability = half_body_probability;
+    _is_train = is_train;
     _x0.set_param(core(x0));
     _x1.set_param(core(x1));
     _y0.set_param(core(y0));
@@ -237,7 +239,22 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     Joint joint;
     Joints upper_joints, lower_joints, selected_joints;
     JointsVisibility joints_visibility = _meta_data_info->get_joints_data_batch().joints_visibility_batch[i];
+    
+    //Get the number of visible joints in given annotation
+    int num_vis_joints = 0;
+    for (uint kp_idx = 0; kp_idx < NUMBER_OF_JOINTS; kp_idx++)
+    {
+      num_vis_joints =  num_vis_joints + joints_visibility[kp_idx][0];
+    }
+    
+    //Return if no of visible joints is <= no of halfbody joints
+    if (num_vis_joints <= NUMBER_OF_JOINTS_HALFBODY)
+    {
+        return;
+    }
 
+    std::cout<<"Proceeding for HalfBody Augmentation , Number of visible joints: "<<num_vis_joints<<std::endl;
+    
     //Seperate the keypoints into upper body and lower body
     for (uint kp_idx = 0; kp_idx < NUMBER_OF_JOINTS; kp_idx++)
     {
@@ -263,10 +280,22 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     }
 
     //select any of upper body and lower body joints
+    float temp = ((float)rand() / (RAND_MAX));
+    std::cout<<"Random value in halfbody: "<<temp<<std::endl;
     selected_joints = upper_joints;
-    if (lower_joints.size() > 2) //add random factor here
+    if(upper_joints.size() > 2 && temp < 0.5)
+    {
+        selected_joints = upper_joints;
+    }
+    else if (lower_joints.size() > 2) 
     {
         selected_joints = lower_joints;
+    }
+
+    //Return if number of joints in selected body less than 2
+    if(selected_joints.size()<2)
+    {
+        return;
     }
 
     auto mean_center_x = 0.0;
@@ -316,4 +345,3 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     lower_joints.clear();
     selected_joints.clear();
 }
-
