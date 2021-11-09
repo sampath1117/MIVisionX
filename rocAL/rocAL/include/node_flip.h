@@ -30,18 +30,19 @@ class FlipNode : public Node
 public:
     FlipNode(const std::vector<Image *> &inputs, const std::vector<Image *> &outputs);
     FlipNode() = delete;
-    void init(int flip_axis);
-    void init(IntParam *flip_axis);
+    void init(int horizontal_flip_axis, int vertical_flip_axis);
+    void init(IntParam* horizontal_flip_axis, IntParam* vertical_flip_axis);
     unsigned int get_dst_width() { return _outputs[0]->info().width(); }
     unsigned int get_dst_height() { return _outputs[0]->info().height_single(); }
     vx_array get_src_width() { return _src_roi_width; }
     vx_array get_src_height() { return _src_roi_height; }
-    vx_array get_flip_axis() { return _flip_axis.default_array(); }
+    vx_array get_horizontal_flip_axis() { return _horizontal_flip_axis.default_array(); }
+    vx_array get_vertical_flip_axis() { return _vertical_flip_axis.default_array(); }
 protected:
     void create_node() override;
     void update_node() override;
 private:
     int _axis;
-    ParameterVX<int> _flip_axis;
+    ParameterVX<int> _horizontal_flip_axis, _vertical_flip_axis;
     constexpr static int   FLIP_SIZE [2] =  {0, 2};
 };

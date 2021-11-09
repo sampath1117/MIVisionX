@@ -21,11 +21,11 @@ THE SOFTWARE.
 */
 #include "bounding_box_graph.h"
 
-void BoundingBoxGraph::process(MetaDataBatch *meta_data)
+void BoundingBoxGraph::process(MetaDataBatch *meta_data, bool is_pose_estimation)
 {
     for (auto &meta_node : _meta_nodes)
     {
-        meta_node->update_parameters(meta_data);
+        meta_node->update_parameters(meta_data, is_pose_estimation);
     }
 }
 
@@ -56,8 +56,8 @@ void BoundingBoxGraph::update_meta_data(MetaDataBatch *input_meta_data, decoded_
             float temp_l, temp_t;
             temp_l = (coords_buf[m++] * _dst_to_src_width_ratio);
             temp_t = (coords_buf[m++] * _dst_to_src_height_ratio);
-            box.l = std::max(temp_l,0.0f);
-            box.t = std::max(temp_t,0.0f);
+            box.l = std::max(temp_l, 0.0f);
+            box.t = std::max(temp_t, 0.0f);
             box.r = (coords_buf[m++] * _dst_to_src_width_ratio);
             box.b = (coords_buf[m++] * _dst_to_src_height_ratio);
             bb_coords.push_back(box);
@@ -79,8 +79,11 @@ inline double ssd_BBoxIntersectionOverUnion(const BoundingBoxCord &box1, const B
     float xB = std::min(box1.r, box2.r);
     float yB = std::min(box1.b, box2.b);
     float intersection_area = std::max((float)0.0, xB - xA) * std::max((float)0.0, yB - yA);
+    // std::cout << "\n intersection area: " << intersection_area;
     float box1_area = (box1.b - box1.t) * (box1.r - box1.l);
     float box2_area = (box2.b - box2.t) * (box2.r - box2.l);
+    // std::cout << "\n box1_area:" << box1_area;
+    // std::cout << "\n box2_area:" << box2_area;
 
     if (is_iou)
     {
@@ -115,6 +118,7 @@ void BoundingBoxGraph::update_random_bbox_meta_data(MetaDataBatch *input_meta_da
         crop_box.t = crop_cords[i][1];
         crop_box.r = crop_box.l + crop_cords[i][2];
         crop_box.b = crop_box.t + crop_cords[i][3];
+        // std::cout << "\n BB count" << bb_count;
         for (uint j = 0; j < bb_count; j++)
         {
             //Mask Criteria
@@ -272,3 +276,99 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> *anchors,
     }
 }
 
+void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data)
+{
+    //Generate gaussians
+    int tmp_size = sigma * 3;
+    int gauss_size = 2 * tmp_size + 1;
+
+    float x[gauss_size];
+    for (int i = 0; i < gauss_size; i++)
+    {
+        x[i] = i;
+    }
+
+    float g[gauss_size][gauss_size];
+    for (int i = 0; i < gauss_size; i++)
+    {
+        for (int j = 0; j < gauss_size; j++)
+        {
+            g[i][j] = exp(-(pow((x[i] - tmp_size), 2) + pow((x[j] - tmp_size), 2)) / (2 * tmp_size));
+        }
+    }
+
+    auto target_width = output_width / 4;
+    auto target_height = output_height / 4;
+
+    // std::cout << "Target Width:" << target_width << std::endl;
+    // std::cout << "Target Height:" << target_height << std::endl;
+
+    int ann_count = full_batch_meta_data->get_joints_data_batch().annotation_id_batch.size();
+    //std::cout << "bb count: " << bb_count << std::endl;
+    float feat_stride[2] = { (float) output_width / target_width, (float) output_height  / target_height};
+
+    for (int j = 0; j < ann_count; j++)
+    {
+        ImageTargets img_targets;
+        ImageTargetsWeight img_targets_weight;
+
+        Targets bb_targets;
+        TargetsWeight bb_targets_weight;
+
+        for (int k = 0; k < NUMBER_OF_JOINTS; k++)
+        {
+            Target bb_target;
+            bb_target.resize(target_height, std::vector<float>(target_width, 0));
+            TargetWeight bb_target_weight = full_batch_meta_data->get_joints_data_batch().joints_visibility_batch[j][k][0];
+            std::vector<float> key_point;
+            key_point = full_batch_meta_data->get_joints_data_batch().joints_batch[j][k];
+            //std::cout << "keypoint values: " << key_point[0] << " " << key_point[1] << std::endl;
+
+            int mu_x = (key_point[0] / feat_stride[0]) + 0.5;
+            int mu_y = (key_point[1] / feat_stride[1]) + 0.5;
+
+            int ul[2] = {mu_x - tmp_size, mu_y - tmp_size};
+            int br[2] = {mu_x + tmp_size + 1, mu_y + tmp_size + 1};
+
+            if (ul[0] >= target_width || ul[1] >= target_height || br[0] < 0 || br[1] < 0)
+            {
+                bb_target_weight = 0;
+                bb_targets_weight.push_back(bb_target_weight);
+                bb_targets.push_back(bb_target);
+                continue;
+            }
+
+            //Gaussian range
+            int g_x[2] = {std::max(0, -ul[0]), std::min(br[0], target_width) - ul[0]};
+            int g_y[2] = {std::max(0, -ul[1]), std::min(br[1], target_height) - ul[1]};
+
+            //Image range
+            int img_x[2] = {std::max(0, ul[0]), std::min(br[0], target_width)};
+            int img_y[2] = {std::max(0, ul[1]), std::min(br[1], target_height)};
+
+            if (bb_target_weight > 0.5)
+            {
+                int y_range = img_y[1] - img_y[0];
+                int x_range = img_x[1] - img_x[0];
+
+                for (int y = 0; y < y_range; y++)
+                {
+                    for (int x = 0; x < x_range; x++)
+                    {
+                        bb_target[img_y[0] + y][img_x[0] + x] = g[g_y[0] + y][g_x[0] + x];
+                    }
+                }
+            }
+
+            bb_targets.push_back(bb_target);
+            bb_targets_weight.push_back(bb_target_weight);
+            bb_target.clear();
+        }
+        img_targets.push_back(bb_targets);
+        img_targets_weight.push_back(bb_targets_weight);
+        bb_targets.clear();
+        bb_targets_weight.clear();
+        full_batch_meta_data->get_img_targets_batch()[j] = img_targets;
+        full_batch_meta_data->get_img_targets_weight_batch()[j] = img_targets_weight;
+    }
+}

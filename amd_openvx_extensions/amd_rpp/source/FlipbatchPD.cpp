@@ -34,7 +34,8 @@ struct FlipbatchPDLocalData
     Rpp32u *srcBatch_height;
     RppPtr_t pSrc;
     RppPtr_t pDst;
-    vx_uint32 *flipAxis;
+    vx_uint32 *horizontalFlipAxis;
+    vx_uint32 *verticalFlipAxis;
 #if ENABLE_OPENCL
     cl_mem cl_pSrc;
     cl_mem cl_pDst;
@@ -48,7 +49,8 @@ static vx_status VX_CALLBACK refreshFlipbatchPD(vx_node node, const vx_reference
 {
     vx_status status = VX_SUCCESS;
     vx_status copy_status;
-    STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[4], 0, data->nbatchSize, sizeof(vx_uint32), data->flipAxis, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
+    STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[4], 0, data->nbatchSize, sizeof(vx_uint32), data->horizontalFlipAxis, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
+    STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[5], 0, data->nbatchSize, sizeof(vx_uint32), data->verticalFlipAxis, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[0], VX_IMAGE_HEIGHT, &data->maxSrcDimensions.height, sizeof(data->maxSrcDimensions.height)));
     STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[0], VX_IMAGE_WIDTH, &data->maxSrcDimensions.width, sizeof(data->maxSrcDimensions.width)));
     data->maxSrcDimensions.height = data->maxSrcDimensions.height / data->nbatchSize;
@@ -81,12 +83,12 @@ static vx_status VX_CALLBACK validateFlipbatchPD(vx_node node, const vx_referenc
 {
     vx_status status = VX_SUCCESS;
     vx_enum scalar_type;
-    STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[5], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
-    if (scalar_type != VX_TYPE_UINT32)
-        return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #5 type=%d (must be size)\n", scalar_type);
     STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[6], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
     if (scalar_type != VX_TYPE_UINT32)
         return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #6 type=%d (must be size)\n", scalar_type);
+    STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[7], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
+    if (scalar_type != VX_TYPE_UINT32)
+        return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #7 type=%d (must be size)\n", scalar_type);
     // Check for input parameters
     vx_parameter input_param;
     vx_image input;
@@ -132,22 +134,22 @@ static vx_status VX_CALLBACK processFlipbatchPD(vx_node node, const vx_reference
         refreshFlipbatchPD(node, parameters, num, data);
         if (df_image == VX_DF_IMAGE_U8)
         {
-            rpp_status = rppi_flip_u8_pln1_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->flipAxis, data->nbatchSize, data->rppHandle);
+            rpp_status = rppi_flip_u8_pln1_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->horizontalFlipAxis, data->nbatchSize, data->rppHandle);
         }
         else if (df_image == VX_DF_IMAGE_RGB)
         {
-            rpp_status = rppi_flip_u8_pkd3_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->flipAxis, data->nbatchSize, data->rppHandle);
+            rpp_status = rppi_flip_u8_pkd3_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->horizontalFlipAxis, data->nbatchSize, data->rppHandle);
         }
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #elif ENABLE_HIP
         refreshFlipbatchPD(node, parameters, num, data);
         if (df_image == VX_DF_IMAGE_U8)
         {
-            rpp_status = rppi_flip_u8_pln1_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->flipAxis, data->nbatchSize, data->rppHandle);
+            rpp_status = rppi_flip_u8_pln1_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->horizontalFlipAxis, data->nbatchSize, data->rppHandle);
         }
         else if (df_image == VX_DF_IMAGE_RGB)
         {
-            rpp_status = rppi_flip_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->flipAxis, data->nbatchSize, data->rppHandle);
+            rpp_status = rppi_flip_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->horizontalFlipAxis, data->nbatchSize, data->rppHandle);
         }
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #endif
@@ -157,11 +159,11 @@ static vx_status VX_CALLBACK processFlipbatchPD(vx_node node, const vx_reference
         refreshFlipbatchPD(node, parameters, num, data);
         if (df_image == VX_DF_IMAGE_U8)
         {
-            rpp_status = rppi_flip_u8_pln1_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->flipAxis, data->nbatchSize, data->rppHandle);
+            rpp_status = rppi_flip_u8_pln1_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->horizontalFlipAxis, data->verticalFlipAxis, data->nbatchSize, data->rppHandle);
         }
         else if (df_image == VX_DF_IMAGE_RGB)
         {
-            rpp_status = rppi_flip_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->flipAxis, data->nbatchSize, data->rppHandle);
+            rpp_status = rppi_flip_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->horizontalFlipAxis, data->verticalFlipAxis, data->nbatchSize, data->rppHandle);
         }
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
@@ -177,12 +179,13 @@ static vx_status VX_CALLBACK initializeFlipbatchPD(vx_node node, const vx_refere
 #elif ENABLE_HIP
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_HIP_STREAM, &data->handle.hipstream, sizeof(data->handle.hipstream)));
 #endif
-    STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[6], &data->device_type, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[5], &data->nbatchSize));
+    STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[7], &data->device_type, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[6], &data->nbatchSize));
     data->srcDimensions = (RppiSize *)malloc(sizeof(RppiSize) * data->nbatchSize);
     data->srcBatch_width = (Rpp32u *)malloc(sizeof(Rpp32u) * data->nbatchSize);
     data->srcBatch_height = (Rpp32u *)malloc(sizeof(Rpp32u) * data->nbatchSize);
-    data->flipAxis = (vx_uint32 *)malloc(sizeof(vx_uint32) * data->nbatchSize);
+    data->horizontalFlipAxis = (vx_uint32 *)malloc(sizeof(vx_uint32) * data->nbatchSize);
+    data->verticalFlipAxis = (vx_uint32 *)malloc(sizeof(vx_uint32) * data->nbatchSize);
     refreshFlipbatchPD(node, parameters, num, data);
 #if ENABLE_OPENCL
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
@@ -211,7 +214,8 @@ static vx_status VX_CALLBACK uninitializeFlipbatchPD(vx_node node, const vx_refe
     free(data->srcDimensions);
     free(data->srcBatch_width);
     free(data->srcBatch_height);
-    free(data->flipAxis);
+    free(data->horizontalFlipAxis);
+    free(data->verticalFlipAxis);
     delete (data);
     return VX_SUCCESS;
 }
@@ -246,7 +250,7 @@ vx_status FlipbatchPD_Register(vx_context context)
     vx_kernel kernel = vxAddUserKernel(context, "org.rpp.FlipbatchPD",
                                        VX_KERNEL_RPP_FLIPBATCHPD,
                                        processFlipbatchPD,
-                                       7,
+                                       8,
                                        validateFlipbatchPD,
                                        initializeFlipbatchPD,
                                        uninitializeFlipbatchPD);
@@ -270,8 +274,9 @@ vx_status FlipbatchPD_Register(vx_context context)
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 2, VX_INPUT, VX_TYPE_ARRAY, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 3, VX_OUTPUT, VX_TYPE_IMAGE, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 4, VX_INPUT, VX_TYPE_ARRAY, VX_PARAMETER_STATE_REQUIRED));
-        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 5, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 5, VX_INPUT, VX_TYPE_ARRAY, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 6, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 7, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxFinalizeKernel(kernel));
     }
     if (status != VX_SUCCESS)

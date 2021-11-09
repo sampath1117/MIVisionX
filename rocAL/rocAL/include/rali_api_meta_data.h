@@ -23,6 +23,10 @@ THE SOFTWARE.
 #ifndef MIVISIONX_RALI_API_META_DATA_H
 #define MIVISIONX_RALI_API_META_DATA_H
 #include "rali_api_types.h"
+#include <map>
+#include <boost/any.hpp>
+
+
 ///
 /// \param rali_context
 /// \param source_path path to the folder that contains the dataset or metadata file
@@ -61,7 +65,7 @@ extern "C" RaliMetaData RALI_API_CALL raliCreateTFReaderDetection(RaliContext ra
 /// \param rali_context
 /// \param source_path path to the coco json file
 /// \return RaliMetaData object, can be used to inquire about the rali's output (processed) tensors
-extern "C" RaliMetaData RALI_API_CALL raliCreateCOCOReader(RaliContext rali_context, const char* source_path, bool is_output);
+extern "C" RaliMetaData RALI_API_CALL raliCreateCOCOReader(RaliContext rali_context, const char* source_path, bool is_output, bool keypoint, float sigma , int pose_output_width , int pose_output_height);
 
 ///
 /// \param rali_context
@@ -121,7 +125,6 @@ extern "C" unsigned RALI_API_CALL raliGetBoundingBoxCount(RaliContext rali_conte
 /// \param buf The user's buffer that will be filled with bounding box label info for the images in the output batch. It needs to be of size returned by a call to the raliGetBoundingBoxCount
 extern "C" void RALI_API_CALL raliGetBoundingBoxLabel(RaliContext rali_context, int* buf);
 extern "C" void RALI_API_CALL raliGetBoundingBoxCords(RaliContext rali_context, float* buf);
-
 extern "C" void RALI_API_CALL raliGetImageSizes(RaliContext rali_context, int* buf);
 
 ///
@@ -166,5 +169,31 @@ extern "C" void RALI_API_CALL raliCopyEncodedBoxesAndLables(RaliContext p_contex
 /// \param rali_context
 /// \param buf The user's buffer that will be filled with image id info for the images in the output batch. 
 extern "C" void RALI_API_CALL raliGetImageId(RaliContext p_context,  int* buf);
+
+///
+/// \param rali_context
+/// \param sigma The user's buffer that will be filled with image id info for the images in the output batch. 
+extern "C" void RALI_API_CALL raliKeyPointPose(RaliContext p_context, float sigma, float output_width ,float output_height);
+
+//
+/// \param rali_context
+/// \param buf1 The user's buffer that will be filled with keypoint values 
+/// \param buf2 The user's buffer that will be filled with keypoint visibilities
+extern "C" void RALI_API_CALL raliGetImageKeyPoints(RaliContext p_context, float* buf1, float* buf2);
+
+//
+/// \param rali_context
+/// \param buf1 The user's buffer that will be filled with Target values
+/// \param buf2 The user's buffer that will be filled with Target weight
+extern "C" void RALI_API_CALL raliGetImageTargets(RaliContext p_context, float *buf1, float* buf2);
+
+//
+/// \param rali_context
+/// \param joints_data The user's buffer that will be filled with joints_data values
+extern "C" void RALI_API_CALL raliGetJointsData(RaliContext p_context, RaliJointsData *joints_data);
+
+//
+/// \param rali_context
+extern "C" RaliJointsData * RALI_API_CALL raliGetJointsDataPtr(RaliContext p_context);
 
 #endif //MIVISIONX_RALI_API_META_DATA_H

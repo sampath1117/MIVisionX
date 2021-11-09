@@ -52,10 +52,10 @@ private:
     void add(std::string image_name, BoundingBoxCords bbox, BoundingBoxLabels b_labels,ImgSizes image_size);
     bool _last_rec;
     void read_lmdb_record(std::string file_name, uint file_size);
-    std::map<std::string, std::shared_ptr<BoundingBox>> _map_content;
-    std::map<std::string, std::shared_ptr<BoundingBox>>::iterator _itr;
+    std::map<std::string, std::shared_ptr<Annotation>> _map_content;
+    std::map<std::string, std::shared_ptr<Annotation>>::iterator _itr;
     std::string _path;
-    BoundingBoxBatch* _output;
+    AnnotationBatch* _output;
     DIR *_src_dir;
     struct dirent *_entity;
     std::vector<std::string> _file_names;

@@ -329,3 +329,13 @@ class Pipeline(object):
 
     def Timing_Info(self):
         return b.getTimingInfo(self._handle)
+
+    def GetImageKeyPoints(self, array1, array2):
+        return b.getImageKeyPoints(self._handle, array1, array2)
+
+    def GetImageTargets(self, array1, array2):
+        return b.getImageTargets(self._handle, array1, array2)
+
+    def GetJointsData(self, dictionary):
+        return b.getJointsData(self._handle, dictionary)
+

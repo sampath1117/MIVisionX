@@ -174,7 +174,7 @@ extern "C"  RaliImage  RALI_API_CALL raliContrastFixed(RaliContext context, Rali
 /// \param is_output
 /// \return
 extern "C"  RaliImage  RALI_API_CALL raliFlip(RaliContext context, RaliImage input, bool is_output,
-                                                RaliIntParam flip_axis = NULL);
+                                                RaliIntParam horizontal_flip_axis = NULL, RaliIntParam vertical_flip_axis = NULL);
 
 ///
 /// \param context
@@ -182,7 +182,7 @@ extern "C"  RaliImage  RALI_API_CALL raliFlip(RaliContext context, RaliImage inp
 /// \param axis
 /// \param is_output
 /// \return
-extern "C"  RaliImage  RALI_API_CALL raliFlipFixed(RaliContext context, RaliImage input, int flip_axis, bool is_output );
+extern "C"  RaliImage  RALI_API_CALL raliFlipFixed(RaliContext context, RaliImage input, int horizontal_flip_axis, int vertical_flip_axis, bool is_output );
 
 /// Accepts U8 and RGB24 inputs
 /// \param context
@@ -236,7 +236,9 @@ extern "C"  RaliImage  RALI_API_CALL raliBlendFixed(RaliContext context,RaliImag
 /// \param dest_width
 /// \return
 extern "C"  RaliImage  RALI_API_CALL raliWarpAffine(RaliContext context, RaliImage input, bool is_output,
-                                                     unsigned dest_height = 0, unsigned dest_width = 0,
+                                                     bool is_train, unsigned dest_height = 0, unsigned dest_width = 0,
+                                                     float rotate_probability = 0.0,float half_body_probability = 0.0,
+                                                     RaliFloatParam scale_factor = NULL , RaliFloatParam rotation_factor = NULL,
                                                      RaliFloatParam x0 = NULL, RaliFloatParam x1 = NULL,
                                                      RaliFloatParam y0= NULL, RaliFloatParam y1 = NULL,
                                                      RaliFloatParam o0 = NULL, RaliFloatParam o1 = NULL);

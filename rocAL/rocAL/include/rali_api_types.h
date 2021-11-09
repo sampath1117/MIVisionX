@@ -33,14 +33,23 @@ THE SOFTWARE.
 #endif
 #endif
 
+#define MAX_IMAGE_NAME_LENGTH 100
+
 #include <half.hpp>
 using half_float::half;
 
-typedef void * RaliFloatParam;
-typedef void * RaliIntParam;
-typedef void * RaliContext;
-typedef void * RaliImage;
-typedef void * RaliMetaData;
+typedef void *RaliFloatParam;
+typedef void *RaliIntParam;
+typedef void *RaliContext;
+typedef void *RaliImage;
+typedef void *RaliMetaData;
+
+typedef std::vector<int> ImageIDBatch,AnnotationIDBatch;
+typedef std::vector<std::string> ImagePathBatch;
+typedef std::vector<float> ScoreBatch,RotationBatch;
+typedef std::vector<std::vector<float>> CenterBatch, ScaleBatch;
+typedef std::vector<std::vector<std::vector<float>>> JointsBatch, JointsVisibilityBatch;
+
 
 struct TimingInfo
 {
@@ -49,6 +58,22 @@ struct TimingInfo
     long long unsigned process_time;
     long long unsigned transfer_time;
 };
+
+
+struct RaliJointsData
+{
+    ImageIDBatch image_id_batch;
+    AnnotationIDBatch annotation_id_batch;
+    ImagePathBatch image_path_batch;
+    CenterBatch center_batch;
+    ScaleBatch scale_batch;
+    JointsBatch joints_batch;
+    JointsVisibilityBatch joints_visibility_batch;
+    ScoreBatch score_batch;
+    RotationBatch rotation_batch;
+};
+
+
 enum RaliStatus
 {
     RALI_OK = 0,
@@ -58,12 +83,11 @@ enum RaliStatus
     RALI_INVALID_PARAMETER_TYPE
 };
 
-
 enum RaliImageColor
 {
     RALI_COLOR_RGB24 = 0,
     RALI_COLOR_BGR24 = 1,
-    RALI_COLOR_U8  = 2,
+    RALI_COLOR_U8 = 2,
     RALI_COLOR_RGB_PLANAR = 3,
 };
 
@@ -84,8 +108,8 @@ enum RaliImageSizeEvaluationPolicy
     RALI_USE_MAX_SIZE = 0,
     RALI_USE_USER_GIVEN_SIZE = 1,
     RALI_USE_MOST_FREQUENT_SIZE = 2,
-    RALI_USE_USER_GIVEN_SIZE_RESTRICTED = 3,    // use the given size only if the actual decoded size is greater than the given size
-    RALI_USE_MAX_SIZE_RESTRICTED = 4,       // use max size if the actual decoded size is greater than max
+    RALI_USE_USER_GIVEN_SIZE_RESTRICTED = 3, // use the given size only if the actual decoded size is greater than the given size
+    RALI_USE_MAX_SIZE_RESTRICTED = 4,        // use max size if the actual decoded size is greater than max
 };
 
 enum RaliDecodeDevice
@@ -114,5 +138,32 @@ enum RaliDecoderType
     RALI_DECODER_VIDEO_FFMPEG_HW = 3
 };
 
+
+
+// struct MetaDataJoints
+// {
+//     int image_id;
+//     int annotation_id;
+//     float score;
+//     float rotation; 
+//     char image_path[MAX_IMAGE_NAME_LENGTH];
+//     float center[2];
+//     float scale[2];
+//     float joints[17 * 2];
+//     float joints_visibility[17 * 2];
+// };
+
+// struct RaliJointsData
+// {
+//     std::vector<int> image_ids;
+//     std::vector<int> annotation_ids;
+//     std::vector<std::string> image_paths;
+//     std::vector<float> scores;
+//     std::vector<float> rotations; 
+//     std::vector<std::vector<float>> centers;
+//     std::vector<std::vector<float>> scales;
+//     std::vector<std::vector<std::vector<float>>> joints;
+//     std::vector<std::vector<std::vector<float>>> joints_visibility;
+// };
 
 #endif //MIVISIONX_RALI_API_TYPES_H

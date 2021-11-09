@@ -38,17 +38,21 @@ public:
     void print_map_contents();
     bool set_timestamp_mode() override { return false; }
     MetaDataBatch * get_output() override { return _output; }
-    std::map<std::string, std::shared_ptr<BoundingBox>> get_map_content() { return _map_content;}
+    std::map<std::string, std::shared_ptr<Annotation>> get_map_content() { return _map_content;}
     COCOMetaDataReader();
     ~COCOMetaDataReader() override { delete _output; }
 private:
-    BoundingBoxBatch* _output;
+    AnnotationBatch* _output;
     std::string _path;
+    bool _keypoint;
+    int _out_img_width;
+    int _out_img_height;
     int meta_data_reader_type;
     void add(std::string image_name, BoundingBoxCords bbox, BoundingBoxLabels b_labels, ImgSizes image_size);
+    void add(std::string image_name, ImgSizes image_size, JointsData joints_data);
     bool exists(const std::string &image_name);
-    std::map<std::string, std::shared_ptr<BoundingBox>> _map_content;
-    std::map<std::string, std::shared_ptr<BoundingBox>>::iterator _itr;
+    std::map<std::string, std::shared_ptr<Annotation>> _map_content;
+    std::map<std::string, std::shared_ptr<Annotation>>::iterator _itr;
     std::map<std::string ,std::vector<ImgSize>> _map_img_sizes;
     std::map<std::string , std::vector<ImgSize> > ::iterator itr;
     std::map<int ,int> _label_info;

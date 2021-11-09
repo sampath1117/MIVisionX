@@ -548,7 +548,8 @@ class COCOReader(Node):
     def __init__(self, file_root, annotations_file='', bytes_per_sample_hint=0, dump_meta_files=False, dump_meta_files_path='', file_list='', initial_fill=1024,  lazy_init=False, ltrb=False, masks=False, meta_files_path='', num_shards=1, pad_last_batch=False, prefetch_queue_depth=1,
                  preserve=False, random_shuffle=False, ratio=False, read_ahead=False,
                  save_img_ids=False, seed=-1, shard_id=0, shuffle_after_epoch=False, size_threshold=0.1,
-                 skip_cached_images=False, skip_empty=False, stick_to_shard=False, tensor_init_bytes=1048576):
+                 skip_cached_images=False, skip_empty=False, stick_to_shard=False, tensor_init_bytes=1048576,
+                 is_keypoint = False, output_image_width = 288, output_image_height = 384, sigma = 3.0):
         Node().__init__()
         self._file_root = file_root
         self._annotations_file = annotations_file
@@ -579,6 +580,10 @@ class COCOReader(Node):
         self._tensor_init_bytes = tensor_init_bytes
         self._labels = []
         self._bboxes = []
+        self._output_image_width = output_image_width
+        self._output_image_height = output_image_height
+        self._sigma = sigma
+        self._is_keypoint = is_keypoint
         self.output = Node()
 
     def __call__(self, name=""):
@@ -592,7 +597,7 @@ class COCOReader(Node):
 
     def rali_c_func_call(self, handle):
         b.setSeed(self._seed)
-        b.COCOReader(handle, self._annotations_file, True)
+        b.COCOReader(handle, self._annotations_file, True,self._is_keypoint,self._sigma,self._output_image_width,self._output_image_height)
         # b.labelReader(handle,self._file_root)
         return self._file_root
 
@@ -2269,7 +2274,7 @@ seed (int, optional, default = -1) – Random seed (If not provided it will be p
 size (float or list of float, optional, default = []) – Output size, in pixels/points. Non-integer sizes are rounded to nearest integer. Channel dimension should be excluded (e.g. for RGB images specify (480,640), not (480,640,3).
     """
 
-    def __init__(self, bytes_per_sample_hint=0, fill_value=0.0, interp_type = 1, matrix = None, output_dtype = -1, preserve = False, seed = -1, size = None, device = None):
+    def __init__(self, bytes_per_sample_hint=0, fill_value=0.0, interp_type = 1, matrix = None, output_dtype = -1, preserve = False, seed = -1, size = None, device = None, is_train = False, rotate_probability = 0, half_body_probability = 0, rotation_factor = None, scale_factor = None):
         Node().__init__()
         self._bytes_per_sample_hint = bytes_per_sample_hint
         self._fill_value = fill_value
@@ -2279,19 +2284,28 @@ size (float or list of float, optional, default = []) – Output size, in pixels
         self._preserve = preserve
         self._seed = seed
         self._size = size
+        self._is_train = is_train
+        self._rotate_probability = rotate_probability
+        self._half_body_probability = half_body_probability
+        self._scale_factor = scale_factor
+        self._rotation_factor = rotation_factor
         self.output = Node()
 
-    def __call__(self, input):
+    def __call__(self, input, size):
         input.next = self
         self.data = "WarpAffine"
         self.prev = input
         self.next = self.output
         self.output.prev = self
         self.output.next = None
+        self.check_warp = size
         return self.output
 
     def rali_c_func_call(self, handle, input_image, is_output):
-        output_image = b.WarpAffine(handle, input_image, is_output, 0, 0, None, None, None, None, None , None)
+        if self.check_warp is not None:
+            output_image = b.WarpAffine(handle, input_image, is_output, self._is_train, int(self._size[0]), int(self._size[1]), self._rotate_probability, self._half_body_probability, self._scale_factor, self._rotation_factor, None, None, None, None, None , None)
+        else:
+            output_image = b.WarpAffine(handle, input_image, is_output, False, 256, 192, 0, 0, None, None, None, None, None, None, None , None)
         return output_image
 
 
@@ -2528,20 +2542,27 @@ class Blend(Node):
 
 
 class Flip(Node):
-    def __init__(self, flip=0, device=None):
+    def __init__(self, flip=0, device=None, horizontal_flip_axis = None, vertical_flip_axis = None):
         Node().__init__()
         self._flip = flip
         self.output = Node()
+        self._horizontal_flip_axis = horizontal_flip_axis
+        self._vertical_flip_axis = vertical_flip_axis
 
-    def __call__(self, input):
+    def __call__(self, input, flip):
         input.next = self
         self.data = "Flip"
         self.prev = input
         self.next = self.output
         self.output.prev = self
         self.output.next = None
+        self._check_flip = flip
         return self.output
 
     def rali_c_func_call(self, handle, input_image, is_output):
-        output_image = b.Flip(handle, input_image, is_output, None)
+        if self._check_flip is not None:
+            flip = self._check_flip.rali_c_func_call(handle)
+            output_image = b.Flip(handle, input_image, is_output, self._horizontal_flip_axis, self._vertical_flip_axis)
+        else:
+            output_image = b.Flip(handle, input_image, is_output, None, None)
         return output_image

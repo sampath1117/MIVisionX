@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include<pybind11/stl_bind.h>
 #include <pybind11/numpy.h>
 #include <iostream>
 #include <pybind11/embed.h>
@@ -11,6 +12,7 @@
 #include "rali_api_augmentation.h"
 #include "rali_api_data_transfer.h"
 #include "rali_api_info.h"
+#include <boost/any.hpp>
 namespace py = pybind11;
 
 using float16 = half_float::half;
@@ -157,12 +159,58 @@ namespace rali{
         return py::cast<py::none>(Py_None);
     }
 
+    py::object wrapper_keypoint_copy(RaliContext context, py::array_t<float> array1, py::array_t<float> array2)
+    {
+        auto buf1 = array1.request();
+        float* ptr1 = (float*) buf1.ptr;
+
+        auto buf2 = array2.request();
+        float* ptr2 = (float*) buf2.ptr;
+
+        // call pure C++ function
+        //std::cout<<"Entered keypoint copy function"<<std::endl;
+        raliGetImageKeyPoints(context,ptr1,ptr2);
+        return py::cast<py::none>(Py_None);
+    }
+
+
+    py::object wrapper_target_copy(RaliContext context, py::array_t<float> array1, py::array_t<float> array2)
+    {
+        auto buf1 = array1.request();
+        float* ptr1 = (float*) buf1.ptr;
+
+        auto buf2 = array2.request();
+        float* ptr2 = (float*) buf2.ptr;
+
+        // call pure C++ function
+        //std::cout<<"Entered keypoint copy function"<<std::endl;
+        raliGetImageTargets(context,ptr1,ptr2);
+        return py::cast<py::none>(Py_None);
+    }
+
     py::object wrapper_img_sizes_copy(RaliContext context, py::array_t<int> array)
     {
         auto buf = array.request();
         int* ptr = (int*) buf.ptr;
         // call pure C++ function
         raliGetImageSizes(context,ptr);
+        return py::cast<py::none>(Py_None);
+    }
+
+
+    py::object wrapper_joints_data_copy(RaliContext context,py::dict joints)
+    {
+         
+        auto *test = raliGetJointsDataPtr(context);
+        joints["imgId"] = test->image_id_batch;
+        joints["annId"] = test->annotation_id_batch;
+        joints["imgPath"] = test->image_path_batch;
+        joints["center"] = test->center_batch;
+        joints["scale"] = test->scale_batch;
+        joints["joints"] = test->joints_batch;
+        joints["joints_visibility"] = test->joints_visibility_batch;
+        joints["score"] = test->score_batch;
+        joints["rotation"] = test->rotation_batch;
         return py::cast<py::none>(Py_None);
     }
 
@@ -183,6 +231,7 @@ namespace rali{
         raliRandomBBoxCrop(context, all_boxes_overlap, no_crop, p_aspect_ratio, has_shape, crop_width, crop_height, num_attemps, p_scaling, total_num_attempts);
         return py::cast<py::none>(Py_None);
     }
+
 
 
     PYBIND11_MODULE(rali_pybind, m) {
@@ -265,6 +314,9 @@ namespace rali{
         m.def("getImageLabels",&wrapper_label_copy);
         m.def("getBBLabels",&wrapper_BB_label_copy);
         m.def("getBBCords",&wrapper_BB_cord_copy);
+        m.def("getImageKeyPoints",&wrapper_keypoint_copy);
+        m.def("getImageTargets",&wrapper_target_copy);
+        m.def("getJointsData",&wrapper_joints_data_copy);
         m.def("raliCopyEncodedBoxesAndLables",&wrapper_encoded_bbox_label);
         m.def("getImgSizes",&wrapper_img_sizes_copy);
         m.def("getBoundingBoxCount",&wrapper_labels_BB_count_copy);
@@ -365,7 +417,7 @@ namespace rali{
             py::arg("is_output"),
             py::arg("shuffle") = false,
             py::arg("loop") = false,
-            py::arg("decode_size_policy") = RALI_USE_MOST_FREQUENT_SIZE,
+            py::arg("decode_size_policy") = RALI_USE_MAX_SIZE_RESTRICTED,
             py::arg("max_width") = 0,
             py::arg("max_height") = 0);
         m.def("COCO_ImageDecoderShard",&raliJpegCOCOFileSourceSingleShard,"Reads file from the source given and decodes it according to the shard id and number of shards",
@@ -379,7 +431,7 @@ namespace rali{
             py::arg("is_output"),
             py::arg("shuffle") = false,
             py::arg("loop") = false,
-            py::arg("decode_size_policy") = RALI_USE_MOST_FREQUENT_SIZE,
+            py::arg("decode_size_policy") = RALI_USE_MAX_SIZE_RESTRICTED,
             py::arg("max_width") = 0,
             py::arg("max_height") = 0);
         m.def("TF_ImageDecoder",&raliJpegTFRecordSource,"Reads file from the source given and decodes it according to the policy only for TFRecords",
@@ -639,7 +691,13 @@ namespace rali{
             py::arg("is_output"),
             py::arg("min") = NULL,
             py::arg("max") = NULL);
-        m.def("Flip",&raliFlip);
+        m.def("Flip",&raliFlip,
+            py::return_value_policy::reference,
+            py::arg("context"),
+            py::arg("input"),
+            py::arg("is_output"),
+            py::arg("horizontal_flip_axis") = NULL,
+            py::arg("vertical_flip_axis") = NULL);
         m.def("Jitter",&raliJitter,
             py::return_value_policy::reference,
             py::arg("context"),
@@ -671,8 +729,13 @@ namespace rali{
             py::arg("context"),
             py::arg("input"),
             py::arg("is_output"),
-            py::arg("dest_width") = 0,
-            py::arg("dest_height") = 0,
+            py::arg("is_train"),
+            py::arg("dest_width"),
+            py::arg("dest_height"),
+            py::arg("rotate_probability"),
+            py::arg("half_body_probability"),
+            py::arg("scale_factor")=NULL,
+            py::arg("rotation_factor")=NULL,
             py::arg("x0") = NULL,
             py::arg("x1") = NULL,
             py::arg("y0") = NULL,
@@ -720,12 +783,6 @@ namespace rali{
             py::arg("input2"),
             py::arg("is_output"),
             py::arg("ratio") = NULL);
-        m.def("Flip",&raliFlip,
-            py::return_value_policy::reference,
-            py::arg("context"),
-            py::arg("input"),
-            py::arg("is_output"),
-            py::arg("flip_axis") = NULL);
         m.def("RandomCrop",&raliRandomCrop,
             py::return_value_policy::reference,
             py::arg("context"),
