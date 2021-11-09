@@ -85,7 +85,7 @@ public:
 
 private:
     std::shared_ptr<COCOMetaDataReader> _meta_data_reader = nullptr;
-    std::map<std::string, std::shared_ptr<BoundingBox>> _meta_bbox_map_content;
+    std::map<std::string, std::shared_ptr<Annotation>> _meta_bbox_map_content;
     bool _all_boxes_overlap;
     bool _no_crop;
     bool _has_shape;

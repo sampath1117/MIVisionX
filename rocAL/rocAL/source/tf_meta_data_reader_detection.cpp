@@ -37,7 +37,7 @@ void TFMetaDataReaderDetection::init(const MetaDataConfig &cfg)
 {
     _path = cfg.path();
     _feature_key_map = cfg.feature_key_map();
-    _output = new BoundingBoxBatch();
+    _output = new AnnotationBatch();
     _last_rec = false;
 }
 
@@ -56,8 +56,8 @@ void TFMetaDataReaderDetection::add(std::string image_name, BoundingBoxCords bb_
         it->second->get_bb_labels().push_back(bb_labels[0]);
         return;
     }
-    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size);
-    _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
+    pMetaDataAnnotation info = std::make_shared<Annotation>(bb_coords, bb_labels, image_size);
+    _map_content.insert(pair<std::string, std::shared_ptr<Annotation>>(image_name, info));
 }
 
 void TFMetaDataReaderDetection::lookup(const std::vector<std::string> &image_names)

@@ -37,7 +37,7 @@ THE SOFTWARE.
 using namespace cv;
 
 //#define PARTIAL_DECODE
-#define COCO_READER
+// #define COCO_READER
 // #define COCO_READER_PARTIAL
 // #define TF_READER
 // #define TF_READER_DETECTION
@@ -154,7 +154,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
     //const char *json_path = "/media/simple-HRNet/datasets/COCO_small/annotations/person_keypoints_val2017.json";
-    const char *json_path = "/media/datasets/coco_20_img_person/annotations/person_keypoints_val2017.json";
+    const char *json_path = "/media/datasets/coco_20_img_person/annotations/person_keypoints_train2017.json";
 
     if (strcmp(json_path, "") == 0)
     {

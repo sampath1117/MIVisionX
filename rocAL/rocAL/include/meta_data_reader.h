@@ -44,7 +44,7 @@ enum class MetaDataReaderType
 enum class MetaDataType
 {
     Label,
-    BoundingBox
+    Annotation
 };
 
 struct MetaDataConfig

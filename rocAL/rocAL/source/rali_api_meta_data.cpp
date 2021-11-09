@@ -130,7 +130,7 @@ RALI_API_CALL raliCreateTFReaderDetection(RaliContext p_context, const char* sou
         {"image/filename",user_key_for_filename_str}
     };
 
-    return context->master_graph->create_tf_record_meta_data_reader(source_path , MetaDataReaderType::TF_DETECTION_META_DATA_READER,  MetaDataType::BoundingBox, feature_key_map);
+    return context->master_graph->create_tf_record_meta_data_reader(source_path , MetaDataReaderType::TF_DETECTION_META_DATA_READER,  MetaDataType::Annotation, feature_key_map);
 }
 
 RaliMetaData

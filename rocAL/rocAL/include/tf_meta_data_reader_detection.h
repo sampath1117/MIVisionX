@@ -58,10 +58,10 @@ private:
         std::string user_filename_key);    // std::map<std::string, std::shared_ptr<Label>> _map_content;
     // std::map<std::string, std::shared_ptr<Label>>::iterator _itr;
     // //bbox map contents
-    std::map<std::string, std::shared_ptr<BoundingBox>> _map_content;
-    std::map<std::string, std::shared_ptr<BoundingBox>>::iterator _itr;
+    std::map<std::string, std::shared_ptr<Annotation>> _map_content;
+    std::map<std::string, std::shared_ptr<Annotation>>::iterator _itr;
     std::string _path;
-    BoundingBoxBatch* _output;
+    AnnotationBatch* _output;
     DIR *_src_dir;
     struct dirent *_entity;
     std::map<std::string, std::string> _feature_key_map;

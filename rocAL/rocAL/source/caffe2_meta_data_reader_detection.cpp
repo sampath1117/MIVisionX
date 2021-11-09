@@ -36,7 +36,7 @@ using namespace std;
 void Caffe2MetaDataReaderDetection::init(const MetaDataConfig &cfg)
 {
     _path = cfg.path();
-    _output = new BoundingBoxBatch();
+    _output = new AnnotationBatch();
 }
 
 bool Caffe2MetaDataReaderDetection::exists(const std::string &_image_name)
@@ -53,8 +53,8 @@ void Caffe2MetaDataReaderDetection::add(std::string image_name, BoundingBoxCords
         it->second->get_bb_labels().push_back(bb_labels[0]);
         return;
     }
-    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size);
-    _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
+    pMetaDataAnnotation info = std::make_shared<Annotation>(bb_coords, bb_labels, image_size);
+    _map_content.insert(pair<std::string, std::shared_ptr<Annotation>>(image_name, info));
 }
 
 void Caffe2MetaDataReaderDetection::lookup(const std::vector<std::string> &_image_names)

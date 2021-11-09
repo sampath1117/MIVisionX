@@ -78,7 +78,7 @@ std::shared_ptr<MetaDataReader> create_meta_data_reader(const MetaDataConfig& co
             break;            
         case MetaDataReaderType::TF_DETECTION_META_DATA_READER:
         {
-            if(config.type() != MetaDataType::BoundingBox)
+            if(config.type() != MetaDataType::Annotation)
                 THROW("FOLDER_BASED_LABEL_READER can only be used to load bounding boxes")
             auto ret = std::make_shared<TFMetaDataReaderDetection>();
             ret->init(config);
@@ -87,7 +87,7 @@ std::shared_ptr<MetaDataReader> create_meta_data_reader(const MetaDataConfig& co
             break;          
         case MetaDataReaderType::COCO_META_DATA_READER:
         {
-            if(config.type() != MetaDataType::BoundingBox)
+            if(config.type() != MetaDataType::Annotation)
                 THROW("FOLDER_BASED_LABEL_READER can only be used to load bounding boxes")
             auto ret = std::make_shared<COCOMetaDataReader>();
             ret->init(config);
@@ -114,7 +114,7 @@ std::shared_ptr<MetaDataReader> create_meta_data_reader(const MetaDataConfig& co
             break;
         case MetaDataReaderType::CAFFE_DETECTION_META_DATA_READER:
         {
-            if(config.type() != MetaDataType::BoundingBox)
+            if(config.type() != MetaDataType::Annotation)
                 THROW("CAFFE_DETECTION_META_DATA_READER can only be used to load labels")
             auto ret = std::make_shared<CaffeMetaDataReaderDetection>();
             ret->init(config);
@@ -132,7 +132,7 @@ std::shared_ptr<MetaDataReader> create_meta_data_reader(const MetaDataConfig& co
             break;
         case MetaDataReaderType::CAFFE2_DETECTION_META_DATA_READER:
         {
-            if(config.type() != MetaDataType::BoundingBox)
+            if(config.type() != MetaDataType::Annotation)
                 THROW("CAFFE2_DETECTION_META_DATA_READER can only be used to load labels")
             auto ret = std::make_shared<Caffe2MetaDataReaderDetection>();
             ret->init(config);

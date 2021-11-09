@@ -117,39 +117,39 @@ struct Label : public MetaData
 };
 
 
-struct BoundingBox : public MetaData
+struct Annotation : public MetaData
 {
-    BoundingBox()= default;
-    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids )
+    Annotation()= default;
+    Annotation(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids )
     {
         _bb_cords =std::move(bb_cords);
         _bb_label_ids = std::move(bb_label_ids);
     }
-    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes)
-    {
-        _bb_cords =std::move(bb_cords);
-        _bb_label_ids = std::move(bb_label_ids);
-        _img_sizes = std::move(img_sizes);
-    }
-    BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, JointsData)
+    Annotation(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes)
     {
         _bb_cords =std::move(bb_cords);
         _bb_label_ids = std::move(bb_label_ids);
         _img_sizes = std::move(img_sizes);
     }
-    BoundingBox(ImgSizes img_sizes, JointsData joints_data)
+    Annotation(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes, JointsData)
+    {
+        _bb_cords =std::move(bb_cords);
+        _bb_label_ids = std::move(bb_label_ids);
+        _img_sizes = std::move(img_sizes);
+    }
+    Annotation(ImgSizes img_sizes, JointsData joints_data)
     {
         _img_sizes = std::move(img_sizes);
         _joints_data = std::move(joints_data);
     }
     
     void set_bb_cords(BoundingBoxCords bb_cords) { _bb_cords =std::move(bb_cords); }
-    BoundingBox(BoundingBoxCords_xcycwh bb_cords_xcycwh,BoundingBoxLabels bb_label_ids )
+    Annotation(BoundingBoxCords_xcycwh bb_cords_xcycwh,BoundingBoxLabels bb_label_ids )
     {
         _bb_cords_xcycwh =std::move(bb_cords_xcycwh);
         _bb_label_ids = std::move(bb_label_ids);
     }
-    BoundingBox(BoundingBoxCords_xcycwh bb_cords_xcycwh,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes)
+    Annotation(BoundingBoxCords_xcycwh bb_cords_xcycwh,BoundingBoxLabels bb_label_ids ,ImgSizes img_sizes)
     {
         _bb_cords_xcycwh =std::move(bb_cords_xcycwh);
         _bb_label_ids = std::move(bb_label_ids);
@@ -225,7 +225,7 @@ struct LabelBatch : public MetaDataBatch
     LabelBatch() = default;
 };
 
-struct BoundingBoxBatch: public MetaDataBatch
+struct AnnotationBatch: public MetaDataBatch
 {
     void clear() override
     {
@@ -269,10 +269,10 @@ struct BoundingBoxBatch: public MetaDataBatch
     }
     std::shared_ptr<MetaDataBatch> clone() override
     {
-        return std::make_shared<BoundingBoxBatch>(*this);
+        return std::make_shared<AnnotationBatch>(*this);
     }
 };
 using ImageNameBatch = std::vector<std::string>;
 using pMetaData = std::shared_ptr<Label>;
-using pMetaDataBox = std::shared_ptr<BoundingBox>;
+using pMetaDataAnnotation = std::shared_ptr<Annotation>;
 using pMetaDataBatch = std::shared_ptr<MetaDataBatch>;

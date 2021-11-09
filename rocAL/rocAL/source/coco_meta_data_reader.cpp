@@ -32,7 +32,7 @@ using namespace std;
 void COCOMetaDataReader::init(const MetaDataConfig &cfg)
 {
     _path = cfg.path();
-    _output = new BoundingBoxBatch();
+    _output = new AnnotationBatch();
     _keypoint = cfg.keypoint();
     _out_img_width = cfg.out_img_width();
     _out_img_height = cfg.out_img_height();
@@ -86,8 +86,8 @@ void COCOMetaDataReader::add(std::string image_name, BoundingBoxCords bb_coords,
         it->second->get_bb_labels().push_back(bb_labels[0]);
         return;
     }
-    pMetaDataBox info = std::make_shared<BoundingBox>(bb_coords, bb_labels, image_size);
-    _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
+    pMetaDataAnnotation info = std::make_shared<Annotation>(bb_coords, bb_labels, image_size);
+    _map_content.insert(pair<std::string, std::shared_ptr<Annotation>>(image_name, info));
 }
 
 void COCOMetaDataReader::add(std::string image_name, ImgSizes image_size, JointsData joints_data)
@@ -97,8 +97,8 @@ void COCOMetaDataReader::add(std::string image_name, ImgSizes image_size, Joints
         // auto it = _map_content.find(image_name);
         return;
     }
-    pMetaDataBox info = std::make_shared<BoundingBox>(image_size, joints_data);
-    _map_content.insert(pair<std::string, std::shared_ptr<BoundingBox>>(image_name, info));
+    pMetaDataAnnotation info = std::make_shared<Annotation>(image_size, joints_data);
+    _map_content.insert(pair<std::string, std::shared_ptr<Annotation>>(image_name, info));
 }
 
 

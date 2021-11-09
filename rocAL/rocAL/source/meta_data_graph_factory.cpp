@@ -34,7 +34,7 @@ std::shared_ptr<MetaDataGraph> create_meta_data_graph(const MetaDataConfig& conf
         {
             return nullptr;
         }
-        case MetaDataType::BoundingBox:
+        case MetaDataType::Annotation:
         {
             return std::make_shared<BoundingBoxGraph>();
         }
