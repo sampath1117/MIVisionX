@@ -691,7 +691,13 @@ namespace rali{
             py::arg("is_output"),
             py::arg("min") = NULL,
             py::arg("max") = NULL);
-        m.def("Flip",&raliFlip);
+        m.def("Flip",&raliFlip,
+            py::return_value_policy::reference,
+            py::arg("context"),
+            py::arg("input"),
+            py::arg("is_output"),
+            py::arg("horizontal_flip_axis") = NULL,
+            py::arg("vertical_flip_axis") = NULL);
         m.def("Jitter",&raliJitter,
             py::return_value_policy::reference,
             py::arg("context"),

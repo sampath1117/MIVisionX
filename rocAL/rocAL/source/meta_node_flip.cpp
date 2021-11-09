@@ -56,47 +56,50 @@ void FlipMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool pose_e
 
         for (unsigned int ann_index = 0; ann_index < ann_count; ann_index++)
         {
-            float img_width = input_meta_data->get_img_sizes_batch()[ann_index].data()->w;
-            Joint joint0;
-            JointVisibility joint0_visiblity;
-            Joints joints;
-            JointsVisibility joints_visibility;
-
-            joint0 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][0];
-            joint0_visiblity = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][0];
-            joint0[0] = (img_width - joint0[0] - 1) * (joint0_visiblity[0]);
-
-            Center center = input_meta_data->get_joints_data_batch().center_batch[ann_index];
-            center[0] = img_width - center[0] - 1;
-
-            joints.push_back(joint0);
-            joints_visibility.push_back(joint0_visiblity);
-            //std::cout<<"Difference:"<<key_point0.x<<std::endl;
-
-            for (unsigned int joint_index = 1; joint_index < NUMBER_OF_JOINTS; joint_index = joint_index + 2)
+            if (_horizontal_flip_axis_val[ann_index] == 1)
             {
-                //std::cout<<"Flipping keypoints: "<<  joint_index<<" "<< joint_index+1<<std::endl;
-                Joint joint1, joint2;
-                JointVisibility joint1_visibility, joint2_visibility;
-                joint1 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index];
-                joint2 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index + 1];
-                joint1_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index];
-                joint2_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index + 1];
+                float img_width = input_meta_data->get_img_sizes_batch()[ann_index].data()->w;
+                Joint joint0;
+                JointVisibility joint0_visiblity;
+                Joints joints;
+                JointsVisibility joints_visibility;
 
-                //Update the keypoint co-ordinates
-                joint1[0] = (img_width - joint1[0] - 1) * (joint1_visibility[0]);
-                joint2[0] = (img_width - joint2[0] - 1) * (joint2_visibility[0]);
+                joint0 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][0];
+                joint0_visiblity = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][0];
+                joint0[0] = (img_width - joint0[0] - 1) * (joint0_visiblity[0]);
 
-                joints.push_back(joint2);
-                joints.push_back(joint1);
-                joints_visibility.push_back(joint2_visibility);
-                joints_visibility.push_back(joint1_visibility);
+                Center center = input_meta_data->get_joints_data_batch().center_batch[ann_index];
+                center[0] = img_width - center[0] - 1;
+
+                joints.push_back(joint0);
+                joints_visibility.push_back(joint0_visiblity);
+                //std::cout<<"Difference:"<<key_point0.x<<std::endl;
+
+                for (unsigned int joint_index = 1; joint_index < NUMBER_OF_JOINTS; joint_index = joint_index + 2)
+                {
+                    //std::cout<<"Flipping keypoints: "<<  joint_index<<" "<< joint_index+1<<std::endl;
+                    Joint joint1, joint2;
+                    JointVisibility joint1_visibility, joint2_visibility;
+                    joint1 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index];
+                    joint2 = input_meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index + 1];
+                    joint1_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index];
+                    joint2_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index + 1];
+
+                    //Update the keypoint co-ordinates
+                    joint1[0] = (img_width - joint1[0] - 1) * (joint1_visibility[0]);
+                    joint2[0] = (img_width - joint2[0] - 1) * (joint2_visibility[0]);
+
+                    joints.push_back(joint2);
+                    joints.push_back(joint1);
+                    joints_visibility.push_back(joint2_visibility);
+                    joints_visibility.push_back(joint1_visibility);
+                }
+                input_meta_data->get_joints_data_batch().joints_batch[ann_index] = joints;
+                input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index] = joints_visibility;
+                input_meta_data->get_joints_data_batch().center_batch[ann_index] = center;
+                joints.clear();
+                joints_visibility.clear();
             }
-            input_meta_data->get_joints_data_batch().joints_batch[ann_index] = joints;
-            input_meta_data->get_joints_data_batch().joints_visibility_batch[ann_index] = joints_visibility;
-            input_meta_data->get_joints_data_batch().center_batch[ann_index] = center;
-            joints.clear();
-            joints_visibility.clear();
         }
     }
     else

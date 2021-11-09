@@ -102,6 +102,11 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     float sigma = 3.0;
     int pose_output_width = width;
     int pose_output_height = height;
+    float rotate_prob = 0.0;
+    float half_body_prob = 0.35;
+    float scale_factor = 0.35;
+    float rotate_factor = 45.0;
+    bool is_train = false;
     std::cout << ">>> test case " << test_case << std::endl;
     std::cout << ">>> Running on " << (gpu ? "GPU" : "CPU") << " , " << (rgb ? " Color " : " Grayscale ") << std::endl;
 
@@ -124,6 +129,10 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 
     // Creating uniformly distributed random objects to override some of the default augmentation parameters
     RaliIntParam color_temp_adj = raliCreateIntParameter(-50);
+    RaliFloatParam scale_range = raliCreateFloatUniformRand(1 - scale_factor , 1 + scale_factor);
+    RaliFloatParam rotate_range = raliCreateFloatUniformRand(-2 * rotate_factor , 2*rotate_factor);
+    RaliIntParam flip_horizontal_axis = raliCreateIntParameter(1);
+    RaliIntParam flip_vertical_axis = raliCreateIntParameter(0);
     /*>>>>>>>>>>>>>>>>>>> Graph description <<<<<<<<<<<<<<<<<<<*/
 
     RaliMetaData meta_data;
@@ -286,7 +295,7 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliFlip" << std::endl;
-        image1 = raliFlip(handle, image0, true);
+        image1 = raliFlip(handle, image0, true, flip_horizontal_axis, flip_vertical_axis);
     }
     break;
     case 7:
@@ -308,13 +317,6 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     {
         std::cout << ">>>>>>> Running "
                   << "raliWarpAffine" << std::endl;
-        float rotate_prob = 0.0;
-        float half_body_prob = 0.35;
-        float scale_factor = 0.35;
-        float rotate_factor = 45.0;
-        RaliFloatParam scale_range = raliCreateFloatUniformRand(1 - scale_factor , 1 + scale_factor);
-        RaliFloatParam rotate_range = raliCreateFloatUniformRand(-2 * rotate_factor , 2*rotate_factor);
-        bool is_train = true;
         image1 = raliWarpAffine(handle, input1, true, is_train, pose_output_height, pose_output_width, rotate_prob, half_body_prob, scale_range, rotate_range);
     }
     break;
@@ -735,21 +737,21 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 
         RaliJointsData *joints_data = new RaliJointsData();
         raliGetJointsData(handle, joints_data);
-        // for (int i = 0; i < inputBatchSize; i++)
-        // {
-            // std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
-            // std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
-            // std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
-            // std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
-            // std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
-            // std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
-            // std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
+        for (int i = 0; i < inputBatchSize; i++)
+        {
+            std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
+            std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
+            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
+            std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
+            std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
+            std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
+            std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
 
-            // for (int k = 0; k < 17 ; k++)
-            // {
-            //     std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
-            // }
-        // }
+            for (int k = 0; k < 17 ; k++)
+            {
+                std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
+            }
+        }
 
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);

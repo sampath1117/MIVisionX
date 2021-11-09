@@ -174,7 +174,7 @@ extern "C"  RaliImage  RALI_API_CALL raliContrastFixed(RaliContext context, Rali
 /// \param is_output
 /// \return
 extern "C"  RaliImage  RALI_API_CALL raliFlip(RaliContext context, RaliImage input, bool is_output,
-                                                RaliIntParam horizontal_flip_axis = NULL, RaliIntParam p_vertical_flip_axis = NULL);
+                                                RaliIntParam horizontal_flip_axis = NULL, RaliIntParam vertical_flip_axis = NULL);
 
 ///
 /// \param context

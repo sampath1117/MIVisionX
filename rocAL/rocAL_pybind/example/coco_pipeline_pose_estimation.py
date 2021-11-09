@@ -44,6 +44,7 @@ class COCOPipeline(Pipeline):
         self.coin_flip = ops.CoinFlip(probability=0.5)
         self.flip = ops.Flip()
         self.is_train = is_train
+        print("is_train:",is_train)
         self.warp_affine = ops.WarpAffine(is_train = is_train,
                                           rotate_probability = rotate_probability,
                                           half_body_probability = half_body_probability,
@@ -65,8 +66,8 @@ class COCOPipeline(Pipeline):
         coin = self.coin_flip()
         self.jpegs,self.bb,self.labels= self.input(name="Reader")
         images = self.decode(self.jpegs)
-        # if self.is_train:
-            # images = self.flip(images,flip=coin)
+        if self.is_train:
+            images = self.flip(images,flip = coin)
         images = self.warp_affine(images,size = self.output_image_size)
         output = self.cmnp(images)
         
@@ -142,51 +143,30 @@ class RALICOCOIterator(object):
 
         self.joints_data = dict({})
         self.loader.GetJointsData(self.joints_data)
-        # print("Joints data is: ")
-        # print(self.joints_data)
         
         # Image id of a batch of images
         self.image_id = np.zeros(self.bs, dtype="int32")
         self.loader.GetImageId(self.image_id)
-        # print(self.image_id)
-
+    
         # Image sizes of a batch
         self.img_size = np.zeros((self.bs * 2), dtype="int32")
         self.loader.GetImgSizes(self.img_size)
-        # print("Image sizes:", self.img_size)
 
+        # Joints Data of a batch
         self.joints = np.zeros((self.bs * 17 * 2), dtype = "float32")
         self.joints_vis = np.zeros((self.bs * 17 * 2), dtype = "float32")
         self.loader.GetImageKeyPoints(self.joints, self.joints_vis)
 
-        # print(self.joints)
-
+        #Targets of a batch
         self.targets = np.zeros((self.bs * 17 * 96 * 72), dtype = "float32")
         self.target_weights = np.zeros((self.bs * 17 ), dtype = "float32")
         self.loader.GetImageTargets(self.targets, self.target_weights)
 
-        # print(self.targets.reshape((self.bs * 17,96,72)))
+        #Convert meta data to Tensor
         target_tensor = torch.tensor(self.targets).view(-1, self.bs , 17, 96, 72)
         target_weights_tensor = torch.tensor(self.target_weights).view( -1, self.bs ,  17)
-        # joints_data_tensor = torch.tensor(self.joints_data)
         joints_data_tensor = self.joints_data
-        # print(target_tensor.shape)
-        # print(target_tensor.shape)
-
-        cnt = 0
     
-        # for k in range(self.bs * 17):
-        #     for i in range(96):
-        #         for j in range(71):
-        #             cnt  = cnt+1
-        #             if(self.targets[cnt]!=0):
-        #                 print(self.targets[cnt],end=" ")
-                # print("")
-            # print("")
-
-        #print("Targets\n",self.targets)
-        #print("Target Weights\n",self.target_weights)
-        # for i in range(self.bs):
         for i in range(self.bs):
             if self.display:
                 img = torch.from_numpy(self.out)
@@ -246,7 +226,8 @@ def main(exp_name,
          seed,
          device,
          display,
-         device_id):
+         device_id,
+         is_train):
 
     if(device == "cpu"):
         _rali_cpu = True
@@ -259,11 +240,12 @@ def main(exp_name,
     random_seed = random.SystemRandom().randint(0, 2**32 - 1)
     dboxes = []
     gauss_sigma = 3.0
+    is_train = bool(is_train)
 
 
     pipe = COCOPipeline(batch_size=bs, num_threads=nt, device_id=di, seed=random_seed,
                         data_dir=image_path, ann_dir=ann_path, crop=crop_size, rali_cpu=_rali_cpu, default_boxes=dboxes, display=display,
-                        output_image_width = image_width,output_image_height = image_height,sigma = gauss_sigma)
+                        output_image_width = image_width,output_image_height = image_height,sigma = gauss_sigma, is_train = is_train)
     
     pipe.build()
 
@@ -291,10 +273,6 @@ def main(exp_name,
             print("**************ends*******************")
             print("**************", i, "*******************")
         data_loader.reset()
-
-
-
-
 
 
 if __name__ == '__main__':
@@ -338,6 +316,7 @@ if __name__ == '__main__':
     parser.add_argument("--coco_bbox_path", help="path of detected bboxes to use during evaluation",
                         type=str, default=None,required = False)
     parser.add_argument("--seed", "-s", help="seed", type=int, default=1,required = False)
+    parser.add_argument("--is_train", help="flag for is_train (used for randomization)", type=int, default=0, required = False)
     args = parser.parse_args()
 
     main(**args.__dict__)

@@ -2542,10 +2542,12 @@ class Blend(Node):
 
 
 class Flip(Node):
-    def __init__(self, flip=0, device=None):
+    def __init__(self, flip=0, device=None, horizontal_flip_axis = None, vertical_flip_axis = None):
         Node().__init__()
         self._flip = flip
         self.output = Node()
+        self._horizontal_flip_axis = horizontal_flip_axis
+        self._vertical_flip_axis = vertical_flip_axis
 
     def __call__(self, input, flip):
         input.next = self
@@ -2560,7 +2562,7 @@ class Flip(Node):
     def rali_c_func_call(self, handle, input_image, is_output):
         if self._check_flip is not None:
             flip = self._check_flip.rali_c_func_call(handle)
-            output_image = b.Flip(handle, input_image,is_output,flip)
+            output_image = b.Flip(handle, input_image, is_output, self._horizontal_flip_axis, self._vertical_flip_axis)
         else:
-            output_image = b.Flip(handle, input_image,is_output,None)
+            output_image = b.Flip(handle, input_image, is_output, None, None)
         return output_image
