@@ -37,7 +37,7 @@ THE SOFTWARE.
 using namespace cv;
 
 //#define PARTIAL_DECODE
-// #define COCO_READER
+#define COCO_READER
 // #define COCO_READER_PARTIAL
 // #define TF_READER
 // #define TF_READER_DETECTION
@@ -99,6 +99,8 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     unsigned int inputBatchSize = 2;
     int decode_max_width = width;
     int decode_max_height = height;
+    float sigma = 3.0;
+    bool keypoint = true;
     std::cout << ">>> test case " << test_case << std::endl;
     std::cout << ">>> Running on " << (gpu ? "GPU" : "CPU") << " , " << (rgb ? " Color " : " Grayscale ") << std::endl;
 
@@ -151,13 +153,13 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #endif
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
-    char *json_path = "";
+    char *json_path = "/media/datasets/COCO/coco_10_img_person/annotations/person_keypoints_val2017.json";
     if (strcmp(json_path, "") == 0)
     {
         std::cout << "\n json_path has to be set in rali_unit test manually";
         exit(0);
     }
-    meta_data = raliCreateCOCOReader(handle, json_path, true);
+    meta_data = raliCreateCOCOReader(handle, json_path, true, keypoint, sigma, width, height);
 #elif defined CAFFE_READER
     meta_data = raliCreateCaffeLMDBLabelReader(handle, path);
 #elif defined CAFFE_READER_DETECTION
@@ -652,15 +654,71 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         int img_size = raliGetImageNameLen(handle, image_name_length);
         char img_name[img_size];
         raliGetImageName(handle, img_name);
-        std::cerr << "\nPrinting image names of batch: " << img_name;
-        int bb_label_count[inputBatchSize];
-        int size = raliGetBoundingBoxCount(handle, bb_label_count);
-        for (int i = 0; i < inputBatchSize; i++)
-            std::cerr << "\n Number of box:  " << bb_label_count[i];
-        int bb_labels[size];
-        raliGetBoundingBoxLabel(handle, bb_labels);
-        float bb_coords[size * 4];
-        raliGetBoundingBoxCords(handle, bb_coords);
+        // std::cerr << "\nPrinting image names of batch: " << img_name << std::endl;
+
+        //Print the bb cords and label if keypoint flag is false
+        if (!keypoint)
+        {
+            int bb_label_count[inputBatchSize];
+            int size = raliGetBoundingBoxCount(handle, bb_label_count);
+            for (unsigned int i = 0; i < inputBatchSize; i++)
+                std::cerr << "\n Number of box:  " << bb_label_count[i] << std::endl;
+            std::cout << "";
+            int bb_labels[size];
+            raliGetBoundingBoxLabel(handle, bb_labels);
+            float bb_coords[size * 4];
+            raliGetBoundingBoxCords(handle, bb_coords);
+            //Display Bounding Boxes
+            for (int k = 0; k < size; k++)
+            {
+                std::cout << "l : " << bb_coords[k * 4] << " , t : " << bb_coords[k * 4 + 1] << " , r : " << bb_coords[k * 4 + 2] << " , b : " << bb_coords[k * 4 + 3] << std::endl;
+            }
+        }
+
+
+        int size = inputBatchSize;
+        float img_targets[size * 17 * 96 * 72];
+        float img_targets_weight[size * 17];
+        raliGetImageTargets(handle, img_targets, img_targets_weight);
+        int cnt = 0;
+        for (int k = 0; k < size*17; k++)
+        {
+            std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
+            std::cout<<"Heat map number: "<<k<<std::endl;
+            for(int i = 0; i < 96 ; i++)
+            {
+                for(int j = 0; j < 72 ; j++)
+                {
+                    cnt = cnt+1;
+                    if(img_targets[cnt]!=0)
+                    {
+                        std::cout<<img_targets[cnt]<<" ";
+                    }
+                }
+                std::cout<<std::endl;
+            }
+            std::cout<<std::endl;
+        }
+
+
+        RaliJointsData *joints_data = new RaliJointsData();
+        raliGetJointsData(handle, joints_data);
+        for (unsigned int i = 0; i < inputBatchSize; i++)
+        {
+            std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
+            std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
+            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
+            std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
+            std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
+            std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
+            std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
+
+            for (int k = 0; k < 17 ; k++)
+            {
+                std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
+            }
+        }
+
         int img_sizes_batch[inputBatchSize * 2];
         raliGetImageSizes(handle, img_sizes_batch);
         for (int i = 0; i < inputBatchSize; i++)

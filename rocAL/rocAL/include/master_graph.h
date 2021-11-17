@@ -79,7 +79,7 @@ public:
     Image *create_loader_output_image(const ImageInfo &info);
     MetaDataBatch *create_label_reader(const char *source_path, MetaDataReaderType reader_type);
     MetaDataBatch *create_video_label_reader(const char *source_path, MetaDataReaderType reader_type, unsigned sequence_length, unsigned frame_step, unsigned frame_stride, bool file_list_frame_num = true);
-    MetaDataBatch *create_coco_meta_data_reader(const char *source_path, bool is_output);
+    MetaDataBatch *create_coco_meta_data_reader(const char *source_path, bool is_output, bool keypoint, float sigma , int pose_output_width , int pose_output_height); 
     MetaDataBatch *create_tf_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type,  MetaDataType label_type, const std::map<std::string, std::string> feature_key_map);
     MetaDataBatch *create_caffe_lmdb_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type,  MetaDataType label_type);
     MetaDataBatch *create_caffe2_lmdb_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type,  MetaDataType label_type);
@@ -94,6 +94,7 @@ public:
     std::shared_ptr<MetaDataGraph> meta_data_graph() { return _meta_data_graph; }
     std::shared_ptr<MetaDataReader> meta_data_reader() { return _meta_data_reader; }
     bool is_random_bbox_crop() {return _is_random_bbox_crop; }
+    void keypoint_pose(float sigma , float output_width , float output_height);
     void set_video_loader_flag() { _is_video_loader = true; }
     bool is_video_loader() {return _is_video_loader; }
     bool is_sequence_reader_output() {return _is_sequence_reader_output; }
@@ -173,6 +174,11 @@ private:
     float _scale; // Rescales the box and anchor values before the offset is calculated (for example, to return to the absolute values).
     bool _offset; // Returns normalized offsets ((encoded_bboxes*scale - anchors*scale) - mean) / stds in EncodedBBoxes that use std and the mean and scale arguments if offset="True"
     std::vector<float> _means, _stds; //_means:  [x y w h] mean values for normalization _stds: [x y w h] standard deviations for offset normalization.
+    //Pose estimation
+    float _output_image_width_pose;
+    float _output_image_height_pose;
+    float _gaussian_sigma;
+    bool _is_pose_estimation = false;
 };
 
 template <typename T>

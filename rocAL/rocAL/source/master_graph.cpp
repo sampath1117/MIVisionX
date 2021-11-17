@@ -944,6 +944,10 @@ void MasterGraph::output_routine()
             {
                 _meta_data_graph->update_box_encoder_meta_data(&_anchors, full_batch_meta_data, _criteria, _offset, _scale, _means, _stds);
             }
+            if (_is_pose_estimation)
+            {
+                _meta_data_graph->update_keypoint_target_meta_data(_gaussian_sigma, _output_image_width_pose, _output_image_height_pose, full_batch_meta_data);
+            }
             _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data);
             _ring_buffer.push(); // Image data and metadata is now stored in output the ring_buffer, increases it's level by 1
         }
@@ -1108,16 +1112,22 @@ void MasterGraph::stop_processing()
         _output_thread.join();
 }
 
-MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output)
+MetaDataBatch *MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, bool keypoint, float sigma = 0.0, int pose_output_width = 0, int pose_output_height = 0)
 {
-    if( _meta_data_reader)
+    if (_meta_data_reader)
         THROW("A metadata reader has already been created")
-    MetaDataConfig config(MetaDataType::BoundingBox, MetaDataReaderType::COCO_META_DATA_READER, source_path);
+
+    if (keypoint)
+        MasterGraph::keypoint_pose(sigma, pose_output_width, pose_output_height);
+
+    MetaDataConfig config(MetaDataType::Annotation, MetaDataReaderType::COCO_META_DATA_READER, source_path, std::map<std::string, std::string>(), std::string(), keypoint, pose_output_width, pose_output_height);
+
     _meta_data_graph = create_meta_data_graph(config);
     _meta_data_reader = create_meta_data_reader(config);
     _meta_data_reader->init(config);
     _meta_data_reader->read_all(source_path);
-    if(is_output)
+
+    if (is_output)
     {
         if (_augmented_meta_data)
             THROW("Metadata output already defined, there can only be a single output for metadata augmentation")
@@ -1125,6 +1135,15 @@ MetaDataBatch * MasterGraph::create_coco_meta_data_reader(const char *source_pat
             _augmented_meta_data = _meta_data_reader->get_output();
     }
     return _meta_data_reader->get_output();
+}
+
+void MasterGraph::keypoint_pose(float sigma, float output_width, float output_height)
+{
+    // std::cout << "Comes here to target generation function" << std::endl;
+    _is_pose_estimation = true;
+    _gaussian_sigma = sigma;
+    _output_image_width_pose = output_width;
+    _output_image_height_pose = output_height;
 }
 
 MetaDataBatch * MasterGraph::create_tf_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type , MetaDataType label_type, std::map<std::string, std::string> feature_key_map)
