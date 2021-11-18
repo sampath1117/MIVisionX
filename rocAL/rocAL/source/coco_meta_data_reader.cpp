@@ -94,7 +94,6 @@ void COCOMetaDataReader::add(std::string image_name, ImgSizes image_size, Joints
 {
     if (exists(image_name))
     {
-        // auto it = _map_content.find(image_name);
         return;
     }
     pMetaDataAnnotation info = std::make_shared<Annotation>(image_size, joints_data);
@@ -108,7 +107,6 @@ void COCOMetaDataReader::print_map_contents()
     ImgSizes img_sizes;
     JointsData joints_data;
 
-    std::cout << "Printing Map contents" << std::endl;
     std::cout << "\nBBox Annotations List: \n";
     for (auto &elem : _map_content)
     {
@@ -176,8 +174,6 @@ void COCOMetaDataReader::read_all(const std::string &path)
     std::vector<float> box_center, box_scale;
     float score = 1.0;
     float rotation = 0.0;
-    // KeyPoints key_points(NUMBER_OF_JOINTS);
-    // KeyPointsVisibility key_points_visibility(NUMBER_OF_JOINTS);
 
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
     parser.EnterObject();
@@ -449,7 +445,6 @@ void COCOMetaDataReader::read_all(const std::string &path)
     }
     _coco_metadata_read_time.end(); // Debug timing
     //print_map_contents();
-    std::cout << "coco read time in sec: " << _coco_metadata_read_time.get_timing() / 1000 << std::endl;
 }
 
 void COCOMetaDataReader::release(std::string image_name)

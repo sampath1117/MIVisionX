@@ -30,14 +30,14 @@ THE SOFTWARE.
 #include <opencv2/opencv.hpp>
 #include <opencv/highgui.h>
 #include <vector>
-#include<string>
+#include <string>
 
 #include "rali_api.h"
 
 using namespace cv;
 
 //#define PARTIAL_DECODE
-#define COCO_READER
+// #define COCO_READER
 // #define COCO_READER_PARTIAL
 // #define TF_READER
 // #define TF_READER_DETECTION
@@ -47,10 +47,11 @@ using namespace cv;
 // #define CAFFE_READER_DETECTION
 
 //#define RANDOMBBOXCROP
+// #define POSE_ESTIMATION 
 
 using namespace std::chrono;
 
-int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height,int num_of_classes, int display_all);
+int test(int test_case, const char *path, const char *outName, int rgb, int gpu, int width, int height, int num_of_classes, int display_all);
 int main(int argc, const char **argv)
 {
     // check command-line usage
@@ -83,10 +84,10 @@ int main(int argc, const char **argv)
         rgb = atoi(argv[++argIdx]);
 
     if (argc >= argIdx + MIN_ARG_COUNT)
-         num_of_classes = atoi(argv[++argIdx]);
+        num_of_classes = atoi(argv[++argIdx]);
 
     if (argc >= argIdx + MIN_ARG_COUNT)
-         display_all = atoi(argv[++argIdx]);
+        display_all = atoi(argv[++argIdx]);
 
     test(test_case, path, outName, rgb, gpu, width, height, num_of_classes, display_all);
 
@@ -99,8 +100,6 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
     unsigned int inputBatchSize = 2;
     int decode_max_width = width;
     int decode_max_height = height;
-    float sigma = 3.0;
-    bool keypoint = true;
     std::cout << ">>> test case " << test_case << std::endl;
     std::cout << ">>> Running on " << (gpu ? "GPU" : "CPU") << " , " << (rgb ? " Color " : " Grayscale ") << std::endl;
 
@@ -123,7 +122,6 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 
     // Creating uniformly distributed random objects to override some of the default augmentation parameters
     RaliIntParam color_temp_adj = raliCreateIntParameter(-50);
-
 
     /*>>>>>>>>>>>>>>>>>>> Graph description <<<<<<<<<<<<<<<<<<<*/
 
@@ -153,13 +151,21 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #endif
 
 #if defined COCO_READER || defined COCO_READER_PARTIAL
-    char *json_path = "/media/datasets/COCO/coco_10_img_person/annotations/person_keypoints_val2017.json";
+    char *json_path = "";
     if (strcmp(json_path, "") == 0)
     {
         std::cout << "\n json_path has to be set in rali_unit test manually";
         exit(0);
     }
-    meta_data = raliCreateCOCOReader(handle, json_path, true, keypoint, sigma, width, height);
+
+    #ifdef POSE_ESTIMATION
+        bool keypoint = true;
+        float sigma = 3.0;
+        meta_data = raliCreateCOCOReader(handle, json_path, true, keypoint, sigma, width, height);
+    #else
+        meta_data = raliCreateCOCOReader(handle, json_path, true);
+    #endif
+
 #elif defined CAFFE_READER
     meta_data = raliCreateCaffeLMDBLabelReader(handle, path);
 #elif defined CAFFE_READER_DETECTION
@@ -203,14 +209,14 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
 #elif defined TF_READER_DETECTION
     input1 = raliJpegTFRecordSource(handle, path, color_format, num_threads, false, key1, key8, false, false,
                                     RALI_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
-#elif defined COCO_READER
+#elif defined COCO_READER 
     if (decode_max_height <= 0 || decode_max_width <= 0)
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false);
     else
         input1 = raliJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false,
                                         RALI_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
 #elif defined COCO_READER_PARTIAL
-        input1 = raliJpegCOCOFileSourcePartial(handle, path, json_path, color_format, num_threads, false, true, false);
+    input1 = raliJpegCOCOFileSourcePartial(handle, path, json_path, color_format, num_threads, false, true, false);
 #else
     if (decode_max_height <= 0 || decode_max_width <= 0)
         input1 = raliJpegFileSource(handle, path, color_format, num_threads, false, true);
@@ -651,14 +657,55 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         int numOfClasses = 0;
         int image_name_length[inputBatchSize];
 #if defined COCO_READER || defined COCO_READER_PARTIAL || defined CAFFE_READER_DETECTION || defined CAFFE2_READER_DETECTION || defined TF_READER_DETECTION
-        int img_size = raliGetImageNameLen(handle, image_name_length);
-        char img_name[img_size];
-        raliGetImageName(handle, img_name);
-        // std::cerr << "\nPrinting image names of batch: " << img_name << std::endl;
-
-        //Print the bb cords and label if keypoint flag is false
-        if (!keypoint)
+        #ifdef POSE_ESTIMATION 
         {
+            int size = inputBatchSize;
+            int target_width = height/4;
+            int target_height = width/4;
+            float img_targets[size * 17 * target_width * target_height];
+            float img_targets_weight[size * 17];
+            raliGetImageTargets(handle, img_targets, img_targets_weight);
+            int cnt = 0;
+            for (int k = 0; k < size * 17; k++)
+            {
+                for (int i = 0; i < target_width; i++)
+                {
+                    for (int j = 0; j < target_height; j++)
+                    {
+                        cnt = cnt + 1;
+                        std::cout << img_targets[cnt] << " ";
+                    }
+                    std::cout << std::endl;
+                }
+                std::cout << std::endl;
+            }
+
+            RaliJointsData *joints_data = new RaliJointsData();
+            raliGetJointsData(handle, joints_data);
+            for (unsigned int i = 0; i < inputBatchSize; i++)
+            {
+                std::cout << "ImageID: " << joints_data->image_id_batch[i] << std::endl;
+                std::cout << "AnnotationID: " << joints_data->annotation_id_batch[i] << std::endl;
+                std::cout << "ImagePath: " << joints_data->image_path_batch[i] << std::endl;
+                std::cout << "Center: " << joints_data->center_batch[i][0] << " " << joints_data->center_batch[i][1] << std::endl;
+                std::cout << "Scale: " << joints_data->scale_batch[i][0] << " " << joints_data->scale_batch[i][1] << std::endl;
+                std::cout << "Score: " << joints_data->score_batch[i] << std::endl;
+                std::cout << "Rotation: " << joints_data->rotation_batch[i] << std::endl;
+
+                for (int k = 0; k < 17; k++)
+                {
+                    std::cout << "x : " << joints_data->joints_batch[i][k][0] << " , y : " << joints_data->joints_batch[i][k][1] << " , v : " << joints_data->joints_visibility_batch[i][k][0] << std::endl;
+                }
+            }
+        }
+        #else
+        {
+            int img_size = raliGetImageNameLen(handle, image_name_length);
+            char img_name[img_size];
+            raliGetImageName(handle, img_name);
+            std::cerr << "\nPrinting image names of batch: " << img_name << std::endl;
+
+            //Print the bb cords and label if keypoint flag is false
             int bb_label_count[inputBatchSize];
             int size = raliGetBoundingBoxCount(handle, bb_label_count);
             for (unsigned int i = 0; i < inputBatchSize; i++)
@@ -673,59 +720,16 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
             {
                 std::cout << "l : " << bb_coords[k * 4] << " , t : " << bb_coords[k * 4 + 1] << " , r : " << bb_coords[k * 4 + 2] << " , b : " << bb_coords[k * 4 + 3] << std::endl;
             }
-        }
 
-
-        int size = inputBatchSize;
-        float img_targets[size * 17 * 96 * 72];
-        float img_targets_weight[size * 17];
-        raliGetImageTargets(handle, img_targets, img_targets_weight);
-        int cnt = 0;
-        for (int k = 0; k < size*17; k++)
-        {
-            std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
-            std::cout<<"Heat map number: "<<k<<std::endl;
-            for(int i = 0; i < 96 ; i++)
+            int img_sizes_batch[inputBatchSize * 2];
+            raliGetImageSizes(handle, img_sizes_batch);
+            for (int i = 0; i < inputBatchSize; i++)
             {
-                for(int j = 0; j < 72 ; j++)
-                {
-                    cnt = cnt+1;
-                    if(img_targets[cnt]!=0)
-                    {
-                        std::cout<<img_targets[cnt]<<" ";
-                    }
-                }
-                std::cout<<std::endl;
-            }
-            std::cout<<std::endl;
-        }
-
-
-        RaliJointsData *joints_data = new RaliJointsData();
-        raliGetJointsData(handle, joints_data);
-        for (unsigned int i = 0; i < inputBatchSize; i++)
-        {
-            std::cout << "ImageID: " <<  joints_data->image_id_batch[i] << std::endl;
-            std::cout << "AnnotationID: " <<  joints_data->annotation_id_batch[i] << std::endl;
-            std::cout << "ImagePath: "<< joints_data->image_path_batch[i]<<std::endl;   
-            std::cout << "Center: " <<  joints_data->center_batch[i][0] << " " <<  joints_data->center_batch[i][1] << std::endl;
-            std::cout << "Scale: " <<  joints_data->scale_batch[i][0] << " " <<  joints_data->scale_batch[i][1] << std::endl;
-            std::cout << "Score: " <<  joints_data->score_batch[i] << std::endl;
-            std::cout << "Rotation: " <<  joints_data->rotation_batch[i] << std::endl;
-
-            for (int k = 0; k < 17 ; k++)
-            {
-                std::cout << "x : " <<  joints_data->joints_batch[i][k][0] << " , y : " <<  joints_data->joints_batch[i][k][1] << " , v : " <<  joints_data->joints_visibility_batch[i][k][0] << std::endl;
+                std::cout << "\nwidth:" << img_sizes_batch[i * 2];
+                std::cout << "\nHeight:" << img_sizes_batch[(i * 2) + 1];
             }
         }
-
-        int img_sizes_batch[inputBatchSize * 2];
-        raliGetImageSizes(handle, img_sizes_batch);
-        for (int i = 0; i < inputBatchSize; i++)
-        {
-            std::cout<<"\nwidth:"<<img_sizes_batch[i*2];
-            std::cout<<"\nHeight:"<<img_sizes_batch[(i*2)+1];
-        }
+        #endif
 
 #else
         raliGetImageLabels(handle, label_id);
@@ -738,23 +742,24 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         {
             raliGetOneHotImageLabels(handle, label_one_hot_encoded, numOfClasses);
         }
-        std::cerr << "\nPrinting image names of batch: " << img_name<<"\n";
+        std::cerr << "\nPrinting image names of batch: " << img_name << "\n";
         for (unsigned int i = 0; i < inputBatchSize; i++)
         {
-            std::cerr<<"\t Printing label_id : " << label_id[i] << std::endl;
-            if(num_of_classes != 0)
+            std::cerr << "\t Printing label_id : " << label_id[i] << std::endl;
+            if (num_of_classes != 0)
             {
-            std::cout << "One Hot Encoded labels:"<<"\t";
-            for (int j = 0; j < numOfClasses; j++)
-            {
-                int idx_value = label_one_hot_encoded[(i*numOfClasses)+j];
-                if(idx_value == 0)
-                std::cout << idx_value;
-                else
+                std::cout << "One Hot Encoded labels:"
+                          << "\t";
+                for (int j = 0; j < numOfClasses; j++)
                 {
-                    std::cout << idx_value;
+                    int idx_value = label_one_hot_encoded[(i * numOfClasses) + j];
+                    if (idx_value == 0)
+                        std::cout << idx_value;
+                    else
+                    {
+                        std::cout << idx_value;
+                    }
                 }
-            }
             }
             std::cout << "\n";
         }
@@ -769,9 +774,9 @@ int test(int test_case, const char *path, const char *outName, int rgb, int gpu,
         compression_params.push_back(9);
 
         mat_input.copyTo(mat_output(cv::Rect(col_counter * w, 0, w, h)));
-        std::string out_filename = std::string(outName) + ".png";   // in case the user specifies non png filename
+        std::string out_filename = std::string(outName) + ".png"; // in case the user specifies non png filename
         if (display_all)
-          out_filename = std::string(outName) + std::to_string(index) + ".png";   // in case the user specifies non png filename
+            out_filename = std::string(outName) + std::to_string(index) + ".png"; // in case the user specifies non png filename
 
         if (color_format == RaliImageColor::RALI_COLOR_RGB24)
         {

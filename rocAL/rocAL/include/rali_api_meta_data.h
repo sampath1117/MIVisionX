@@ -60,8 +60,13 @@ extern "C" RaliMetaData RALI_API_CALL raliCreateTFReaderDetection(RaliContext ra
 ///
 /// \param rali_context
 /// \param source_path path to the coco json file
+/// \param source_path path to the coco json file
+/// \param keypoint boolean flag to read keypoint data from JSON file
+/// \param sigma  sigma used for gaussian distribution (needed for HRNet Pose estimation)
+/// \param pose_output_width output image width (needed for HRNet Pose estimation)
+/// \param pose_output_width output image height (needed for HRNet Pose estimation)
 /// \return RaliMetaData object, can be used to inquire about the rali's output (processed) tensors
-extern "C" RaliMetaData RALI_API_CALL raliCreateCOCOReader(RaliContext rali_context, const char* source_path, bool is_output, bool keypoint, float sigma , int pose_output_width , int pose_output_height);
+extern "C" RaliMetaData RALI_API_CALL raliCreateCOCOReader(RaliContext rali_context, const char* source_path, bool is_output, bool keypoint = 0, float sigma = 0, int pose_output_width = 0, int pose_output_height = 0);
 
 ///
 /// \param rali_context

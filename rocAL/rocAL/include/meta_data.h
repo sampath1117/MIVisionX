@@ -238,7 +238,6 @@ struct AnnotationBatch: public MetaDataBatch
     }
     MetaDataBatch&  operator += (MetaDataBatch& other) override
     {
-        std::cout<<"batching of meta data started"<<std::endl;
         _bb_cords.insert(_bb_cords.end(),other.get_bb_cords_batch().begin(), other.get_bb_cords_batch().end());
         _bb_label_ids.insert(_bb_label_ids.end(), other.get_bb_labels_batch().begin(), other.get_bb_labels_batch().end());
         _img_sizes.insert(_img_sizes.end(),other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
@@ -261,7 +260,6 @@ struct AnnotationBatch: public MetaDataBatch
         _img_sizes.resize(batch_size);
         _img_targets.resize(batch_size);
         _img_targets_weight.resize(batch_size);
-        // _joints_data.resize(batch_size);
     }
     int size() override
     {

@@ -177,7 +177,7 @@ private:
     //Pose estimation
     float _output_image_width_pose;
     float _output_image_height_pose;
-    float _gaussian_sigma;
+    float _sigma;
     bool _is_pose_estimation = false;
 };
 

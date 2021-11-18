@@ -295,14 +295,8 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
 
     auto target_width = output_width / 4;
     auto target_height = output_height / 4;
-
-    // std::cout << "Target Width:" << target_width << std::endl;
-    // std::cout << "Target Height:" << target_height << std::endl;
-
     int ann_count = full_batch_meta_data->get_joints_data_batch().annotation_id_batch.size();
-    //std::cout << "bb count: " << bb_count << std::endl;
     float feat_stride[2] = { (float) output_width / target_width, (float) output_height  / target_height};
-
     for (int j = 0; j < ann_count; j++)
     {
         ImageTargets img_targets;
@@ -318,7 +312,6 @@ void BoundingBoxGraph::update_keypoint_target_meta_data(float sigma, int output_
             TargetWeight bb_target_weight = full_batch_meta_data->get_joints_data_batch().joints_visibility_batch[j][k][0];
             std::vector<float> key_point;
             key_point = full_batch_meta_data->get_joints_data_batch().joints_batch[j][k];
-            //std::cout << "keypoint values: " << key_point[0] << " " << key_point[1] << std::endl;
 
             int mu_x = (key_point[0] / feat_stride[0]) + 0.5;
             int mu_y = (key_point[1] / feat_stride[1]) + 0.5;

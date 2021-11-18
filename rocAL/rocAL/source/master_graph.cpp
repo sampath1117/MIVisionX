@@ -946,7 +946,7 @@ void MasterGraph::output_routine()
             }
             if (_is_pose_estimation)
             {
-                _meta_data_graph->update_keypoint_target_meta_data(_gaussian_sigma, _output_image_width_pose, _output_image_height_pose, full_batch_meta_data);
+                _meta_data_graph->update_keypoint_target_meta_data(_sigma, _output_image_width_pose, _output_image_height_pose, full_batch_meta_data);
             }
             _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data);
             _ring_buffer.push(); // Image data and metadata is now stored in output the ring_buffer, increases it's level by 1
@@ -1139,9 +1139,8 @@ MetaDataBatch *MasterGraph::create_coco_meta_data_reader(const char *source_path
 
 void MasterGraph::keypoint_pose(float sigma, float output_width, float output_height)
 {
-    // std::cout << "Comes here to target generation function" << std::endl;
     _is_pose_estimation = true;
-    _gaussian_sigma = sigma;
+    _sigma = sigma;
     _output_image_width_pose = output_width;
     _output_image_height_pose = output_height;
 }
