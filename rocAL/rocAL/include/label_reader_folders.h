@@ -38,6 +38,7 @@ public :
     void print_map_contents();
     bool set_timestamp_mode() override { return false; }
     MetaDataBatch * get_output() override { return _output; }
+    std::map<std::string, std::string> annotation_image_key_map() override { return _annotation_image_key_map; }
     LabelReaderFolders();
     ~LabelReaderFolders() override { delete _output; }
 private:
@@ -52,4 +53,5 @@ private:
     struct dirent *_entity;
     std::vector<std::string> _file_names;
     std::vector<std::string> _subfolder_file_names;
+    std::map<std::string, std::string> _annotation_image_key_map;
 };

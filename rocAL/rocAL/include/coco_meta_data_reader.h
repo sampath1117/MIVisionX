@@ -38,6 +38,7 @@ public:
     void print_map_contents();
     bool set_timestamp_mode() override { return false; }
     MetaDataBatch * get_output() override { return _output; }
+    std::map<std::string, std::string> annotation_image_key_map() override { return _annotation_image_key_map; }
     const std::map<std::string, std::shared_ptr<BoundingBox>> & get_map_content() { return _map_content; }
     COCOMetaDataReader();
     ~COCOMetaDataReader() override { delete _output; }
@@ -54,5 +55,6 @@ private:
     std::map<int, int> _label_info;
     std::map<int, int> ::iterator _it_label;
     TimingDBG _coco_metadata_read_time;
+    std::map<std::string, std::string> _annotation_image_key_map;
 };
 

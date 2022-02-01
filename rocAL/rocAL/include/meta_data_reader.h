@@ -95,6 +95,7 @@ public:
     virtual void lookup(const std::vector<std::string>& image_names) = 0;// finds meta_data info associated with given names and fills the output
     virtual void release() = 0; // Deletes the loaded information
     virtual MetaDataBatch * get_output()= 0;
+    virtual std::map<std::string, std::string> annotation_image_key_map() = 0;
     virtual bool exists(const std::string &image_name) = 0;
     virtual bool set_timestamp_mode() = 0;
 };
