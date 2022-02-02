@@ -130,8 +130,11 @@ void COCOMetaDataReaderKeyPoints::read_all(const std::string &path)
         { delete[] data; });
     f.seekg(0, std::ios::beg);
     buff.get()[file_size] = '\0';
-    f.read(buff.get(), file_size);
+    auto ret = f.read(buff.get(), file_size).gcount();
     f.close();
+
+    if(ret == -1 || ret != file_size) 
+        THROW("ERROR:  Unable to read complete data from the file " + path);
 
     LookaheadParser parser(buff.get());
 
