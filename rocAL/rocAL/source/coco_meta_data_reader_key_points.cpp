@@ -74,18 +74,15 @@ void COCOMetaDataReaderKeyPoints::lookup(const std::vector<std::string> &image_n
     _output->get_joints_data_batch() = joints_data_batch;
 }
 
-void COCOMetaDataReaderKeyPoints::add(std::string annotation_id, ImgSize image_size, JointsData *joints_data)
-{
-    pMetaDataKeyPoint info = std::make_shared<KeyPoint>(image_size, joints_data);
-    _map_content.insert(pair<std::string, std::shared_ptr<KeyPoint>>(annotation_id, info));
-}
-
-void COCOMetaDataReaderKeyPoints::add(std::string image_name, std::string annotation_id)
+void COCOMetaDataReaderKeyPoints::add(std::string image_name, std::string annotation_id, ImgSize image_size, JointsData *joints_data)
 {
     if (_annotation_image_key_map.find(annotation_id) != _annotation_image_key_map.end())
         return;
     
     _annotation_image_key_map.insert(pair<std::string, std::string>(annotation_id, image_name));
+
+    pMetaDataKeyPoint info = std::make_shared<KeyPoint>(image_size, joints_data);
+    _map_content.insert(pair<std::string, std::shared_ptr<KeyPoint>>(annotation_id, info));
 }
 
 void COCOMetaDataReaderKeyPoints::print_map_contents()
@@ -366,8 +363,7 @@ void COCOMetaDataReaderKeyPoints::read_all(const std::string &path)
                 joints_data.score = score;
                 joints_data.rotation = rotation;
 
-                add(std::to_string(ann_id), image_size, &joints_data);
-                add(file_name, std::to_string(ann_id));
+                add(file_name, std::to_string(ann_id), image_size, &joints_data);
                 joints_data = {};
                 std::fill(std::begin(box_center), std::end(box_center), 0.0);
                 std::fill(std::begin(box_scale), std::end(box_scale), 0.0);
