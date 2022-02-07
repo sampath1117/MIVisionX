@@ -38,7 +38,7 @@ public:
     void print_map_contents();
     bool set_timestamp_mode() override { return false; }
     MetaDataBatch * get_output() override { return _output; }
-    std::map<std::string, std::string> annotation_image_key_map() override { return _annotation_image_key_map; }
+    std::map<std::string, std::string> annotation_image_key_map() { return _annotation_image_key_map; }
     const std::map<std::string, std::shared_ptr<KeyPoint>> & get_map_content() { return _map_content; }
     COCOMetaDataReaderKeyPoints();
     ~COCOMetaDataReaderKeyPoints() override { delete _output; }

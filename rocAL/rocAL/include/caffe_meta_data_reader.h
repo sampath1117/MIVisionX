@@ -41,7 +41,6 @@ public :
     bool set_timestamp_mode() override { return false; }
     void print_map_contents();
     MetaDataBatch * get_output() override { return _output; }
-    std::map<std::string, std::string> annotation_image_key_map() override { return _annotation_image_key_map; }
     CaffeMetaDataReader();
     ~CaffeMetaDataReader() override { delete _output; }
 private:
@@ -62,5 +61,4 @@ private:
     MDB_val _mdb_key, _mdb_value;
     MDB_txn* _mdb_txn;
     MDB_cursor* _mdb_cursor;
-    std::map<std::string, std::string> _annotation_image_key_map;
  };

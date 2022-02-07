@@ -55,14 +55,14 @@ private:
     MetaDataType _type;
     MetaDataReaderType _reader_type;
     std::string _path;
-    std::map<std::string, std::string> _feature_key_map; 
+    std::map<std::string, std::string> _feature_key_map;
     std::string _file_prefix;           // if we want to read only filenames with prefix (needed for cifar10 meta data)
     unsigned _sequence_length;
     unsigned _frame_step;
     unsigned _frame_stride;
     unsigned _out_img_width;
     unsigned _out_img_height;
-    
+
 public:
     MetaDataConfig(const MetaDataType& type, const MetaDataReaderType& reader_type, const std::string& path, const std::map<std::string, std::string> &feature_key_map=std::map<std::string, std::string>(), const std::string file_prefix=std::string(), const unsigned& sequence_length = 3, const unsigned& frame_step = 3, const unsigned& frame_stride = 1)
                     :_type(type), _reader_type(reader_type),  _path(path), _feature_key_map(feature_key_map), _file_prefix(file_prefix), _sequence_length(sequence_length), _frame_step(frame_step), _frame_stride(frame_stride){}
@@ -84,6 +84,8 @@ public:
 
 class MetaDataReader
 {
+private:
+    std::map<std::string, std::string> _annotation_image_key_map;
 public:
     enum class Status
     {
@@ -95,7 +97,7 @@ public:
     virtual void lookup(const std::vector<std::string>& image_names) = 0;// finds meta_data info associated with given names and fills the output
     virtual void release() = 0; // Deletes the loaded information
     virtual MetaDataBatch * get_output()= 0;
-    virtual std::map<std::string, std::string> annotation_image_key_map() = 0;
+    virtual std::map<std::string, std::string> annotation_image_key_map() { return _annotation_image_key_map; }
     virtual bool exists(const std::string &image_name) = 0;
     virtual bool set_timestamp_mode() = 0;
 };

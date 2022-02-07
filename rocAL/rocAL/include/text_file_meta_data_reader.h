@@ -35,7 +35,6 @@ public:
     void release() override;
     bool set_timestamp_mode() override { return false; }
     MetaDataBatch * get_output() override { return _output; }
-    std::map<std::string, std::string> annotation_image_key_map() override { return _annotation_image_key_map; }
     TextFileMetaDataReader();
     ~TextFileMetaDataReader() override { delete _output; }
 private:
@@ -45,5 +44,4 @@ private:
     void add(std::string image_name, int label);
     std::map<std::string, std::shared_ptr<Label>> _map_content;
     std::string _path;
-    std::map<std::string, std::string> _annotation_image_key_map;
 };

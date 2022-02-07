@@ -40,7 +40,6 @@ public:
     bool set_timestamp_mode() override { _file_list_frame_num = false; return _file_list_frame_num;}
     void print_map_contents();
     MetaDataBatch *get_output() override { return _output; }
-    std::map<std::string, std::string> annotation_image_key_map() override { return _annotation_image_key_map; }
     VideoLabelReader();
     ~VideoLabelReader() override { delete _output; }
 private:
@@ -61,6 +60,5 @@ private:
     unsigned _sequence_length;
     unsigned _step;
     unsigned _stride;
-    std::map<std::string, std::string> _annotation_image_key_map;
 };
 #endif
