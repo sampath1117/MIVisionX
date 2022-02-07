@@ -49,6 +49,8 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     if(_meta_data_reader)
     {
         _annotation_image_key_map = _meta_data_reader->annotation_image_key_map();
+        //condition to differentiate between COCO keypoints pipeline and other COCO pipelines
+        //_annotation_image_key_map is updated only in COCO keypoints pipeline
         if(!_annotation_image_key_map.empty())
            _keypoint = true;
     }
@@ -84,13 +86,13 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
 
         //To handle case where number of images < batch size for multi annotation
         size_t temp_file_names_size = temp_file_names.size();
-        size_t rem_images = temp_file_names_size % _batch_count;
-        if (rem_images > 0)
+        size_t remaining_images = temp_file_names_size % _batch_count;
+        if (remaining_images > 0)
         {
-            _in_batch_read_count = rem_images;
+            _in_batch_read_count = remaining_images;
             _last_file_name = _file_names[temp_file_names_size - 1];
             std::string last_annotation_id = _annotation_ids[temp_file_names_size - 1];
-            for (uint i = 0; i < (_batch_count - rem_images); i++)
+            for (uint i = 0; i < (_batch_count - remaining_images); i++)
                  _annotation_ids.push_back(last_annotation_id);
             replicate_last_image_to_fill_last_shard();
         }
@@ -231,6 +233,7 @@ void COCOFileSourceReader::reset()
     {
         if(_keypoint)
         {
+            //shuffle both file names and annotations id's in same order
             auto seed = unsigned (std::time(0));
             std::srand(seed);
             std::random_shuffle(_file_names.begin(), _file_names.end());
