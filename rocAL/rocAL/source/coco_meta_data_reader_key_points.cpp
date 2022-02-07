@@ -64,8 +64,8 @@ void COCOMetaDataReaderKeyPoints::lookup(const std::vector<std::string> &image_n
         joints_data_batch.image_id_batch.push_back(joints_data->image_id);
         joints_data_batch.annotation_id_batch.push_back(joints_data->annotation_id);
         joints_data_batch.image_path_batch.push_back(joints_data->image_path);
-        joints_data_batch.center_batch.push_back({joints_data->center[0],joints_data->center[1]});
-        joints_data_batch.scale_batch.push_back({joints_data->scale[0],joints_data->scale[1]});
+        joints_data_batch.center_batch.push_back({joints_data->center[0], joints_data->center[1]});
+        joints_data_batch.scale_batch.push_back({joints_data->scale[0], joints_data->scale[1]});
         joints_data_batch.joints_batch.push_back(joints_data->joints);
         joints_data_batch.joints_visibility_batch.push_back(joints_data->joints_visibility);
         joints_data_batch.score_batch.push_back(joints_data->score);
@@ -90,11 +90,11 @@ void COCOMetaDataReaderKeyPoints::print_map_contents()
     JointsData joints_data;
     for (auto &elem : _map_content)
     {
-        std::cout << "\nName :\t " << elem.first<<std::endl;
+        std::cout << "\nName :\t " << elem.first << std::endl;
         joints_data = elem.second->get_joints_data();
         std::cout << "ImageID: " << joints_data.image_id << std::endl;
         std::cout << "AnnotationID: " << joints_data.annotation_id << std::endl;
-        std::cout << "ImagePath: "<< joints_data.image_path<<std::endl;
+        std::cout << "ImagePath: "<< joints_data.image_path <<std::endl;
         std::cout << "center (x,y) : " << joints_data.center[0] << " " << joints_data.center[1] << std::endl;
         std::cout << "scale (w,h) : " << joints_data.scale[0] << " " << joints_data.scale[1] << std::endl;
         for (unsigned int i = 0; i < NUMBER_OF_JOINTS; i++)

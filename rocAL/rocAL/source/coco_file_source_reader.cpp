@@ -22,7 +22,7 @@ _shuffle_time("shuffle_time", DBG_TIMING)
     _loop = false;
     _file_id = 0;
     _shuffle = false;
-    _file_count_all_shards = 0;  
+    _file_count_all_shards = 0;
 }
 
 unsigned COCOFileSourceReader::count_items()
@@ -50,9 +50,7 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     {
         _annotation_image_key_map = _meta_data_reader->annotation_image_key_map();
         if(!_annotation_image_key_map.empty())
-        {
-            _keypoint = true;
-        }
+           _keypoint = true;
     }
 
     if(_json_path == "")
@@ -74,28 +72,26 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
         for (auto &elem : _annotation_image_key_map)
         {
             auto itr = std::find(_files.begin(), _files.end(), elem.second);
-            if( itr != _files.end())
+            if(itr != _files.end())
             {
-                int index  = std::distance(_files.begin(), itr);
+                int index = std::distance(_files.begin(), itr);
                 _annotation_ids.push_back(elem.first);
                 temp_file_names.push_back(_file_names[index]);
             }
         }
         _file_names.clear();
         _file_names = temp_file_names;
-        
+
         //To handle case where number of images < batch size for multi annotation
         size_t temp_file_names_size = temp_file_names.size();
         size_t rem_images = temp_file_names_size % _batch_count;
         if (rem_images > 0)
         {
             _in_batch_read_count = rem_images;
-            _last_file_name = _file_names[temp_file_names_size-1];
-            std::string last_annotation_id = _annotation_ids[temp_file_names_size-1];
-            for (uint i = 0 ; i < (_batch_count-rem_images) ; i++)
-            {
-                _annotation_ids.push_back(last_annotation_id);
-            }
+            _last_file_name = _file_names[temp_file_names_size - 1];
+            std::string last_annotation_id = _annotation_ids[temp_file_names_size - 1];
+            for (uint i = 0; i < (_batch_count - rem_images); i++)
+                 _annotation_ids.push_back(last_annotation_id);
             replicate_last_image_to_fill_last_shard();
         }
         _file_count_all_shards = _file_id = _file_names.size();
@@ -104,8 +100,8 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     // the following code is required to make every shard the same size:: required for multi-gpu training
     if (_shard_count > 1 && _batch_count > 1) {
         int _num_batches = _file_names.size()/_batch_count;
-        int max_batches_per_shard = (_file_count_all_shards + _shard_count-1)/_shard_count;
-        max_batches_per_shard = (max_batches_per_shard + _batch_count-1)/_batch_count;
+        int max_batches_per_shard = (_file_count_all_shards + _shard_count - 1)/_shard_count;
+        max_batches_per_shard = (max_batches_per_shard + _batch_count - 1)/_batch_count;
         if (_num_batches < max_batches_per_shard) {
             replicate_last_batch_to_pad_partial_shard();
         }
@@ -116,6 +112,7 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     {
         if(_keypoint)
         {
+            //shuffle both file names and annotations id's in same order
             auto seed = unsigned(std::time(0));
             std::srand(seed);
             std::random_shuffle(_file_names.begin(), _file_names.end());
@@ -179,7 +176,7 @@ size_t COCOFileSourceReader::open()
         return 0;
     }
     _current_ifs.seekg(0, std::ios_base::beg);
-#endif    
+#endif
     return _current_file_size;
 }
 
@@ -191,7 +188,7 @@ size_t COCOFileSourceReader::read_data(unsigned char *buf, size_t read_size)
 #else
     if (!_current_ifs)
         return 0;
-#endif        
+#endif
     // Requested read size bigger than the file size? just read as many bytes as the file size
     read_size = (read_size > _current_file_size) ? _current_file_size : read_size;
 #if USE_STDIO_FILE
@@ -199,7 +196,7 @@ size_t COCOFileSourceReader::read_data(unsigned char *buf, size_t read_size)
 #else
     _current_ifs.read((char *)buf, (int)read_size);
     size_t actual_read_size = _current_ifs.gcount();
-#endif    
+#endif
     return actual_read_size;
 }
 
@@ -224,7 +221,7 @@ int COCOFileSourceReader::release()
     if (_current_ifs.bad())
         return 0;
     _current_ifs.close();
-#endif    
+#endif
     return 0;
 }
 
