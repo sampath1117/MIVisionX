@@ -78,7 +78,7 @@ void COCOMetaDataReaderKeyPoints::add(std::string image_name, std::string annota
 {
     if (_annotation_image_key_map.find(annotation_id) != _annotation_image_key_map.end())
         return;
-    
+
     _annotation_image_key_map.insert(pair<std::string, std::string>(annotation_id, image_name));
 
     pMetaDataKeyPoint info = std::make_shared<KeyPoint>(image_size, joints_data);
@@ -94,7 +94,7 @@ void COCOMetaDataReaderKeyPoints::print_map_contents()
         joints_data = elem.second->get_joints_data();
         std::cout << "ImageID: " << joints_data.image_id << std::endl;
         std::cout << "AnnotationID: " << joints_data.annotation_id << std::endl;
-        std::cout << "ImagePath: "<< joints_data.image_path<<std::endl;   
+        std::cout << "ImagePath: "<< joints_data.image_path<<std::endl;
         std::cout << "center (x,y) : " << joints_data.center[0] << " " << joints_data.center[1] << std::endl;
         std::cout << "scale (w,h) : " << joints_data.scale[0] << " " << joints_data.scale[1] << std::endl;
         for (unsigned int i = 0; i < NUMBER_OF_JOINTS; i++)
@@ -130,7 +130,7 @@ void COCOMetaDataReaderKeyPoints::read_all(const std::string &path)
     auto ret = f.read(buff.get(), file_size).gcount();
     f.close();
 
-    if(ret == -1 || ret != file_size) 
+    if(ret == -1 || ret != file_size)
         THROW("ERROR:  Unable to read complete data from the file " + path);
 
     LookaheadParser parser(buff.get());
@@ -144,7 +144,7 @@ void COCOMetaDataReaderKeyPoints::read_all(const std::string &path)
     float rotation = 0.0;
     float aspect_ratio = ((float)_out_img_width / _out_img_height);
     float inverse_aspect_ratio = 1 / aspect_ratio;
-    float inverse_pixel_std = 1 / ((float) PIXEL_STD); 
+    float inverse_pixel_std = 1 / ((float) PIXEL_STD);
 
     RAPIDJSON_ASSERT(parser.PeekType() == kObjectType);
     parser.EnterObject();
