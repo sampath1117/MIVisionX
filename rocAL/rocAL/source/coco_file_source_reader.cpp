@@ -130,7 +130,7 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     return ret;
 }
 
-void COCOFileSourceReader::incremenet_read_ptr()
+void COCOFileSourceReader::increment_read_ptr()
 {
     _read_counter++;
     _curr_file_idx = (_curr_file_idx + 1) % _file_names.size();
@@ -151,7 +151,7 @@ size_t COCOFileSourceReader::open()
             _last_id.erase(0, last_slash_idx + 1);
         }
     }
-    incremenet_read_ptr();
+    increment_read_ptr();
 
 #if USE_STDIO_FILE
     _current_fPtr = fopen(file_path.c_str(), "rb"); // Open the file,
@@ -321,7 +321,7 @@ Reader::Status COCOFileSourceReader::open_folder()
             if (get_file_shard_id() != _shard_id)
             {
                 _file_count_all_shards++;
-                incremenet_file_id();
+                increment_file_id();
                 continue;
             }
             _in_batch_read_count++;
@@ -333,7 +333,7 @@ Reader::Status COCOFileSourceReader::open_folder()
             _last_file_name = file_path;
             _file_names.push_back(file_path);
             _file_count_all_shards++;
-            incremenet_file_id();
+            increment_file_id();
         }
     }
     if (_file_names.empty())
