@@ -48,14 +48,10 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     _shuffle = desc.shuffle();
     _meta_data_reader = desc.meta_data_reader();
     _keypoint = desc.is_keypoint();
-    if(_meta_data_reader)
+    if(_meta_data_reader && _keypoint)
     {
-        //condition to differentiate between COCO keypoints pipeline and other COCO pipelines
-        //_annotation_image_key_map is updated only in COCO keypoints pipeline
-        if(_keypoint)
-        {
-            _annotation_image_key_map = static_cast<COCOMetaDataReaderKeyPoints *>(_meta_data_reader.get())->annotation_image_key_map();
-        }
+        //_annotation_image_key_map is present only in COCO keypoints pipeline
+        _annotation_image_key_map = static_cast<COCOMetaDataReaderKeyPoints *>(_meta_data_reader.get())->annotation_image_key_map();
     }
 
     if(_json_path == "")
