@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <commons.h>
 #include "coco_meta_data_reader.h"
+#include "coco_meta_data_reader_key_points.h"
 #include "coco_file_source_reader.h"
 #include <boost/filesystem.hpp>
 #include "meta_data_reader_factory.h"
@@ -46,13 +47,15 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     _loop = desc.loop();
     _shuffle = desc.shuffle();
     _meta_data_reader = desc.meta_data_reader();
+    _keypoint = desc.is_keypoint();
     if(_meta_data_reader)
     {
-        _annotation_image_key_map = _meta_data_reader->annotation_image_key_map();
         //condition to differentiate between COCO keypoints pipeline and other COCO pipelines
         //_annotation_image_key_map is updated only in COCO keypoints pipeline
-        if(!_annotation_image_key_map.empty())
-           _keypoint = true;
+        if(_keypoint)
+        {
+            _annotation_image_key_map = static_cast<COCOMetaDataReaderKeyPoints *>(_meta_data_reader.get())->annotation_image_key_map();
+        }
     }
 
     if(_json_path == "")
