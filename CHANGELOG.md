@@ -6,7 +6,7 @@
 
 [MIVisionX Documentation](https://gpuopen-professionalcompute-libraries.github.io/MIVisionX/)
 
-## MIVisionX 2.0.1 (unreleased)
+## MIVisionX 2.0.1
 
 ### Added
 
@@ -18,6 +18,7 @@
 ### Optimizations
 
 * Code Cleanup
+* Readme Updates
 
 ### Changed
 
@@ -26,6 +27,8 @@
 ### Fixed
 
 * Minor bugs and warnings
+* Inference server application - OpenCL Backend
+* vxCreateThreshold Fix - Apps & Sample
 
 ### Tested Configurations
 
