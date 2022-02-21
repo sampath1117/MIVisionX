@@ -756,12 +756,9 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
                 {
                     std::cout << "ImageID: " << joints_data->image_id_batch[i] << std::endl;
                     std::cout << "AnnotationID: " << joints_data->annotation_id_batch[i] << std::endl;
-                    std::cout << "ImagePath: " << joints_data->image_path_batch[i] << std::endl;
                     std::cout << "Center: " << joints_data->center_batch[i][0] << " " << joints_data->center_batch[i][1] << std::endl;
                     std::cout << "Scale: " << joints_data->scale_batch[i][0] << " " << joints_data->scale_batch[i][1] << std::endl;
-                    std::cout << "Score: " << joints_data->score_batch[i] << std::endl;
-                    std::cout << "Rotation: " << joints_data->rotation_batch[i] << std::endl;
-
+                    std::cout << "Keypoints:"<<std::endl;
                     for (int k = 0; k < 17; k++)
                     {
                     std::cout << "x : " << joints_data->joints_batch[i][k][0] << " , y : " << joints_data->joints_batch[i][k][1] << " , v : " << joints_data->joints_visibility_batch[i][k][0] << std::endl;
