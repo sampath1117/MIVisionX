@@ -56,6 +56,68 @@ void CropMirrorNormalizeMetaNode::update_parameters(MetaDataBatch* input_meta_da
     vxCopyArrayRange((vx_array)_mirror, 0, _batch_size, sizeof(uint),_mirror_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     for(int i = 0; i < _batch_size; i++)
     {
+        Joints joints = input_meta_data->get_joints_data_batch().joints_batch[i];
+        for(int j = 0 ; j < NUMBER_OF_JOINTS ; j++)
+        {
+            Joint temp_joint;
+            temp_joint = joints[j];
+            //check if keypoint present in the cropped region
+            if(temp_joint[0] >= (float)_x1_val[i] && temp_joint[0] <= (float)(_x1_val[i] + _width_val[i]) && temp_joint[1]>=(float)_y1_val[i] && temp_joint[1] <= (float)(_y1_val[i] + _height_val[i]))
+            {
+                input_meta_data->get_joints_data_batch().joints_batch[i][j][0] = temp_joint[0] - (float)_x1_val[i];
+                input_meta_data->get_joints_data_batch().joints_batch[i][j][1] = temp_joint[1] - (float)_y1_val[i];
+            }
+            else
+            {
+                input_meta_data->get_joints_data_batch().joints_batch[i][j][0] = 0.0;
+                input_meta_data->get_joints_data_batch().joints_batch[i][j][1] = 0.0;
+            }
+        }
+
+        if (_mirror_val[i] == 1)
+        {
+            float img_width = input_meta_data->get_img_sizes_batch()[i].w;
+            Joint joint0;
+            JointVisibility joint0_visiblity;
+            Joints joints;
+            JointsVisibility joints_visibility;
+
+            joint0 = input_meta_data->get_joints_data_batch().joints_batch[i][0];
+            joint0_visiblity = input_meta_data->get_joints_data_batch().joints_visibility_batch[i][0];
+            joint0[0] = (img_width - joint0[0] - 1) * (joint0_visiblity[0]);
+
+            std::vector<float> center = input_meta_data->get_joints_data_batch().center_batch[i];
+            center[0] = img_width - center[0] - 1;
+
+            joints.push_back(joint0);
+            joints_visibility.push_back(joint0_visiblity);
+
+            for (unsigned int joint_index = 1; joint_index < NUMBER_OF_JOINTS; joint_index = joint_index + 2)
+            {
+                //std::cout<<"Flipping keypoints: "<<  joint_index<<" "<< joint_index+1<<std::endl;
+                Joint joint1, joint2;
+                JointVisibility joint1_visibility, joint2_visibility;
+                joint1 = input_meta_data->get_joints_data_batch().joints_batch[i][joint_index];
+                joint2 = input_meta_data->get_joints_data_batch().joints_batch[i][joint_index + 1];
+                joint1_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[i][joint_index];
+                joint2_visibility = input_meta_data->get_joints_data_batch().joints_visibility_batch[i][joint_index + 1];
+
+                //Update the keypoint co-ordinates
+                joint1[0] = (img_width - joint1[0] - 1) * (joint1_visibility[0]);
+                joint2[0] = (img_width - joint2[0] - 1) * (joint2_visibility[0]);
+
+                joints.push_back(joint2);
+                joints.push_back(joint1);
+                joints_visibility.push_back(joint2_visibility);
+                joints_visibility.push_back(joint1_visibility);
+            }
+            input_meta_data->get_joints_data_batch().joints_batch[i] = joints;
+            input_meta_data->get_joints_data_batch().joints_visibility_batch[i] = joints_visibility;
+            input_meta_data->get_joints_data_batch().center_batch[i] = center;
+            joints.clear();
+            joints_visibility.clear();
+        }
+
         auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();
         int labels_buf[bb_count];
         BoundingBoxCords coords_buf;
@@ -71,7 +133,7 @@ void CropMirrorNormalizeMetaNode::update_parameters(MetaDataBatch* input_meta_da
         crop_box.r = (_x1_val[i] + _width_val[i]) / _src_width_val[i];
         crop_box.b = (_y1_val[i] + _height_val[i]) / _src_height_val[i];
         // std::cout<<"CROP Co-ordinates in CMN: lxtxrxb::\t"<<crop_box.l<<"x"<<crop_box.t<<"x"<<crop_box.r<<"x"<<crop_box.b<<"x";
-        
+
         for(uint j = 0; j < bb_count; j++)
         {
             // std::cout<<"\nIn BEFORE CMN: Box Co-ordinates lxtxrxb::\t"<<box.l<<"x\t"<<box.t<<"x\t"<<box.r<<"x\t"<<box.b<<"x\t"<<std::endl;
