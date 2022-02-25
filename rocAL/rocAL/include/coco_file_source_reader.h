@@ -86,4 +86,5 @@ private:
     TimingDBG _shuffle_time;
     bool _keypoint = false;
     std::map<std::string, std::string> _annotation_image_key_map;
+    std::mt19937 _generator;
 };

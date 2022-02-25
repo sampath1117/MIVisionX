@@ -121,7 +121,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
     f.close();
 
     if(ret == 0 || ret != file_size)
-        THROW("ERROR:  Unable to read the data from the file " + path);
+        THROW("COCOMetaDataReader ERROR:  Unable to read the data from the file " + path);
 
     LookaheadParser parser(buff.get());
 

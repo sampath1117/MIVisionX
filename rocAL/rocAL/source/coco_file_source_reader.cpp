@@ -69,7 +69,11 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     // it to the _file_names list at the end.
     if(_keypoint)
     {
+        std::size_t annotation_size = _annotation_image_key_map.size();
         std::vector<std::string> temp_file_names;
+
+        temp_file_names.reserve(annotation_size);
+        _annotation_ids.reserve(annotation_size);
         for (auto &elem : _annotation_image_key_map)
         {
             auto itr = std::find(_files.begin(), _files.end(), elem.second);
@@ -83,7 +87,7 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
         _file_names.clear();
         _file_names = temp_file_names;
 
-        //To handle case where number of images < batch size for multi annotation
+        //To handle case where number of images is not a multiple of batch size for multi annotation
         size_t temp_file_names_size = temp_file_names.size();
         size_t remaining_images = temp_file_names_size % _batch_count;
         if (remaining_images > 0)
@@ -115,10 +119,10 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
         {
             //shuffle both file names and annotations id's in same order
             auto seed = unsigned(std::time(0));
-            std::srand(seed);
-            std::random_shuffle(_file_names.begin(), _file_names.end());
-            std::srand(seed);
-            std::random_shuffle(_annotation_ids.begin(), _annotation_ids.end());
+            _generator.seed(seed);
+            std::shuffle(_file_names.begin(), _file_names.end(), _generator);
+            _generator.seed(seed);
+            std::shuffle(_annotation_ids.begin(), _annotation_ids.end(), _generator);
         }
         else
         {
@@ -233,11 +237,11 @@ void COCOFileSourceReader::reset()
         if(_keypoint)
         {
             //shuffle both file names and annotations id's in same order
-            auto seed = unsigned (std::time(0));
-            std::srand(seed);
-            std::random_shuffle(_file_names.begin(), _file_names.end());
-            std::srand(seed);
-            std::random_shuffle(_annotation_ids.begin(), _annotation_ids.end());
+            auto seed = unsigned(std::time(0));
+            _generator.seed(seed);
+            std::shuffle(_file_names.begin(), _file_names.end(), _generator);
+            _generator.seed(seed);
+            std::shuffle(_annotation_ids.begin(), _annotation_ids.end(), _generator);
         }
         else
         {
