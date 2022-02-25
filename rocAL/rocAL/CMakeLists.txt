@@ -163,9 +163,9 @@ if(${BUILD_RALI})
     include_directories(
                 ${OpenCL_INCLUDE_DIRS}
                 ${OpenCL_INCLUDE_DIRS}/Headers
-                ${AVUTIL_INCLUDE_DIR} 
-                ${AVCODEC_INCLUDE_DIR} 
-                ${SWSCALE_INCLUDE_DIR} 
+                ${AVUTIL_INCLUDE_DIR}
+                ${AVCODEC_INCLUDE_DIR}
+                ${SWSCALE_INCLUDE_DIR}
                 ${AVFORMAT_INCLUDE_DIR}
                 ${CMAKE_CURRENT_BINARY_DIR}
                 ${TurboJpeg_INCLUDE_DIRS}
@@ -211,6 +211,11 @@ if(${BUILD_RALI})
         target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_OPENCV=1)
         include_directories(${OpenCV_INCLUDE_DIRS})
         target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBRARIES})
+        if(${OpenCV_VERSION_MAJOR} EQUAL 4)
+            target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OPENCV_4=1)
+        else()
+	        target_compile_definitions(${PROJECT_NAME} PUBLIC USE_OPENCV_4=0)
+        endif()
     else()
         target_compile_definitions(${PROJECT_NAME} PUBLIC ENABLE_OPENCV=0)
     endif()
