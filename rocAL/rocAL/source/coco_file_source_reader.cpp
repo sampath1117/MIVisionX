@@ -87,7 +87,7 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
         _file_names.clear();
         _file_names = temp_file_names;
 
-        //To handle case where number of images is not a multiple of batch size for multi annotation
+        //To handle case where number of images is not a multiple of batch size or number of images < batch size
         size_t temp_file_names_size = temp_file_names.size();
         size_t remaining_images = temp_file_names_size % _batch_count;
         if (remaining_images > 0)
