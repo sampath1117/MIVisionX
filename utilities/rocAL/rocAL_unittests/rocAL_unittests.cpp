@@ -144,7 +144,7 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
                 std::cout << "\n json_path has to be set in rocal_unit test manually";
                 exit(0);
             }
-            meta_data = rocalCreateCOCOReader(handle, json_path, true);
+            meta_data = rocalCreateCOCOReader(handle, json_path, true, false);
             if (decode_max_height <= 0 || decode_max_width <= 0)
                 input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false);
             else
@@ -160,7 +160,7 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
                 std::cout << "\n json_path has to be set in rocal_unit test manually";
                 exit(0);
             }
-            meta_data = rocalCreateCOCOReader(handle, json_path, true);
+            meta_data = rocalCreateCOCOReader(handle, json_path, true, false);
 #if defined RANDOMBBOXCROP
             rocalRandomBBoxCrop(handle, all_boxes_overlap, no_crop);
 #endif
@@ -639,6 +639,14 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
                   << "rocalSSDRandomCrop" << std::endl;
         image1 = rocalSSDRandomCrop(handle, input1, true);
     }
+    case 55:
+    {
+        std::cout << ">>>>>>> Running "
+                  << "rocalResizeMirrorNormalize" << std::endl;
+        std::vector<float> mean {0.0, 0.0, 0.0};
+        std::vector<float> std_dev {1.0, 1.0, 1.0};
+        image1 = rocalResizeMirrorNormalize(handle, input1, resize_w, resize_h, mean, std_dev, true);
+    }
     break;
 
     default:
@@ -692,7 +700,7 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
                 rocalGetImageName(handle, img_name);
                 if (num_of_classes != 0)
                 {
-                    rocalGetOneHotImageLabels(handle, label_one_hot_encoded, numOfClasses);
+                    rocalGetOneHotImageLabels(handle, label_one_hot_encoded, numOfClasses, 0);
                 }
                 std::cerr << "\nPrinting image names of batch: " << img_name<<"\n";
                 for (unsigned int i = 0; i < inputBatchSize; i++)
