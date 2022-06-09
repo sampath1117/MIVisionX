@@ -1,16 +1,13 @@
 /*
 Copyright (c) 2019 - 2022 Advanced Micro Devices, Inc. All rights reserved.
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
-
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
-
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
@@ -43,8 +40,10 @@ struct ResizeMirrorNormalizebatchPDLocalData {
 	Rpp32u *dstBatch_height;
 	RpptDescPtr srcDescPtr, dstDescPtr;
     RpptROIPtr roiTensorPtrSrc;
+    RpptROI *d_roiTensorPtrSrc;
     RpptRoiType roiType;
     RpptImagePatchPtr dstImgSize;
+    RpptImagePatch *d_dstImgSize;
     RpptDesc srcDesc, dstDesc;
 #if ENABLE_OPENCL
 	cl_mem cl_pSrc;
@@ -82,6 +81,8 @@ static vx_status VX_CALLBACK refreshResizeMirrorNormalizebatchPD(vx_node node, c
 #elif ENABLE_HIP
     	STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[0], VX_IMAGE_ATTRIBUTE_AMD_HIP_BUFFER, &data->hip_pSrc, sizeof(data->hip_pSrc)));
     	STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[3], VX_IMAGE_ATTRIBUTE_AMD_HIP_BUFFER, &data->hip_pDst, sizeof(data->hip_pDst)));
+		hipMemcpy(data->d_roiTensorPtrSrc, data->roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
+    	hipMemcpy(data->d_dstImgSize, data->dstImgSize, data->nbatchSize * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
 #endif
 	}
 	if(data->device_type == AGO_TARGET_AFFINITY_CPU) {
@@ -159,8 +160,9 @@ static vx_status VX_CALLBACK processResizeMirrorNormalizebatchPD(vx_node node, c
         }
         else if (df_image == VX_DF_IMAGE_RGB)
         {
-            status = rppi_resize_mirror_normalize_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, data->mean, data->std_dev, data->mirror, data->chnShift, data->nbatchSize, data->rppHandle);
-        }
+            // status = rppi_resize_mirror_normalize_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, data->mean, data->std_dev, data->mirror, data->chnShift, data->nbatchSize, data->rppHandle);
+			status = rppt_resize_mirror_normalize_gpu((void *)data->hip_pSrc, data->srcDescPtr, (void *)data->hip_pDst, data->dstDescPtr, data->d_dstImgSize, RpptInterpolationType::BILINEAR, data->mean, data->std_dev, data->mirror, data->d_roiTensorPtrSrc, data->roiType, data->rppHandle);
+		}
         return status;
 #endif
 	}
@@ -179,6 +181,8 @@ static vx_status VX_CALLBACK initializeResizeMirrorNormalizebatchPD(vx_node node
 	STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_OPENCL_COMMAND_QUEUE, &data->handle.cmdq, sizeof(data->handle.cmdq)));
 #elif ENABLE_HIP
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_HIP_STREAM, &data->handle.hipstream, sizeof(data->handle.hipstream)));
+	hipMalloc(&data->d_roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI));
+	hipMalloc(&data->d_dstImgSize, data->nbatchSize * sizeof(RpptImagePatch));
 #endif
 	STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[11], &data->device_type, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
 	STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[10], &data->nbatchSize));
@@ -289,6 +293,8 @@ static vx_status VX_CALLBACK uninitializeResizeMirrorNormalizebatchPD(vx_node no
 #if ENABLE_OPENCL || ENABLE_HIP
 	if(data->device_type == AGO_TARGET_AFFINITY_GPU)
 		rppDestroyGPU(data->rppHandle);
+		hipFree(data->d_roiTensorPtrSrc);
+		hipFree(data->d_dstImgSize);
 #endif
 	if(data->device_type == AGO_TARGET_AFFINITY_CPU)
 		rppDestroyHost(data->rppHandle);
