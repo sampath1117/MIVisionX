@@ -293,8 +293,8 @@ static vx_status VX_CALLBACK uninitializeResizeMirrorNormalizebatchPD(vx_node no
 #if ENABLE_OPENCL || ENABLE_HIP
 	if(data->device_type == AGO_TARGET_AFFINITY_GPU)
 		rppDestroyGPU(data->rppHandle);
-		hipFree(data->d_roiTensorPtrSrc);
-		hipFree(data->d_dstImgSize);
+		// hipFree(data->d_roiTensorPtrSrc);
+		// hipFree(data->d_dstImgSize);
 #endif
 	if(data->device_type == AGO_TARGET_AFFINITY_CPU)
 		rppDestroyHost(data->rppHandle);
