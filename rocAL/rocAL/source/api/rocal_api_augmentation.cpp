@@ -561,13 +561,13 @@ rocalResizeMirrorNormalize(
     auto input = static_cast<Image*>(p_input);
     auto mirror = static_cast<IntParam *>(p_mirror);
     float mean_acutal = 0, std_actual = 0; // Mean of vectors
-    for(unsigned i = 0; i < mean.size(); i++)
-    {
-        mean_acutal += mean[i];
-        std_actual  += std_dev[i];
-    }
-    mean_acutal /= mean.size();
-    std_actual /= std_dev.size();
+    // for(unsigned i = 0; i < mean.size(); i++)
+    // {
+    //     mean_acutal += mean[i];
+    //     std_actual  += std_dev[i];
+    // }
+    // mean_acutal /= mean.size();
+    // std_actual /= std_dev.size();
 
    try
     {
@@ -581,7 +581,8 @@ rocalResizeMirrorNormalize(
 
         std::shared_ptr<ResizeMirrorNormalizeNode> rmn_node =  context->master_graph->add_node<ResizeMirrorNormalizeNode>({input}, {output});
         //rmn_node->init(mean_acutal, std_actual, mirror);
-        rmn_node->init(0, 1, mirror);
+        // rmn_node->init(0, 1, mirror);
+        rmn_node->init(mean,std_dev,mirror);
         if (context->master_graph->meta_data_graph())
             context->master_graph->meta_add_node<ResizeMirrorNormalizeMetaNode,ResizeMirrorNormalizeNode>(rmn_node);
     }

@@ -58,8 +58,8 @@ struct ResizeMirrorNormalizebatchPDLocalData {
 static vx_status VX_CALLBACK refreshResizeMirrorNormalizebatchPD(vx_node node, const vx_reference *parameters, vx_uint32 num, ResizeMirrorNormalizebatchPDLocalData *data)
 {
 	vx_status status = VX_SUCCESS;
-	STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[6], 0, data->nbatchSize, sizeof(vx_float32),data->mean, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-	STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[7], 0, data->nbatchSize, sizeof(vx_float32),data->std_dev, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
+	STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[6], 0, data->nbatchSize*3, sizeof(vx_float32),data->mean, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
+	STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[7], 0, data->nbatchSize*3, sizeof(vx_float32),data->std_dev, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
 	STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[8], 0, data->nbatchSize, sizeof(vx_uint32),data->mirror, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[9], &data->chnShift));
 	
@@ -182,8 +182,8 @@ static vx_status VX_CALLBACK initializeResizeMirrorNormalizebatchPD(vx_node node
 #endif
 	STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[11], &data->device_type, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
 	STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[10], &data->nbatchSize));
-	data->mean = (vx_float32 *)malloc(sizeof(vx_float32) * data->nbatchSize);
-	data->std_dev = (vx_float32 *)malloc(sizeof(vx_float32) * data->nbatchSize);
+	data->mean = (vx_float32 *)malloc(sizeof(vx_float32) * data->nbatchSize*3);
+	data->std_dev = (vx_float32 *)malloc(sizeof(vx_float32) * data->nbatchSize*3);
 	data->mirror = (vx_uint32 *)malloc(sizeof(vx_uint32) * data->nbatchSize);
 	data->srcDimensions = (RppiSize *)malloc(sizeof(RppiSize) * data->nbatchSize);
 	data->dstDimensions = (RppiSize *)malloc(sizeof(RppiSize) * data->nbatchSize);
