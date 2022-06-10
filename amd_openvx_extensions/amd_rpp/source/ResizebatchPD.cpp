@@ -49,6 +49,8 @@ struct ResizebatchPDLocalData
 #elif ENABLE_HIP
     void *hip_pSrc;
     void *hip_pDst;
+    RpptImagePatch *d_dstImgSize;
+    RpptROI *d_roiTensorPtrSrc;
 #endif
 };
 
@@ -76,6 +78,8 @@ static vx_status VX_CALLBACK refreshResizebatchPD(vx_node node, const vx_referen
 #elif ENABLE_HIP
         STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[0], VX_IMAGE_ATTRIBUTE_AMD_HIP_BUFFER, &data->hip_pSrc, sizeof(data->hip_pSrc)));
         STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[3], VX_IMAGE_ATTRIBUTE_AMD_HIP_BUFFER, &data->hip_pDst, sizeof(data->hip_pDst)));
+        hipMemcpy(data->d_dstImgSize, data->dstImgSize, data->nbatchSize * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
+        hipMemcpy(data->d_roiTensorPtrSrc, data->roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
 #endif
     }
     if (data->device_type == AGO_TARGET_AFFINITY_CPU)
@@ -151,14 +155,7 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #elif ENABLE_HIP
         refreshResizebatchPD(node, parameters, num, data);
-        if (df_image == VX_DF_IMAGE_U8)
-        {
-            rpp_status = rppi_resize_u8_pln1_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
-        }
-        else if (df_image == VX_DF_IMAGE_RGB)
-        {
-            rpp_status = rppi_resize_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
-        }
+        rpp_status = rppt_resize_gpu(data->hip_pSrc, data->srcDescPtr, data->hip_pDst, data->dstDescPtr, data->d_dstImgSize, RpptInterpolationType::BILINEAR, data->d_roiTensorPtrSrc, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #endif
     }
@@ -226,45 +223,46 @@ static vx_status VX_CALLBACK initializeResizebatchPD(vx_node node, const vx_refe
     data->dstDescPtr->h = data->maxDstDimensions.height;
     data->dstDescPtr->w = data->maxDstDimensions.width;
     data->dstDescPtr->c = ip_channel;
-
     // Set layout and n/c/h/w strides for src/dst
-    if(df_image == VX_DF_IMAGE_U8)
-    {
-        data->srcDescPtr->layout = RpptLayout::NCHW;
-        data->dstDescPtr->layout = RpptLayout::NCHW;
+    // Uncomment for Classification training
+    /* data->srcDescPtr->layout = RpptLayout::NCHW;
+    data->dstDescPtr->layout = RpptLayout::NCHW;
 
-        data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
-        data->srcDescPtr->strides.cStride = data->srcDescPtr->w * data->srcDescPtr->h;
-        data->srcDescPtr->strides.hStride = data->srcDescPtr->w;
-        data->srcDescPtr->strides.wStride = 1;
+    data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
+    data->srcDescPtr->strides.cStride = data->srcDescPtr->w * data->srcDescPtr->h;
+    data->srcDescPtr->strides.hStride = data->srcDescPtr->w;
+    data->srcDescPtr->strides.wStride = 1;
 
-        data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
-        data->dstDescPtr->strides.cStride = data->dstDescPtr->w * data->dstDescPtr->h;
-        data->dstDescPtr->strides.hStride = data->dstDescPtr->w;
-        data->dstDescPtr->strides.wStride = 1;
-    }
-    else
-    {
-        data->srcDescPtr->layout = RpptLayout::NHWC;
-        data->dstDescPtr->layout = RpptLayout::NHWC;
+    data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
+    data->dstDescPtr->strides.cStride = data->dstDescPtr->w * data->dstDescPtr->h;
+    data->dstDescPtr->strides.hStride = data->dstDescPtr->w;
+    data->dstDescPtr->strides.wStride = 1; */
 
-        data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
-        data->srcDescPtr->strides.hStride = ip_channel * data->srcDescPtr->w;
-        data->srcDescPtr->strides.wStride = ip_channel;
-        data->srcDescPtr->strides.cStride = 1;
 
-        data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
-        data->dstDescPtr->strides.hStride = ip_channel * data->dstDescPtr->w;
-        data->dstDescPtr->strides.wStride = ip_channel;
-        data->dstDescPtr->strides.cStride = 1;
-    }
+    /* For SSD and Mask trainings only */
+    data->srcDescPtr->layout = RpptLayout::NHWC;
+    data->dstDescPtr->layout = RpptLayout::NHWC;
+
+    data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
+    data->srcDescPtr->strides.hStride = ip_channel * data->srcDescPtr->w;
+    data->srcDescPtr->strides.wStride = ip_channel;
+    data->srcDescPtr->strides.cStride = 1;
+
+    data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
+    data->dstDescPtr->strides.hStride = ip_channel * data->dstDescPtr->w;
+    data->dstDescPtr->strides.wStride = ip_channel;
+    data->dstDescPtr->strides.cStride = 1;
+    // */
 
     // Initialize ROI tensors for src/dst
     data->roiTensorPtrSrc  = (RpptROI *) calloc(data->nbatchSize, sizeof(RpptROI));
 
     // Set ROI tensors types for src/dst
     data->roiType = RpptRoiType::XYWH;
-
+#if ENABLE_HIP
+    hipMalloc(&data->d_dstImgSize, data->nbatchSize * sizeof(RpptImagePatch));
+    hipMalloc(&data->d_roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI));
+#endif
     refreshResizebatchPD(node, parameters, num, data);
 #if ENABLE_OPENCL
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
@@ -284,6 +282,10 @@ static vx_status VX_CALLBACK uninitializeResizebatchPD(vx_node node, const vx_re
 {
     ResizebatchPDLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
+#if ENABLE_HIP
+    hipFree(data->d_dstImgSize);
+    hipFree(data->d_roiTensorPtrSrc);
+#endif
 #if ENABLE_OPENCL || ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppDestroyGPU(data->rppHandle);
