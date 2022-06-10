@@ -21,6 +21,9 @@ THE SOFTWARE.
 */
 
 #include "internal_publishKernels.h"
+#include <chrono>
+#include <utility>
+long long unsigned rpp_resize_time = 0;
 
 struct ResizebatchPDLocalData
 {
@@ -155,14 +158,35 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #elif ENABLE_HIP
         refreshResizebatchPD(node, parameters, num, data);
+        chrono::high_resolution_clock::time_point start_time = chrono::high_resolution_clock::now();
+        
+        // rpp_status = rppi_resize_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
         rpp_status = rppt_resize_gpu(data->hip_pSrc, data->srcDescPtr, data->hip_pDst, data->dstDescPtr, data->d_dstImgSize, RpptInterpolationType::BILINEAR, data->d_roiTensorPtrSrc, data->roiType, data->rppHandle);
+        
+        chrono::high_resolution_clock::time_point end_time = chrono::high_resolution_clock::now();
+        chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
+        auto time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(time_elapsed).count());
+        rpp_resize_time +=  time_dur;
+        std::cout<<"Current Iteration Time: "<<time_dur<<std::endl;
+        std::cout<<"rpp_resize HIP time: "<<rpp_resize_time<<std::endl;
+
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #endif
     }
     if (data->device_type == AGO_TARGET_AFFINITY_CPU)
     {
         refreshResizebatchPD(node, parameters, num, data);
+        chrono::high_resolution_clock::time_point start_time = chrono::high_resolution_clock::now();
+        // rpp_status = rppi_resize_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
         rpp_status = rppt_resize_host(data->pSrc, data->srcDescPtr, data->pDst, data->dstDescPtr, data->dstImgSize, RpptInterpolationType::BILINEAR, data->roiTensorPtrSrc, data->roiType, data->rppHandle);
+        
+        chrono::high_resolution_clock::time_point end_time = chrono::high_resolution_clock::now();
+        chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
+        auto time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(time_elapsed).count());
+        rpp_resize_time +=  time_dur;
+        std::cout<<"Current Iteration Time: "<<time_dur<<std::endl;
+        std::cout<<"rpp_resize HOST time: "<<rpp_resize_time<<std::endl;
+
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     return return_status;
@@ -224,35 +248,36 @@ static vx_status VX_CALLBACK initializeResizebatchPD(vx_node node, const vx_refe
     data->dstDescPtr->w = data->maxDstDimensions.width;
     data->dstDescPtr->c = ip_channel;
     // Set layout and n/c/h/w strides for src/dst
-    // Uncomment for Classification training
-    /* data->srcDescPtr->layout = RpptLayout::NCHW;
-    data->dstDescPtr->layout = RpptLayout::NCHW;
+    if(df_image == VX_DF_IMAGE_U8) // For PLN1 images
+    {
+        data->srcDescPtr->layout = RpptLayout::NCHW;
+        data->dstDescPtr->layout = RpptLayout::NCHW;
 
-    data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
-    data->srcDescPtr->strides.cStride = data->srcDescPtr->w * data->srcDescPtr->h;
-    data->srcDescPtr->strides.hStride = data->srcDescPtr->w;
-    data->srcDescPtr->strides.wStride = 1;
+        data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
+        data->srcDescPtr->strides.cStride = data->srcDescPtr->w * data->srcDescPtr->h;
+        data->srcDescPtr->strides.hStride = data->srcDescPtr->w;
+        data->srcDescPtr->strides.wStride = 1;
 
-    data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
-    data->dstDescPtr->strides.cStride = data->dstDescPtr->w * data->dstDescPtr->h;
-    data->dstDescPtr->strides.hStride = data->dstDescPtr->w;
-    data->dstDescPtr->strides.wStride = 1; */
+        data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
+        data->dstDescPtr->strides.cStride = data->dstDescPtr->w * data->dstDescPtr->h;
+        data->dstDescPtr->strides.hStride = data->dstDescPtr->w;
+        data->dstDescPtr->strides.wStride = 1;
+    }
+    else // For RGB (NHWC/NCHW) images
+    {
+        data->srcDescPtr->layout = RpptLayout::NHWC;
+        data->dstDescPtr->layout = RpptLayout::NHWC;
 
+        data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
+        data->srcDescPtr->strides.hStride = ip_channel * data->srcDescPtr->w;
+        data->srcDescPtr->strides.wStride = ip_channel;
+        data->srcDescPtr->strides.cStride = 1;
 
-    /* For SSD and Mask trainings only */
-    data->srcDescPtr->layout = RpptLayout::NHWC;
-    data->dstDescPtr->layout = RpptLayout::NHWC;
-
-    data->srcDescPtr->strides.nStride = ip_channel * data->srcDescPtr->w * data->srcDescPtr->h;
-    data->srcDescPtr->strides.hStride = ip_channel * data->srcDescPtr->w;
-    data->srcDescPtr->strides.wStride = ip_channel;
-    data->srcDescPtr->strides.cStride = 1;
-
-    data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
-    data->dstDescPtr->strides.hStride = ip_channel * data->dstDescPtr->w;
-    data->dstDescPtr->strides.wStride = ip_channel;
-    data->dstDescPtr->strides.cStride = 1;
-    // */
+        data->dstDescPtr->strides.nStride = ip_channel * data->dstDescPtr->w * data->dstDescPtr->h;
+        data->dstDescPtr->strides.hStride = ip_channel * data->dstDescPtr->w;
+        data->dstDescPtr->strides.wStride = ip_channel;
+        data->dstDescPtr->strides.cStride = 1;
+    }
 
     // Initialize ROI tensors for src/dst
     data->roiTensorPtrSrc  = (RpptROI *) calloc(data->nbatchSize, sizeof(RpptROI));
