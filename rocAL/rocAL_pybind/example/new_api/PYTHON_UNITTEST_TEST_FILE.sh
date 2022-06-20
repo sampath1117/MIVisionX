@@ -92,7 +92,7 @@ fi
 CURRENTDATE=`date +"%Y-%m-%d-%T"`
 
 # Mention Batch Size
-batch_size=10
+batch_size=256
 
 # python version
 ver=$(python -V 2>&1 | sed 's/.* \([0-9]\).\([0-9]\).*/\1\.\2/')
@@ -106,7 +106,7 @@ rocAL_api_python_unittest=1
 ####################################################################################################################################
 
     # Mention dataset_path
-    data_dir="/media/coco_20_img/coco2017/val2017"
+    data_dir="/media/imageNetCompleteVal"
 
 
     # rocAL_api_python_unittest.py
@@ -114,7 +114,7 @@ rocAL_api_python_unittest=1
     # Please pass image_folder augmentation_name in addition to other common args
     # Refer rocAL_api_python_unitest.py for all augmentation names
 
-    python$ver rocAL_api_python_unittest.py --image-dataset-path $data_dir --augmentation-name resize --batch-size $batch_size --display --NHWC --local-rank 0 --world-size $gpus_per_node --num-threads 1 --num-epochs 1 --$backend_arg --$print_tensor_arg 2>&1 | tee -a run.rocAL_api_log.${CURRENTDATE}
+    python$ver rocAL_api_python_unittest.py --image-dataset-path $data_dir --augmentation-name resize --batch-size $batch_size --display --NHWC --local-rank 0 --world-size 1 --num-threads 1 --num-epochs 1 --$backend_arg --$print_tensor_arg 2>&1 | tee -a run.rocAL_api_log.${CURRENTDATE}
     # python$ver rocAL_api_python_unittest.py --image-dataset-path $data_dir --augmentation-name one_hot --batch-size $batch_size --display --NHWC --local-rank 0 --world-size $gpus_per_node --num-threads 1 --num-epochs 2 --$backend_arg --$print_tensor_arg 2>&1 | tee -a run.rocAL_api_log.${CURRENTDATE}
     # python$ver rocAL_api_python_unittest.py --image-dataset-path $data_dir --augmentation-name rotate --batch-size $batch_size --display --NHWC --local-rank 0 --world-size $gpus_per_node --num-threads 1 --num-epochs 2 --$backend_arg --$print_tensor_arg 2>&1 | tee -a run.rocAL_api_log.${CURRENTDATE}
     # python$ver rocAL_api_python_unittest.py --image-dataset-path $data_dir --augmentation-name brightness --batch-size $batch_size --display --NHWC --local-rank 0 --world-size $gpus_per_node --num-threads 1 --num-epochs 2 --$backend_arg --$print_tensor_arg 2>&1 | tee -a run.rocAL_api_log.${CURRENTDATE}

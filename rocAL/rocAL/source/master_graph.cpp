@@ -52,6 +52,9 @@ using half_float::half;
 #include <rali_hip_kernels.h>
 #endif
 
+long long unsigned hip_conv_time = 0;
+long long unsigned get_read_time = 0;
+
 static void VX_CALLBACK log_callback(vx_context context, vx_reference ref, vx_status status, const vx_char* string)
 {
     size_t len = strnlen(string, MAX_STRING_LENGTH);
@@ -650,13 +653,25 @@ MasterGraph::copy_out_tensor(void *out_ptr, RaliTensorFormat format, float multi
     {
         unsigned int fp16 = (output_data_type == RaliTensorDataType::FP16);
 
+        std::chrono::high_resolution_clock::time_point read_start_time = std::chrono::high_resolution_clock::now();
+
         auto output_buffers =_ring_buffer.get_read_buffers();
+
+        std::chrono::high_resolution_clock::time_point read_end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::micro> read_time_elapsed = read_end_time - read_start_time;
+        auto read_time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(read_time_elapsed).count());
+        get_read_time +=  read_time_dur;
+        std::cout<<"_ring_buffer.get_read_buffers() Time: "<<get_read_time<<std::endl;
+        
         unsigned dest_buf_offset = 0;
+
+        std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
         // copy hip buffer to out_ptr
         // todo:: add callback routing to exchange memory pointer to avoid extra copy
         for( auto&& out_image: output_buffers)
         {
             auto img_buffer = out_image;
+            std::cout<<"n, c, h, w, reverse_channels: "<<n<<", "<<c<<", "<<h<<", "<<w<<", "<<reverse_channels<<std::endl;
             if (format == RaliTensorFormat::NHWC)
             {
                 HipExecCopyInt8ToNHWC(_device.resources().hip_stream, (const void *)img_buffer, out_ptr, dest_buf_offset, n, c, h, w,
@@ -669,6 +684,13 @@ MasterGraph::copy_out_tensor(void *out_ptr, RaliTensorFormat format, float multi
             }
             dest_buf_offset += single_output_image_size;
         }
+
+        std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
+        auto time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(time_elapsed).count());
+        hip_conv_time +=  time_dur;
+        // std::cout<<"Process Time: "<<time_dur<<std::endl;
+        std::cout<<"Hip_CopyInt8ToNHWC_fp32 Time: "<<hip_conv_time<<std::endl;
     }
 #endif
     if(_output_image_info.mem_type() == RaliMemType::HOST)

@@ -22,6 +22,11 @@ THE SOFTWARE.
 
 #include <device_manager.h>
 #include "ring_buffer.h"
+#include <chrono>
+#include <utility>
+
+long long unsigned block_time = 0;
+
 
 RingBuffer::RingBuffer(unsigned buffer_depth):
         BUFF_DEPTH(buffer_depth),
@@ -56,7 +61,16 @@ void RingBuffer:: block_if_full()
 }
 std::vector<void*> RingBuffer::get_read_buffers()
 {
+    std::chrono::high_resolution_clock::time_point start_time = std::chrono::high_resolution_clock::now();
     block_if_empty();
+
+    std::chrono::high_resolution_clock::time_point end_time = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
+    auto time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(time_elapsed).count());
+    block_time +=  time_dur;
+
+    std::cout<<"block_if_empty() Time: "<<block_time<<std::endl;
+
     if((_mem_type == RaliMemType::OCL) || (_mem_type == RaliMemType::HIP))
         return _dev_sub_buffer[_read_ptr];
     return _host_sub_buffers[_read_ptr];

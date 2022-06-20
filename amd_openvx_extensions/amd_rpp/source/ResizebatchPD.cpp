@@ -24,6 +24,10 @@ THE SOFTWARE.
 #include <chrono>
 #include <utility>
 long long unsigned rpp_resize_time = 0;
+long long unsigned rpp_refresh_time = 0;
+long long unsigned rpp_init_time = 0;
+long long unsigned rpp_uninit_time = 0;
+// #define TENSOR_RPP
 
 struct ResizebatchPDLocalData
 {
@@ -81,8 +85,10 @@ static vx_status VX_CALLBACK refreshResizebatchPD(vx_node node, const vx_referen
 #elif ENABLE_HIP
         STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[0], VX_IMAGE_ATTRIBUTE_AMD_HIP_BUFFER, &data->hip_pSrc, sizeof(data->hip_pSrc)));
         STATUS_ERROR_CHECK(vxQueryImage((vx_image)parameters[3], VX_IMAGE_ATTRIBUTE_AMD_HIP_BUFFER, &data->hip_pDst, sizeof(data->hip_pDst)));
-        hipMemcpy(data->d_dstImgSize, data->dstImgSize, data->nbatchSize * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
-        hipMemcpy(data->d_roiTensorPtrSrc, data->roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
+        #if defined TENSOR_RPP
+            hipMemcpy(data->d_dstImgSize, data->dstImgSize, data->nbatchSize * sizeof(RpptImagePatch), hipMemcpyHostToDevice);
+            hipMemcpy(data->d_roiTensorPtrSrc, data->roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
+        #endif
 #endif
     }
     if (data->device_type == AGO_TARGET_AFFINITY_CPU)
@@ -157,18 +163,28 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
         }
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #elif ENABLE_HIP
+        chrono::high_resolution_clock::time_point refresh_start_time = chrono::high_resolution_clock::now();
+
         refreshResizebatchPD(node, parameters, num, data);
+
+        chrono::high_resolution_clock::time_point refresh_end_time = chrono::high_resolution_clock::now();
+        chrono::duration<double, std::micro> refresh_time_elapsed = refresh_end_time - refresh_start_time;
+        auto refresh_time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(refresh_time_elapsed).count());
+        rpp_refresh_time +=  refresh_time_dur;
+        // std::cout<<"Refresh Time: "<<refresh_time_dur<<std::endl;
+        std::cout<<"Total HIP refresh time: "<<rpp_refresh_time<<std::endl;
+
         chrono::high_resolution_clock::time_point start_time = chrono::high_resolution_clock::now();
-        
-        // rpp_status = rppi_resize_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
-        rpp_status = rppt_resize_gpu(data->hip_pSrc, data->srcDescPtr, data->hip_pDst, data->dstDescPtr, data->d_dstImgSize, RpptInterpolationType::BILINEAR, data->d_roiTensorPtrSrc, data->roiType, data->rppHandle);
-        
+
+        rpp_status = rppi_resize_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
+        // rpp_status = rppt_resize_gpu(data->hip_pSrc, data->srcDescPtr, data->hip_pDst, data->dstDescPtr, data->d_dstImgSize, RpptInterpolationType::BILINEAR, data->d_roiTensorPtrSrc, data->roiType, data->rppHandle);
+
         chrono::high_resolution_clock::time_point end_time = chrono::high_resolution_clock::now();
         chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
         auto time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(time_elapsed).count());
         rpp_resize_time +=  time_dur;
-        std::cout<<"Current Iteration Time: "<<time_dur<<std::endl;
-        std::cout<<"rpp_resize HIP time: "<<rpp_resize_time<<std::endl;
+        // std::cout<<"Process Time: "<<time_dur<<std::endl;
+        std::cout<<"Total HIP Process time: "<<rpp_resize_time<<std::endl;
 
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #endif
@@ -179,12 +195,12 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
         chrono::high_resolution_clock::time_point start_time = chrono::high_resolution_clock::now();
         // rpp_status = rppi_resize_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
         rpp_status = rppt_resize_host(data->pSrc, data->srcDescPtr, data->pDst, data->dstDescPtr, data->dstImgSize, RpptInterpolationType::BILINEAR, data->roiTensorPtrSrc, data->roiType, data->rppHandle);
-        
+
         chrono::high_resolution_clock::time_point end_time = chrono::high_resolution_clock::now();
         chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
         auto time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(time_elapsed).count());
         rpp_resize_time +=  time_dur;
-        std::cout<<"Current Iteration Time: "<<time_dur<<std::endl;
+        std::cout<<"Iteration Time: "<<time_dur<<std::endl;
         std::cout<<"rpp_resize HOST time: "<<rpp_resize_time<<std::endl;
 
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
@@ -194,6 +210,8 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
 
 static vx_status VX_CALLBACK initializeResizebatchPD(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
+    chrono::high_resolution_clock::time_point init_start_time = chrono::high_resolution_clock::now();
+
     ResizebatchPDLocalData *data = new ResizebatchPDLocalData;
     memset(data, 0, sizeof(*data));
 #if ENABLE_OPENCL
@@ -285,8 +303,11 @@ static vx_status VX_CALLBACK initializeResizebatchPD(vx_node node, const vx_refe
     // Set ROI tensors types for src/dst
     data->roiType = RpptRoiType::XYWH;
 #if ENABLE_HIP
-    hipMalloc(&data->d_dstImgSize, data->nbatchSize * sizeof(RpptImagePatch));
-    hipMalloc(&data->d_roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI));
+    #if defined TENSOR_RPP
+        std::cout<<"Tensor call"<<std::endl;
+        hipMalloc(&data->d_dstImgSize, data->nbatchSize * sizeof(RpptImagePatch));
+        hipMalloc(&data->d_roiTensorPtrSrc, data->nbatchSize * sizeof(RpptROI));
+    #endif
 #endif
     refreshResizebatchPD(node, parameters, num, data);
 #if ENABLE_OPENCL
@@ -300,16 +321,27 @@ static vx_status VX_CALLBACK initializeResizebatchPD(vx_node node, const vx_refe
         rppCreateWithBatchSize(&data->rppHandle, data->nbatchSize);
 
     STATUS_ERROR_CHECK(vxSetNodeAttribute(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
+
+    chrono::high_resolution_clock::time_point init_end_time = chrono::high_resolution_clock::now();
+    chrono::duration<double, std::micro> init_time_elapsed = init_end_time - init_start_time;
+    auto init_time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(init_time_elapsed).count());
+    rpp_init_time +=  init_time_dur;
+    // std::cout<<"Init Time: "<<init_time_dur<<std::endl;
+    std::cout<<"Total HIP Init time: "<<rpp_init_time<<std::endl;
+
     return VX_SUCCESS;
 }
 
 static vx_status VX_CALLBACK uninitializeResizebatchPD(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
+    chrono::high_resolution_clock::time_point init_start_time = chrono::high_resolution_clock::now();
     ResizebatchPDLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
 #if ENABLE_HIP
-    hipFree(data->d_dstImgSize);
-    hipFree(data->d_roiTensorPtrSrc);
+    #if defined TENSOR_RPP
+        hipFree(data->d_dstImgSize);
+        hipFree(data->d_roiTensorPtrSrc);
+    #endif
 #endif
 #if ENABLE_OPENCL || ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
@@ -326,6 +358,14 @@ static vx_status VX_CALLBACK uninitializeResizebatchPD(vx_node node, const vx_re
     free(data->roiTensorPtrSrc);
     free(data->dstImgSize);
     delete (data);
+
+    chrono::high_resolution_clock::time_point init_end_time = chrono::high_resolution_clock::now();
+    chrono::duration<double, std::micro> init_time_elapsed = init_end_time - init_start_time;
+    auto uninit_time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(init_time_elapsed).count());
+    rpp_uninit_time +=  uninit_time_dur;
+    // std::cout<<"uninit Time: "<<uninit_time_dur<<std::endl;
+    std::cout<<"Total HIP uninit time: "<<rpp_uninit_time<<std::endl;
+
     return VX_SUCCESS;
 }
 

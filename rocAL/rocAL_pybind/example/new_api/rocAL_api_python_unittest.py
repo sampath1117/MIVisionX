@@ -25,6 +25,9 @@ def draw_patches(img, idx, device):
 
 
 def main():
+    import timeit
+    start = timeit.default_timer()
+
     args = parse_args()
     # Args
     data_path = args.image_dataset_path
@@ -147,33 +150,34 @@ def main():
     data_loader = RALIClassificationIterator(pipe,device=device)
     cnt = 0
 
-    import timeit
-    start = timeit.default_timer()
+    
+    iter_cnt = 0
 
     # Enumerate over the Dataloader
     for epoch in range(int(args.num_epochs)):
         print("EPOCH:::::", epoch)
         for i, it in enumerate(data_loader, 0):
+            iter_cnt = iter_cnt + 1
             if args.print_tensor:
                 print("**************", i, "*******************")
-                print("**************starts*******************")
-                print("\nImages:\n", it[0])
-                print("\nLABELS:\n", it[1])
-                print("**************ends*******************")
-                print("**************", i, "*******************")
+                # print("**************starts*******************")
+                # print("\nImages:\n", it[0])
+                # print("\nLABELS:\n", it[1])
+                # print("**************ends*******************")
+                # print("**************", i, "*******************")
             for img in it[0]:
                 cnt = cnt+1
-                if display:
-                    draw_patches(img, cnt, device)
+                # if display:
+                #     draw_patches(img, cnt, device)
 
-            break
+            # break
         data_loader.reset()
 
     #Your statements here
     stop = timeit.default_timer()
 
     print('\n Time: ', stop - start)
-    print('Number of times loop iterates is:', cnt)
+    print('Number of times loop iterates is:', iter_cnt)
 
     print(f'###############################################                             {augmentation_name.upper()}                         ############################################')
     print("###############################################                             SUCCESS                             ###############################################")
