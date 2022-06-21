@@ -699,7 +699,16 @@ MasterGraph::copy_out_tensor(void *out_ptr, RaliTensorFormat format, float multi
         float offset[3] = {offset0, offset1, offset2 };
         size_t dest_buf_offset_start = 0;
 
+        std::chrono::high_resolution_clock::time_point read_start_time = std::chrono::high_resolution_clock::now();
+
         auto output_buffers =_ring_buffer.get_read_buffers();
+
+        std::chrono::high_resolution_clock::time_point read_end_time = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::micro> read_time_elapsed = read_end_time - read_start_time;
+        auto read_time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(read_time_elapsed).count());
+        get_read_time +=  read_time_dur;
+        std::cout<<"CPU: _ring_buffer.get_read_buffers() Time: "<<get_read_time<<std::endl;
+
         for( auto&& out_image: output_buffers)
         {
             unsigned int single_image_size = w * c * h;

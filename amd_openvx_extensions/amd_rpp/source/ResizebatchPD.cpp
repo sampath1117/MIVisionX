@@ -191,7 +191,17 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
     }
     if (data->device_type == AGO_TARGET_AFFINITY_CPU)
     {
+        chrono::high_resolution_clock::time_point refresh_start_time = chrono::high_resolution_clock::now();
+
         refreshResizebatchPD(node, parameters, num, data);
+
+        chrono::high_resolution_clock::time_point refresh_end_time = chrono::high_resolution_clock::now();
+        chrono::duration<double, std::micro> refresh_time_elapsed = refresh_end_time - refresh_start_time;
+        auto refresh_time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(refresh_time_elapsed).count());
+        rpp_refresh_time +=  refresh_time_dur;
+        // std::cout<<"Refresh Time: "<<refresh_time_dur<<std::endl;
+        std::cout<<"CPU: Total HIP refresh time: "<<rpp_refresh_time<<std::endl;
+
         chrono::high_resolution_clock::time_point start_time = chrono::high_resolution_clock::now();
         // rpp_status = rppi_resize_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
         rpp_status = rppt_resize_host(data->pSrc, data->srcDescPtr, data->pDst, data->dstDescPtr, data->dstImgSize, RpptInterpolationType::BILINEAR, data->roiTensorPtrSrc, data->roiType, data->rppHandle);
@@ -200,8 +210,9 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
         chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
         auto time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(time_elapsed).count());
         rpp_resize_time +=  time_dur;
-        std::cout<<"Iteration Time: "<<time_dur<<std::endl;
-        std::cout<<"rpp_resize HOST time: "<<rpp_resize_time<<std::endl;
+
+        // std::cout<<"Process Time: "<<time_dur<<std::endl;
+        std::cout<<"CPU: Total HIP Process time: "<<rpp_resize_time<<std::endl;
 
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
