@@ -58,11 +58,11 @@ def main():
     with pipe:
         jpegs, _ = fn.readers.file(file_root=data_path, shard_id=local_rank, num_shards=world_size, random_shuffle=True)
         images = fn.decoders.image(jpegs, file_root=data_path, device=decoder_device, output_type=types.RGB, shard_id=0, num_shards=1, random_shuffle=True)
-        images = fn.resize(images, device=rali_device, resize_x=300, resize_y=300)
+        # images = fn.resize(images, device=rali_device, resize_x=300, resize_y=300)
 
 
         if augmentation_name == "resize":
-            output = fn.resize(images, resize_x=300, resize_y=300)
+            output = fn.resize(images, device=rali_device, resize_x=300, resize_y=300)
         elif augmentation_name == "rotate":
             output = fn.rotate(images)
         elif augmentation_name == "brightness":
@@ -158,8 +158,8 @@ def main():
         print("EPOCH:::::", epoch)
         for i, it in enumerate(data_loader, 0):
             iter_cnt = iter_cnt + 1
-            if args.print_tensor:
-                print("**************", i, "*******************")
+            # if args.print_tensor:
+            #     print("**************", i, "*******************")
                 # print("**************starts*******************")
                 # print("\nImages:\n", it[0])
                 # print("\nLABELS:\n", it[1])

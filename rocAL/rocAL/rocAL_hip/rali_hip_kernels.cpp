@@ -230,7 +230,7 @@ int HipExecCopyInt8ToNHWC(
     int globalThreads_x = w, globalThreads_y = h;
     if (!fp16)
     {
-        std::cout<<"Calling Hip_CopyInt8ToNHWC_fp32"<<std::endl;
+        //std::cerr<<"Calling Hip_CopyInt8ToNHWC_fp32"<<std::endl;
         hipLaunchKernelGGL(Hip_CopyInt8ToNHWC_fp32,
                            dim3(ceil((float)globalThreads_x / localThreads_x), ceil((float)globalThreads_y / localThreads_y)),
                            dim3(localThreads_x, localThreads_y),
@@ -241,7 +241,7 @@ int HipExecCopyInt8ToNHWC(
     }
     else
     {
-        std::cout<<"Calling Hip_CopyInt8ToNHWC_fp16"<<std::endl;
+        //std::cerr<<"Calling Hip_CopyInt8ToNHWC_fp16"<<std::endl;
         hipLaunchKernelGGL(Hip_CopyInt8ToNHWC_fp16,
                            dim3(ceil((float)globalThreads_x / localThreads_x), ceil((float)globalThreads_y / localThreads_y)),
                            dim3(localThreads_x, localThreads_y),
@@ -275,7 +275,7 @@ int HipExecCopyInt8ToNCHW(
     int globalThreads_x = w, globalThreads_y = h;
     if (!fp16)
     {
-        std::cout<<"Calling Hip_CopyInt8ToNCHW_fp32"<<std::endl;
+        //std::cerr<<"Calling Hip_CopyInt8ToNCHW_fp32"<<std::endl;
         hipLaunchKernelGGL(Hip_CopyInt8ToNCHW_fp32,
                            dim3(ceil((float)globalThreads_x / localThreads_x), ceil((float)globalThreads_y / localThreads_y)),
                            dim3(localThreads_x, localThreads_y),
@@ -286,7 +286,7 @@ int HipExecCopyInt8ToNCHW(
     }
     else
     {
-        std::cout<<"Calling Hip_CopyInt8ToNCHW_fp16"<<std::endl;
+        //std::cerr<<"Calling Hip_CopyInt8ToNCHW_fp16"<<std::endl;
         hipLaunchKernelGGL(Hip_CopyInt8ToNCHW_fp16,
                            dim3(ceil((float)globalThreads_x / localThreads_x), ceil((float)globalThreads_y / localThreads_y)),
                            dim3(localThreads_x, localThreads_y),

@@ -54,6 +54,7 @@ using half_float::half;
 
 long long unsigned hip_conv_time = 0;
 long long unsigned get_read_time = 0;
+long long unsigned graph_process_time = 0;
 
 static void VX_CALLBACK log_callback(vx_context context, vx_reference ref, vx_status status, const vx_char* string)
 {
@@ -661,7 +662,7 @@ MasterGraph::copy_out_tensor(void *out_ptr, RaliTensorFormat format, float multi
         std::chrono::duration<double, std::micro> read_time_elapsed = read_end_time - read_start_time;
         auto read_time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(read_time_elapsed).count());
         get_read_time +=  read_time_dur;
-        std::cout<<"_ring_buffer.get_read_buffers() Time: "<<get_read_time<<std::endl;
+        std::cerr<<"_ring_buffer.get_read_buffers() Time: "<<get_read_time<<std::endl;
         
         unsigned dest_buf_offset = 0;
 
@@ -671,7 +672,7 @@ MasterGraph::copy_out_tensor(void *out_ptr, RaliTensorFormat format, float multi
         for( auto&& out_image: output_buffers)
         {
             auto img_buffer = out_image;
-            std::cout<<"n, c, h, w, reverse_channels: "<<n<<", "<<c<<", "<<h<<", "<<w<<", "<<reverse_channels<<std::endl;
+            // std::cerr<<"n, c, h, w, reverse_channels: "<<n<<", "<<c<<", "<<h<<", "<<w<<", "<<reverse_channels<<std::endl;
             if (format == RaliTensorFormat::NHWC)
             {
                 HipExecCopyInt8ToNHWC(_device.resources().hip_stream, (const void *)img_buffer, out_ptr, dest_buf_offset, n, c, h, w,
@@ -689,8 +690,7 @@ MasterGraph::copy_out_tensor(void *out_ptr, RaliTensorFormat format, float multi
         std::chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
         auto time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(time_elapsed).count());
         hip_conv_time +=  time_dur;
-        // std::cout<<"Process Time: "<<time_dur<<std::endl;
-        std::cout<<"Hip_CopyInt8ToNHWC_fp32 Time: "<<hip_conv_time<<std::endl;
+        std::cerr<<"Hip_CopyInt8ToNHWC_fp32 Time: "<<hip_conv_time<<std::endl;
     }
 #endif
     if(_output_image_info.mem_type() == RaliMemType::HOST)
@@ -707,7 +707,7 @@ MasterGraph::copy_out_tensor(void *out_ptr, RaliTensorFormat format, float multi
         std::chrono::duration<double, std::micro> read_time_elapsed = read_end_time - read_start_time;
         auto read_time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(read_time_elapsed).count());
         get_read_time +=  read_time_dur;
-        std::cout<<"CPU: _ring_buffer.get_read_buffers() Time: "<<get_read_time<<std::endl;
+        std::cerr<<"CPU: _ring_buffer.get_read_buffers() Time: "<<get_read_time<<std::endl;
 
         for( auto&& out_image: output_buffers)
         {
@@ -1015,7 +1015,14 @@ void MasterGraph::output_routine()
                     else
                         full_batch_meta_data = _augmented_meta_data->clone();
                 }
+                std::chrono::high_resolution_clock::time_point graph_process_start_time = std::chrono::high_resolution_clock::now();
                 _graph->process();
+                std::chrono::high_resolution_clock::time_point graph_process_end_time = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double, std::micro> graph_process_time_elapsed = graph_process_end_time - graph_process_start_time;
+                auto graph_process_time_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(graph_process_time_elapsed).count());
+                graph_process_time +=  graph_process_time_dur;
+                std::cerr<<"_graph->process() Time: "<<graph_process_time<<std::endl;
+
             }
             _bencode_time.start();
             if(_is_box_encoder )
