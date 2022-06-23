@@ -27,7 +27,7 @@ long long unsigned rpp_resize_time = 0;
 long long unsigned rpp_refresh_time = 0;
 long long unsigned rpp_init_time = 0;
 long long unsigned rpp_uninit_time = 0;
-#define TENSOR_RPP 0
+#define TENSOR_RPP 1
 
 struct ResizebatchPDLocalData
 {
@@ -58,8 +58,10 @@ struct ResizebatchPDLocalData
 #elif ENABLE_HIP
     void *hip_pSrc;
     void *hip_pDst;
-    RpptImagePatch *d_dstImgSize;
-    RpptROI *d_roiTensorPtrSrc;
+    #if TENSOR_RPP
+        RpptImagePatch *d_dstImgSize;
+        RpptROI *d_roiTensorPtrSrc;
+    #endif
 #endif
 };
 
@@ -151,7 +153,6 @@ static vx_status VX_CALLBACK validateResizebatchPD(vx_node node, const vx_refere
 
 static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
-    chrono::high_resolution_clock::time_point start_time = chrono::high_resolution_clock::now();
     RppStatus rpp_status = RPP_SUCCESS;
     vx_status return_status = VX_SUCCESS;
     ResizebatchPDLocalData *data = NULL;
@@ -182,11 +183,19 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
         // std::cerr<<"Refresh Time: "<<refresh_time_dur<<std::endl;
         std::cerr<<"refreshResizebatchPD Time: "<<rpp_refresh_time<<std::endl;
 
+        chrono::high_resolution_clock::time_point start_time = chrono::high_resolution_clock::now();
         #if TENSOR_RPP 
             rpp_status = rppt_resize_gpu(data->hip_pSrc, data->srcDescPtr, data->hip_pDst, data->dstDescPtr, data->d_dstImgSize, RpptInterpolationType::BILINEAR, data->d_roiTensorPtrSrc, data->roiType, data->rppHandle);
         #else
             rpp_status = rppi_resize_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->dstDimensions, data->maxDstDimensions, output_format_toggle, data->nbatchSize, data->rppHandle);
         #endif
+        chrono::high_resolution_clock::time_point end_time = chrono::high_resolution_clock::now();
+        chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
+        auto time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(time_elapsed).count());
+        rpp_resize_time +=  time_dur;
+        // std::cerr<<"Process Time: "<<time_dur<<std::endl;
+        std::cerr<<"RPP call time: "<<rpp_resize_time<<std::endl;
+
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #endif
     }
@@ -208,13 +217,6 @@ static vx_status VX_CALLBACK processResizebatchPD(vx_node node, const vx_referen
         #endif
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
-
-    chrono::high_resolution_clock::time_point end_time = chrono::high_resolution_clock::now();
-    chrono::duration<double, std::micro> time_elapsed = end_time - start_time;
-    auto time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(time_elapsed).count());
-    rpp_resize_time +=  time_dur;
-    // std::cerr<<"Process Time: "<<time_dur<<std::endl;
-    std::cerr<<"processResizebatchPD time: "<<rpp_resize_time<<std::endl;
     return return_status;
 }
 
@@ -339,7 +341,7 @@ static vx_status VX_CALLBACK initializeResizebatchPD(vx_node node, const vx_refe
     auto init_time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(init_time_elapsed).count());
     rpp_init_time +=  init_time_dur;
     // std::cerr<<"Init Time: "<<init_time_dur<<std::endl;
-    std::cerr<<"initializeResizebatchPD time: "<<rpp_init_time<<std::endl;
+    std::cerr<<"initializeResizebatchPD Time: "<<rpp_init_time<<std::endl;
 
     return VX_SUCCESS;
 }
@@ -377,7 +379,7 @@ static vx_status VX_CALLBACK uninitializeResizebatchPD(vx_node node, const vx_re
     auto uninit_time_dur = static_cast<long long unsigned> (chrono::duration_cast<chrono::microseconds>(init_time_elapsed).count());
     rpp_uninit_time +=  uninit_time_dur;
     // std::cerr<<"uninit Time: "<<uninit_time_dur<<std::endl;
-    std::cerr<<"uninitializeResizebatchPD: "<<rpp_uninit_time<<std::endl;
+    std::cerr<<"uninitializeResizebatchPD Time: "<<rpp_uninit_time<<std::endl;
 
     return VX_SUCCESS;
 }

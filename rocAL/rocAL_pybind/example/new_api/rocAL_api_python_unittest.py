@@ -25,8 +25,8 @@ def draw_patches(img, idx, device):
 
 
 def main():
-    import timeit
-    start = timeit.default_timer()
+    # import timeit
+    # start = timeit.default_timer()
 
     args = parse_args()
     # Args
@@ -58,11 +58,11 @@ def main():
     with pipe:
         jpegs, _ = fn.readers.file(file_root=data_path, shard_id=local_rank, num_shards=world_size, random_shuffle=True)
         images = fn.decoders.image(jpegs, file_root=data_path, device=decoder_device, output_type=types.RGB, shard_id=0, num_shards=1, random_shuffle=True)
-        # images = fn.resize(images, device=rali_device, resize_x=300, resize_y=300)
-
+        images = fn.resize(images, device=rali_device, resize_x=300, resize_y=300)
 
         if augmentation_name == "resize":
-            output = fn.resize(images, device=rali_device, resize_x=300, resize_y=300)
+            pipe.set_outputs(images)
+            output_set = 1
         elif augmentation_name == "rotate":
             output = fn.rotate(images)
         elif augmentation_name == "brightness":
@@ -143,7 +143,7 @@ def main():
             output_set = 1
 
         if output_set==0:
-                pipe.set_outputs(output)
+            pipe.set_outputs(output)
     # build the pipeline
     pipe.build()
     # Dataloader
@@ -174,9 +174,9 @@ def main():
         data_loader.reset()
 
     #Your statements here
-    stop = timeit.default_timer()
+    # stop = timeit.default_timer()
 
-    print('\n Time: ', stop - start)
+    # print('\n Time: ', stop - start)
     print('Number of times loop iterates is:', iter_cnt)
 
     print(f'###############################################                             {augmentation_name.upper()}                         ############################################')
