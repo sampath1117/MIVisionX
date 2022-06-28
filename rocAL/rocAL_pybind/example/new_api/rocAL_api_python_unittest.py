@@ -59,7 +59,8 @@ def main():
 
 
         if augmentation_name == "resize":
-            output = fn.resize(images, resize_x=300, resize_y=300)
+            #output = fn.resize(images, resize_x=300, resize_y=300)
+            output = images
         elif augmentation_name == "rotate":
             output = fn.rotate(images)
         elif augmentation_name == "brightness":
@@ -151,22 +152,24 @@ def main():
     start = timeit.default_timer()
 
     # Enumerate over the Dataloader
+    iter_cnt = 0
     for epoch in range(int(args.num_epochs)):
         print("EPOCH:::::", epoch)
         for i, it in enumerate(data_loader, 0):
-            if args.print_tensor:
-                print("**************", i, "*******************")
-                print("**************starts*******************")
-                print("\nImages:\n", it[0])
-                print("\nLABELS:\n", it[1])
-                print("**************ends*******************")
-                print("**************", i, "*******************")
+            iter_cnt += 1
+            # if args.print_tensor:
+            #     print("**************", i, "*******************")
+            #     print("**************starts*******************")
+            #     print("\nImages:\n", it[0])
+            #     print("\nLABELS:\n", it[1])
+            #     print("**************ends*******************")
+            #     print("**************", i, "*******************")
             for img in it[0]:
                 cnt = cnt+1
-                if display:
-                    draw_patches(img, cnt, device)
+            #     if display:
+            #         draw_patches(img, cnt, device)
 
-            break
+            # break
         data_loader.reset()
 
     #Your statements here
