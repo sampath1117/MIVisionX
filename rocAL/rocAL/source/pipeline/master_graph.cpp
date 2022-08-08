@@ -693,15 +693,95 @@ MasterGraph::copy_out_tensor(void *out_ptr, RocalTensorFormat format, float mult
                 {
                     if(output_data_type == RocalTensorDataType::FP32)
                     {
-                          float *output_tensor_32 = static_cast<float *>(out_ptr);
-                          auto channel_size = w * h;
-                          for (unsigned channel_idx = 0; channel_idx < c; channel_idx++) {
-                              for (unsigned i = 0; i < channel_size; i++)
-                                  output_tensor_32[dest_buf_offset + channel_idx + i * c] =
-                                          offset[channel_idx] + multiplier[channel_idx] *
-                                                                (reverse_channels ? (float) (in_buffer[i * c + c - channel_idx - 1])
-                                                                                  : (float) (in_buffer[i * c + channel_idx]));
-                          }
+                        float *output_tensor_32 = static_cast<float *>(out_ptr);
+                        auto channel_size = w * h;
+                        if(c != 3)
+                        {
+                            for (unsigned channel_idx = 0; channel_idx < c; channel_idx++)
+                            {
+                                for (unsigned i = 0; i < channel_size; i++)
+                                    output_tensor_32[dest_buf_offset + channel_idx + i * c] =
+                                            offset[channel_idx] + multiplier[channel_idx] *
+                                                                    (reverse_channels ? (float) (in_buffer[i * c + c - channel_idx - 1])
+                                                                                    : (float) (in_buffer[i * c + channel_idx]));
+                            }
+                        }
+                        else
+                        {
+    #if (ENABLE_SIMD && __AVX2__)
+                            unsigned int alignedLength = ((h * w * c) & ~7);    // multiple of 8
+                            unsigned int i = 0;
+                            __m128i px[2];
+                            __m128i mask_R, mask_G, mask_B;
+                            if (reverse_channels)
+                            {
+                                mask_B = _mm_setr_epi8(0, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80);
+                                mask_G = _mm_setr_epi8(1, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80);
+                                mask_R = _mm_setr_epi8(2, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80);
+                            }
+                            else
+                            {
+                                mask_B =  _mm_setr_epi8(2, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80);
+                                mask_G = _mm_setr_epi8(1, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80);
+                                mask_R = _mm_setr_epi8(0, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80);
+                            }
+
+                            __m256 pmul0 = _mm256_set1_ps(multiplier[0]);
+                            __m256 pmul1 = _mm256_set1_ps(multiplier[1]);
+                            __m256 pmul2 = _mm256_set1_ps(multiplier[2]);
+                            __m256 padd0 = _mm256_set1_ps(offset[0]);
+                            __m256 padd1 = _mm256_set1_ps(offset[1]);
+                            __m256 padd2 = _mm256_set1_ps(offset[2]);
+
+                            __m256 fR, fG, fB;
+                            for (; i < alignedLength; i += 24)
+                            {
+                            px[0] = _mm_loadu_si128((__m128i *)in_buffer);           /* load [R01|G01|B01|R02|G02|B02|R03|G03|B03|R04|G04|B04|R05|G05|B05|R06] - Need RGB 01-04 */
+                            px[1] = _mm_loadu_si128((__m128i *)(in_buffer + 12));    /* load [R05|G05|B05|R06|G06|B06|R07|G07|B07|R08|G08|B08|R09|G09|B09|R10] - Need RGB 05-08 */
+
+                            // Load as PKD and  onvert to PLN
+                            fR = _mm256_cvtepi32_ps(_mm256_setr_m128i(_mm_shuffle_epi8(px[0], mask_R), _mm_shuffle_epi8(px[1], mask_R)));    /* Contains R01-08 */
+                            fG = _mm256_cvtepi32_ps(_mm256_setr_m128i(_mm_shuffle_epi8(px[0], mask_G), _mm_shuffle_epi8(px[1], mask_G)));    /* Contains G01-08 */
+                            fB = _mm256_cvtepi32_ps(_mm256_setr_m128i(_mm_shuffle_epi8(px[0], mask_B), _mm_shuffle_epi8(px[1], mask_B)));    /* Contains B01-08 */
+                            fR = _mm256_mul_ps(fR, pmul0);
+                            fG = _mm256_mul_ps(fG, pmul1);
+                            fB = _mm256_mul_ps(fB, pmul2);
+                            fR = _mm256_add_ps(fR, padd0);
+                            fG = _mm256_add_ps(fG, padd1);
+                            fB = _mm256_add_ps(fB, padd2);
+
+                            // Convert from PLN to PKD and store in dst
+                            __m128 p128[4];
+                            p128[0] = _mm256_extractf128_ps(fR, 0);
+                            p128[1] = _mm256_extractf128_ps(fG, 0);
+                            p128[2] = _mm256_extractf128_ps(fB, 0);
+                            _MM_TRANSPOSE4_PS(p128[0], p128[1], p128[2], p128[3]);
+                            _mm_storeu_ps(output_tensor_32, p128[0]);
+                            _mm_storeu_ps(output_tensor_32 + 3, p128[1]);
+                            _mm_storeu_ps(output_tensor_32 + 6, p128[2]);
+                            _mm_storeu_ps(output_tensor_32 + 9, p128[3]);
+
+                            p128[0] = _mm256_extractf128_ps(fR, 1);
+                            p128[1] = _mm256_extractf128_ps(fG, 1);
+                            p128[2] = _mm256_extractf128_ps(fB, 1);
+                            _MM_TRANSPOSE4_PS(p128[0], p128[1], p128[2], p128[3]);
+                            _mm_storeu_ps(output_tensor_32 + 12, p128[0]);
+                            _mm_storeu_ps(output_tensor_32 + 15, p128[1]);
+                            _mm_storeu_ps(output_tensor_32 + 18, p128[2]);
+                            _mm_storeu_ps(output_tensor_32 + 21, p128[3]);
+                            in_buffer += 24;
+                            output_tensor_32 += 24;
+                            }
+                            for (; i < single_image_size; i += 3)
+                            {
+                                output_tensor_32[0] = (in_buffer[0] * multiplier[0]) + offset[0];
+                                output_tensor_32[1] = (in_buffer[1] * multiplier[1]) + offset[1];
+                                output_tensor_32[2] = (in_buffer[2] * multiplier[2]) + offset[2];
+                                output_tensor_32 += 3;
+                                in_buffer += 3;
+                            }
+                        }
+    #endif
                     }
                     else if(output_data_type == RocalTensorDataType::FP16)
                     {
