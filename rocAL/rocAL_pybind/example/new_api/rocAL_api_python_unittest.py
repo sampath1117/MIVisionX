@@ -167,8 +167,8 @@ def main():
             if args.print_tensor:
                 print("**************", i, "*******************")
                 print("**************starts*******************")
-                print("\nImages:\n", it[0])
-                print("\nLABELS:\n", it[1])
+                # print("\nImages:\n", it[0])
+                # print("\nLABELS:\n", it[1])
                 print("**************ends*******************")
                 print("**************", i, "*******************")
             for img in it[0]:

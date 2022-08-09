@@ -48,6 +48,10 @@ using half_float::half;
 #endif
 #endif
 
+#define _mm256_set_m128i(v0, v1)  _mm256_insertf128_si256(_mm256_castsi128_si256(v1), (v0), 1)
+#define _mm256_setr_m128i(v0, v1) _mm256_set_m128i((v1), (v0))
+
+
 #if ENABLE_HIP
 #include <rocal_hip_kernels.h>
 #endif
@@ -691,6 +695,7 @@ MasterGraph::copy_out_tensor(void *out_ptr, RocalTensorFormat format, float mult
 
                 if(format == RocalTensorFormat::NHWC)
                 {
+                    std::cerr<<"format is NHWC"<<std::endl;
                     if(output_data_type == RocalTensorDataType::FP32)
                     {
                         float *output_tensor_32 = static_cast<float *>(out_ptr);
@@ -809,6 +814,7 @@ MasterGraph::copy_out_tensor(void *out_ptr, RocalTensorFormat format, float mult
                         }
                         else {
     #if (ENABLE_SIMD && __AVX2__)
+                            std::cerr<<"format is NCHW"<<std::endl;
                             float *B_buf = output_tensor_32 + dest_buf_offset;
                             float *G_buf = B_buf + channel_size;
                             float *R_buf = G_buf + channel_size;
