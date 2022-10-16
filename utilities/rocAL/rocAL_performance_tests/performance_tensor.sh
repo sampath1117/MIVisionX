@@ -4,15 +4,17 @@ if test -d "$folder"; then
     rm -rf ./output_folder
 fi
 mkdir output_folder
-#########################
 
-# sudo rm -rvf build*
-# mkdir build
-# cd build || exit
-# cmake ..
-# make
+# <<<<<<<<<<<<<< BUILING PERFORMANCE UNITTEST >>>>>>>>>>>  
 
-###########################
+sudo rm -rvf build*
+mkdir build
+cd build || exit
+cmake ..
+make
+
+# <<<<<<<<<<<<<< INITIALIZATION >>>>>>>>>>>  
+
 cd build
 INPUTPATH=$1
 width=$2
@@ -24,18 +26,12 @@ rgb=1
 shard_count=1
 shuffle=0
 
+# <<<<<<<<<<<<<< EXECUTION OF ALL FUNCTIONALITIES >>>>>>>>>>>>>>
 
-#############################################  PKD   #########################################
 echo arguments $INPUTPATH $width $height $testcase $batch_size $device $shard_count $shuffle
-# ./rocAL_performance_tests /media/MIVisionX-data/rocal_data/images_jpg/labels_folder/0/ 300 300 0 1 0 1 1 0 &> test1.txt
-i=1
 
 while [ $testcase -le 28 ]
 do
-    # echo **************************  $testcase ********************************
-    # file_name=$testcase.txt
-	# aug_list = ["rocalResize", "rocalCropResize", "rocalRotate", "rocalBrightness", "rocalGamma", "rocalContrast", "rocalFlip", "rocalBlur", "rocalBlend", "rocalWarpAffine", "rocalFishEye", "rocalVignette", "rocalVignette", "rocalSnPNoise", "rocalSnow", "rocalRain", "rocalColorTemp", "rocalFog", "rocalLensCorrection", "rocalPixelate", "rocalExposure", "rocalHue", "rocalSaturation", "rocalCopy", "rocalColorTwist", "rocalCropMirrorNormalize", "rocalCrop", "rocalResizeCropMirror", "No-Op"]
-
     case "$testcase" in
    "0") file_name=rocalResize.txt
    ;;
@@ -103,5 +99,4 @@ esac
 
     testcase=$(($testcase+1))
 done
-# ./rocAL_performance_tests $INPUTPATH $width $height $testcase $batch_size $device $rgb $shard_count $shuffle
 echo End of my shell script
