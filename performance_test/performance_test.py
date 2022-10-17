@@ -64,7 +64,7 @@ bs=[32,64,128,256]
 device_type=[0,1]
 
 for image_type in range(2):
-    for batch_sie in bs:
+    for batch_size in bs:
         for d_type in device_type:
             PIPELINE="image"
             
@@ -74,8 +74,8 @@ for image_type in range(2):
                 os.chdir(TOT_build2)
                 os.system('make')
                 os.chdir(TOT_path)
-                os.system("./performance_testing.sh '/media/sample_test/coco/val2017_10_images/' 300 300 "+str(batch_sie) +" "+str(d_type))
-                print("./performance_testing.sh '/media/sample_test/coco/val2017_10_images/' 300 300 "+str(batch_sie)+" " +str(d_type))
+                os.system("./performance_testing.sh '/media/sample_test/coco/val2017_10_images/' 300 300 "+str(batch_size) +" "+str(d_type))
+                print("./performance_testing.sh '/media/sample_test/coco/val2017_10_images/' 300 300 "+str(batch_size)+" " +str(d_type))
                 print(TOT_path)
 
             if(image_type==1):
@@ -84,7 +84,7 @@ for image_type in range(2):
                 os.chdir(Tensor_build2)
                 os.system('make')
                 os.chdir(Tensor_path)
-                os.system("./performance_tensor.sh '/media/sample_test/coco/val2017_10_images/' 300 300 "+ str(batch_sie)+ " "+str(d_type))
+                os.system("./performance_tensor.sh '/media/sample_test/coco/val2017_10_images/' 300 300 "+ str(batch_size)+ " "+str(d_type))
                 PIPELINE="tensor"
 
             os.chdir(path)
@@ -142,7 +142,7 @@ for image_type in range(2):
                             tot_list.append([new_list[-1],new_list1[-1],new_list2[-1],new_list3[-1],new_list4[-1],new_list5[-1]])
                         print(tot_list)
                         
-                with open('tensor_performance_'+str(batch_sie)+'_'+str(d_type)+'_'+$PIPELINE+'.csv', 'w', encoding='UTF8') as f:
+                with open('tensor_performance_'+str(batch_size)+'_'+str(d_type)+'_'+$PIPELINE+'.csv', 'w', encoding='UTF8') as f:
                     writer = csv.writer(f)
 
                     # write the header

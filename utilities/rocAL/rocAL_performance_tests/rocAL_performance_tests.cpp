@@ -179,7 +179,7 @@ int test(int test_case, const char* path, int rgb, int processing_device, int wi
     {
          std::cout << ">>>>>>> Running "
                   << "rocalResize" << std::endl;
-        image1 = rocalResize(handle, input1, tensorLayout, tensorOutputType, 3,resize_w , resize_h, 0,true);
+        image1 = rocalResize(handle, input1, tensorLayout, tensorOutputType,resize_w , resize_h, true);
     }
     break;
     case 1:
@@ -375,13 +375,7 @@ case 24:
     {
          std::cout << ">>>>>>> Running "
                   << "rocalcrop" << std::endl;
-        RocalFloatParam crop_width = rocalCreateFloatParameter(100);
-        RocalFloatParam crop_height = rocalCreateFloatParameter(100);
-        RocalFloatParam crop_depth = rocalCreateFloatParameter(0);
-        RocalFloatParam crop_x = rocalCreateFloatParameter(0);
-        RocalFloatParam crop_y = rocalCreateFloatParameter(0);
-        RocalFloatParam crop_z = rocalCreateFloatParameter(0);
-        // image1 = rocalCrop(handle, input1, tensorLayout, tensorOutputType,true,crop_width,crop_height,crop_depth,crop_x,crop_y,crop_z);
+        image1 = rocalCropCenterFixed(handle, input1, tensorLayout, tensorOutputType,100,100,3,true);
 
     }
     break;
@@ -446,17 +440,14 @@ break;
     high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
     int i = 0;
-    for(int epoch = 0; epoch < 3; epoch++)
+    for(int epoch = 0; epoch < 1; epoch++)
     {
-        std::cerr<<"\nepoch no "<<epoch;
         while (rocalGetRemainingImages(handle) >= inputBatchSize) {
-            i++;
-            std::cerr<<"interation "<<i<<"\t";
             if (rocalRun(handle) != 0) {
                 break;
             }
         }
-        rocalResetLoaders(handle);
+        // rocalResetLoaders(handle);
     }
     high_resolution_clock::time_point t2 = high_resolution_clock::now();
     auto dur = duration_cast<microseconds>(t2 - t1).count();
