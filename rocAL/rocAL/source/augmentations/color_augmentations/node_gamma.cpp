@@ -38,16 +38,15 @@ void GammaNode::create_node()
         THROW("Uninitialized input/output arguments")
 
     _shift.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
-    // if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-    //     _layout = 1;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-    //     _layout = 2;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-    //     _layout = 3;
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
-
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
 
@@ -56,23 +55,19 @@ void GammaNode::create_node()
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the gamma (vxExtrppNode_GammaCorrectionbatchPD) node failed: "+ TOSTR(status))
-
 }
 
-void GammaNode::init(float shfit, int layout)
+void GammaNode::init(float shfit)
 {
     _shift.set_param(shfit);
     _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
-
 
 }
 
-void GammaNode::init(FloatParam* shfit, int layout)
+void GammaNode::init(FloatParam* shfit)
 {
     _shift.set_param(core(shfit));
     _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
 
 }
 

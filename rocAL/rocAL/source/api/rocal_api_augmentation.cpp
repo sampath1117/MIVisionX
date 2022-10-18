@@ -513,7 +513,7 @@ rocalGamma(RocalContext p_context,
 
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<GammaNode>({input}, {output})->init(alpha,layout);
+        context->master_graph->add_node<GammaNode>({input}, {output})->init(alpha);
     }
     catch(const std::exception& e)
     {
