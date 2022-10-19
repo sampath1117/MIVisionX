@@ -32,8 +32,8 @@ public:
     ContrastNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     ContrastNode() = delete;
 
-    void init( float c_factor, float c_center, int layout);
-    void init( FloatParam* c_factor_param, FloatParam* c_center_param, int layout);
+    void init( float c_factor, float c_center);
+    void init( FloatParam* c_factor_param, FloatParam* c_center_param);
 
 protected:
     void create_node() override ;
@@ -42,7 +42,7 @@ private:
 
     ParameterVX<float> _factor;
     ParameterVX<float> _center;
-    unsigned _layout, _roi_type;
+    unsigned _layout=0, _roi_type=0;
     constexpr static float FACTOR_RANGE [2] = {0.1, 3.0};
     constexpr static float   CENTER_RANGE [2] = {0, 128};
 };

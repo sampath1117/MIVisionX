@@ -31,13 +31,13 @@ class VignetteNode : public Node
 public:
     VignetteNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     VignetteNode () = delete;
-    void init(float sdev, int layout );
-    void init(FloatParam *sdev, int layout);
+    void init(float sdev);
+    void init(FloatParam *sdev);
 protected:
     void create_node() override;
     void update_node() override;
 private:
     ParameterVX<float> _sdev;
-    int _layout,_roi_type;
+    int _layout=0,_roi_type=0;
     constexpr static float SDEV_RANGE [2] = {40 , 60};
 };

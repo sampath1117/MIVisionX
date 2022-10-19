@@ -46,10 +46,7 @@ struct VignetteLocalData {
     RpptDesc dstDesc;
     vx_enum in_tensor_type;
     vx_enum out_tensor_type;
-#if ENABLE_OPENCL
-    cl_mem cl_pSrc;
-    cl_mem cl_pDst;
-#elif ENABLE_HIP
+#if ENABLE_HIP
     void *hip_pSrc;
     void *hip_pDst;
 #endif
@@ -79,10 +76,7 @@ static vx_status VX_CALLBACK refreshVignette(vx_node node, const vx_reference *p
         }
     }
     if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
-#if ENABLE_OPENCL
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_OPENCL, &data->cl_pSrc, sizeof(data->cl_pSrc)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_OPENCL, &data->cl_pDst, sizeof(data->cl_pDst)));
-#elif ENABLE_HIP
+#if ENABLE_HIP
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->hip_pSrc, sizeof(data->hip_pSrc)));
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->hip_pDst, sizeof(data->hip_pDst)));
 #endif
@@ -157,18 +151,8 @@ static vx_status VX_CALLBACK processVignette(vx_node node, const vx_reference *p
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
     {
-#if ENABLE_OPENCL
-        [[refresh]]Vignette(node, parameters, num, data);
-        // if (df_image == VX_DF_IMAGE_U8)
-        // {
-        //     rpp_status = rppi_blur_u8_pln1_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
-        // }
-        // else if (df_image == VX_DF_IMAGE_RGB)
-        // {
-            rpp_status = rppi_vignette_u8_pkd3_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
-        // }
-        return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-#elif ENABLE_HIP
+
+#if ENABLE_HIP
         refreshVignette(node, parameters, num, data);
         // if (df_image == VX_DF_IMAGE_U8)
         // {
@@ -193,19 +177,15 @@ static vx_status VX_CALLBACK initializeVignette(vx_node node, const vx_reference
     VignetteLocalData *data = new VignetteLocalData;
     unsigned roiType;
     memset(data, 0, sizeof(*data));
-#if ENABLE_OPENCL
-    STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_OPENCL_COMMAND_QUEUE, &data->handle.cmdq, sizeof(data->handle.cmdq)));
-#elif ENABLE_HIP
+#if ENABLE_HIP
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_HIP_STREAM, &data->handle.hipstream, sizeof(data->handle.hipstream)));
 #endif
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[7], &data->device_type, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[6], &data->nbatchSize));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[5], &roiType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[4], &data->layout, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    if (roiType == 1)
-        data->roiType = RpptRoiType::XYWH;
-    else
-        data->roiType = RpptRoiType::LTRB;
+    data->roiType = (roiType == 0) ? RpptRoiType::XYWH : RpptRoiType::LTRB;
+
     data->src_desc_ptr = &data->srcDesc;
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_NUMBER_OF_DIMS, &data->src_desc_ptr->numDims, sizeof(data->src_desc_ptr->numDims)));
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_DIMS, &data->in_tensor_dims, sizeof(vx_size) * data->src_desc_ptr->numDims));
@@ -277,10 +257,7 @@ static vx_status VX_CALLBACK initializeVignette(vx_node node, const vx_reference
     data->srcBatch_width = (Rpp32u *)malloc(sizeof(Rpp32u) * data->src_desc_ptr->n);
     data->srcBatch_height = (Rpp32u *)malloc(sizeof(Rpp32u) * data->src_desc_ptr->n);
     refreshVignette(node, parameters, num, data);
-#if ENABLE_OPENCL
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
-        rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.cmdq, data->nbatchSize);
-#elif ENABLE_HIP
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.hipstream, data->nbatchSize);
 #endif
@@ -294,7 +271,7 @@ static vx_status VX_CALLBACK initializeVignette(vx_node node, const vx_reference
 static vx_status VX_CALLBACK uninitializeVignette(vx_node node, const vx_reference *parameters, vx_uint32 num) {
     VignetteLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-#if ENABLE_OPENCL || ENABLE_HIP
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppDestroyGPU(data->rppHandle);
 #endif
@@ -323,10 +300,6 @@ static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
     else
         supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
 
-// hardcode the affinity to  CPU for OpenCL backend to avoid VerifyGraph failure since there is no codegen callback for amd_rpp nodes
-#if ENABLE_OPENCL
-    supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
-#endif
     return VX_SUCCESS;
 }
 
@@ -343,7 +316,7 @@ vx_status Vignette_Register(vx_context context) {
     ERROR_CHECK_OBJECT(kernel);
     AgoTargetAffinityInfo affinity;
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
-#if ENABLE_OPENCL || ENABLE_HIP
+#if ENABLE_HIP
     // enable OpenCL buffer access since the kernel_f callback uses OpenCL buffers instead of host accessible buffers
     vx_bool enableBufferAccess = vx_true_e;
     if (affinity.device_type == AGO_TARGET_AFFINITY_GPU)

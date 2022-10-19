@@ -39,12 +39,12 @@ void ContrastNode::create_node()
     _factor.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
     _center.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
 
-    // if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-    //     _layout = 1;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-    //     _layout = 2;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-    //     _layout = 3;
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
@@ -56,22 +56,18 @@ void ContrastNode::create_node()
         THROW("Adding the Contrast_batch (vxExtrppNode_Contrast) node failed: "+ TOSTR(status))
 }
 
-void ContrastNode::init( float c_factor, float c_center, int layout)
+void ContrastNode::init( float c_factor, float c_center)
 {
     _factor.set_param(c_factor);
     _center.set_param(c_center);
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
-
+    _roi_type = 0;
 }
 
-void ContrastNode::init( FloatParam* c_factor, FloatParam* c_center, int layout)
+void ContrastNode::init( FloatParam* c_factor, FloatParam* c_center)
 {
     _factor.set_param(core(c_factor));
     _center.set_param(core(c_center));
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
-
+    _roi_type = 0;
 }
 
 

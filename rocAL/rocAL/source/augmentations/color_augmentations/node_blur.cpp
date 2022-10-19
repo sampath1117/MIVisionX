@@ -35,6 +35,16 @@ void BlurNode::create_node()
     if(_node)
         return;
     _sdev.create_array(_graph ,VX_TYPE_UINT32, _batch_size);
+    
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
+
+    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
+        _roi_type = 1;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
@@ -50,18 +60,16 @@ void BlurNode::create_node()
 
 }
 
-void BlurNode::init(int sdev, int layout)
+void BlurNode::init(int sdev)
 {
     _sdev.set_param(sdev);
-    _layout=layout;
     _roi_type = 0;
 
 }
 
-void BlurNode::init(IntParam* sdev, int layout)
+void BlurNode::init(IntParam* sdev)
 {
     _sdev.set_param(core(sdev));
-    _layout=layout;
     _roi_type = 0;
 
 }

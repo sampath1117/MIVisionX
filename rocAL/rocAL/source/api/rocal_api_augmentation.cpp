@@ -48,7 +48,6 @@ THE SOFTWARE.
 #include "node_noise.h"
 #include "node_noise.h"
 #include "node_blend.h"
-#include "node_vignette.h"
 #include "node_jitter.h"
 #include "node_gridmask.h"
 #include "node_warp_affine.h"
@@ -551,7 +550,7 @@ rocalExposure(RocalContext p_context,
 
         output = context->master_graph->create_tensor(output_info, is_output);
 
-        context->master_graph->add_node<ExposureNode>({input}, {output})->init(alpha,layout);
+        context->master_graph->add_node<ExposureNode>({input}, {output})->init(alpha);
     }
     catch(const std::exception& e)
     {
@@ -594,7 +593,7 @@ ROCAL_API_CALL rocalColorCast(RocalContext p_context,
 
         output = context->master_graph->create_tensor(output_info, is_output);
 
-        context->master_graph->add_node<ColorCastNode>({input}, {output})->init(red, green, blue ,alpha, layout);
+        context->master_graph->add_node<ColorCastNode>({input}, {output})->init(red, green, blue ,alpha);
     }
     catch(const std::exception& e)
     {
@@ -634,7 +633,7 @@ rocalSpatter(RocalContext p_context,
 
         output = context->master_graph->create_tensor(output_info, is_output);
 
-        context->master_graph->add_node<SpatterNode>({input}, {output})->init(R_value, G_value, B_value, layout);
+        context->master_graph->add_node<SpatterNode>({input}, {output})->init(R_value, G_value, B_value);
     }
     catch(const std::exception& e)
     {
@@ -674,7 +673,7 @@ rocalBlur(
         output_info.set_data_type(op_tensorDataType);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<BlurNode>({input}, {output})->init(sdev, layout);
+        context->master_graph->add_node<BlurNode>({input}, {output})->init(sdev);
     }
     catch(const std::exception& e)
     {
@@ -713,7 +712,7 @@ rocalContrast(RocalContext p_context,
 
         output = context->master_graph->create_tensor(output_info, is_output);
 
-        context->master_graph->add_node<ContrastNode>({input}, {output})->init(contrast_factor, contrast_center, layout);
+        context->master_graph->add_node<ContrastNode>({input}, {output})->init(contrast_factor, contrast_center);
     }
     catch(const std::exception& e)
     {
@@ -878,7 +877,7 @@ rocalVignette(
         output_info.set_data_type(op_tensorDataType);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<VignetteNode>({input}, {output})->init(sdev, layout);
+        context->master_graph->add_node<VignetteNode>({input}, {output})->init(sdev);
     }
     catch(const std::exception& e)
     {
@@ -1496,7 +1495,7 @@ ROCAL_API_CALL rocalCropMirrorNormalize(RocalContext p_context, RocalTensor p_in
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
         std::shared_ptr<CropMirrorNormalizeNode> cmn_node = context->master_graph->add_node<CropMirrorNormalizeNode>({input}, {output});
-        cmn_node->init(crop_height, crop_width, start_x, start_y, mean, std_dev , mirror,layout );
+        cmn_node->init(crop_height, crop_width, start_x, start_y, mean, std_dev , mirror);
         if (context->master_graph->meta_data_graph())
             context->master_graph->meta_add_node<CropMirrorNormalizeMetaNode,CropMirrorNormalizeNode>(cmn_node);
     }

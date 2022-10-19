@@ -36,7 +36,7 @@ void SpatterNode::create_node()
         THROW("Adding the spatter_batch (vxExtrppNode_spatter) node failed: "+ TOSTR(status))
 }
 
-void SpatterNode::init( int red, int green, int blue, int layout)
+void SpatterNode::init( int red, int green, int blue)
 {
     _red = red;
     _green = green;

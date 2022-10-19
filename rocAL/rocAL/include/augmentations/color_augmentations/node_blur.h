@@ -31,8 +31,8 @@ class BlurNode : public Node
 public:
     BlurNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     BlurNode() = delete;
-    void init(int sdev, int layout);
-    void init(IntParam *sdev, int layout);
+    void init(int sdev);
+    void init(IntParam *sdev);
 
 protected:
     void update_node() override;
@@ -40,6 +40,6 @@ protected:
 
 private:
     ParameterVX<int> _sdev;
-    int _layout,_roi_type;
+    int _layout,_roi_type=0;
     constexpr static int SDEV_RANGE [2] = {3, 9};
 };

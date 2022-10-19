@@ -36,6 +36,16 @@ void CropMirrorNormalizeNode::create_node()
 {
     if(_node)
         return;
+    
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
+
+    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
+        _roi_type = 1;
 
     if(_crop_param->crop_h == 0 || _crop_param->crop_w == 0)
         THROW("Uninitialized destination dimension - Invalid Crop Sizes")
@@ -82,7 +92,7 @@ void CropMirrorNormalizeNode::update_node()
 
 }
 
-void CropMirrorNormalizeNode::init(int crop_h, int crop_w, float start_x, float start_y, std::vector<float>& mean, std::vector<float>& std_dev, IntParam *mirror,int layout)
+void CropMirrorNormalizeNode::init(int crop_h, int crop_w, float start_x, float start_y, std::vector<float>& mean, std::vector<float>& std_dev, IntParam *mirror)
 {
     _crop_param->crop_h = crop_h;
     _crop_param->crop_w = crop_w;
@@ -91,5 +101,5 @@ void CropMirrorNormalizeNode::init(int crop_h, int crop_w, float start_x, float 
     _mean   = mean;
     _std_dev = std_dev;
     _mirror.set_param(core(mirror));
-    _layout = (unsigned) _outputs[0]->info().layout();
+    _layout =0;
 }
