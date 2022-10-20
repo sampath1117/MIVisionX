@@ -31,13 +31,13 @@ class JitterNode : public Node
 public:
     JitterNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     JitterNode() = delete;
-    void init(int kernel_size, int layout);
-    void init(IntParam *kernel_size, int layout);
+    void init(int kernel_size);
+    void init(IntParam *kernel_size);
 protected:
     void create_node() override;
     void update_node() override;
 private:
     ParameterVX<int> _kernel_size;
-    int _layout,_roi_type;
+    int _layout=0,_roi_type;
     constexpr static int   KERNEL_SIZE [2] =  {2, 5};
 };

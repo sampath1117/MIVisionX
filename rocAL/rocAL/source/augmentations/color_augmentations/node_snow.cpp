@@ -39,32 +39,28 @@ void SnowNode::create_node()
 
     _shift.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
 
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
 
     _node = vxExtrppNode_Snow(_graph->get(), _inputs[0]->handle(),  _src_tensor_roi, _outputs[0]->handle(), _shift.default_array(), layout, roi_type, _batch_size);
-
-
 
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the snow (vxExtrppNode_Snow) node failed: "+ TOSTR(status))
 }
 
-void SnowNode::init(float shfit,int layout)
+void SnowNode::init(float shfit)
 {
     _shift.set_param(shfit);
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void SnowNode::init(FloatParam* shfit, int layout)
+void SnowNode::init(FloatParam* shfit)
 {
     _shift.set_param(core(shfit));
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void SnowNode::update_node()

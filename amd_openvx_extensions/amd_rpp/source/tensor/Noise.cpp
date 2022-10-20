@@ -50,10 +50,7 @@ struct NoiseLocalData
     vx_enum out_tensor_type; 
     Rpp32u layout;
 
-#if ENABLE_OPENCL
-    cl_mem cl_pSrc;
-    cl_mem cl_pDst;
-#elif ENABLE_HIP
+#if ENABLE_HIP
     void *hip_pSrc;
     void *hip_pDst;
     RpptROI *hip_roi_tensor_Ptr;
@@ -91,10 +88,7 @@ static vx_status VX_CALLBACK refreshNoise(vx_node node, const vx_reference *para
     }
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
     {
-#if ENABLE_OPENCL
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_OPENCL, &data->cl_pSrc, sizeof(data->cl_pSrc)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_OPENCL, &data->cl_pDst, sizeof(data->cl_pDst)));
-#elif ENABLE_HIP
+#if ENABLE_HIP
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->hip_pSrc, sizeof(data->hip_pSrc)));
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->hip_pDst, sizeof(data->hip_pDst)));
         hipMemcpy(data->hip_roi_tensor_Ptr, data->roi_tensor_Ptr, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
@@ -183,11 +177,7 @@ static vx_status VX_CALLBACK processNoise(vx_node node, const vx_reference *para
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
     {
-#if ENABLE_OPENCL
-        refreshNoise(node, parameters, num, data);
-        rpp_status = rppt_color_twist_gpu((void *)data->cl_pSrc, data->src_desc_ptr, (void *)data->cl_pDst, data->src_desc_ptr,  data->noise_prob, data->salt_prob, data->noise_value, data->salt_value, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
-        return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-#elif ENABLE_HIP
+#if ENABLE_HIP
         refreshNoise(node, parameters, num, data);
         for(int i = 0; i < data->nbatchSize; i++)
         {
@@ -227,7 +217,7 @@ static vx_status VX_CALLBACK initializeNoise(vx_node node, const vx_reference *p
     unsigned roiType;
     memset(data, 0, sizeof(*data));
 #if ENABLE_OPENCL
-    STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_OPENCL_COMMAND_QUEUE, &data->handle.cmdq, sizeof(data->handle.cmdq)));
+    THROW("initialize : Brightness OpenCL backend is not supported")
 #elif ENABLE_HIP
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_HIP_STREAM, &data->handle.hipstream, sizeof(data->handle.hipstream)));
 #endif
@@ -236,10 +226,8 @@ static vx_status VX_CALLBACK initializeNoise(vx_node node, const vx_reference *p
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[8], &data->layout, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[9], &roiType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[7], &data->seed, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    if(roiType == 1)
-        data->roiType = RpptRoiType::XYWH;
-    else
-        data->roiType = RpptRoiType::LTRB;
+    data->roiType = (roiType == 0) ? RpptRoiType::XYWH : RpptRoiType::LTRB;
+
     data->src_desc_ptr = &data->srcDesc;
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_NUMBER_OF_DIMS, &data->src_desc_ptr->numDims, sizeof(data->src_desc_ptr->numDims)));
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_DIMS, &data->in_tensor_dims, sizeof(vx_size) * data->src_desc_ptr->numDims));
@@ -385,10 +373,7 @@ static vx_status VX_CALLBACK initializeNoise(vx_node node, const vx_reference *p
     data->noise_value = (vx_float32 *)malloc(sizeof(vx_float32) * data->src_desc_ptr->n);
     data->salt_value = (vx_float32 *)malloc(sizeof(vx_float32) * data->src_desc_ptr->n);
     refreshNoise(node, parameters, num, data);
-#if ENABLE_OPENCL
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
-        rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.cmdq, data->nbatchSize);
-#elif ENABLE_HIP
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.hipstream, data->nbatchSize);
 #endif
@@ -403,7 +388,7 @@ static vx_status VX_CALLBACK uninitializeNoise(vx_node node, const vx_reference 
 {
     NoiseLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-#if ENABLE_OPENCL || ENABLE_HIP
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppDestroyGPU(data->rppHandle);
 #endif
@@ -437,10 +422,6 @@ static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
     else
         supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
 
-// hardcode the affinity to  CPU for OpenCL backend to avoid VerifyGraph failure since there is no codegen callback for amd_rpp nodes
-#if ENABLE_OPENCL
-    supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
-#endif
     return VX_SUCCESS;
 }
 
@@ -458,8 +439,7 @@ vx_status Noise_Register(vx_context context)
     ERROR_CHECK_OBJECT(kernel);
     AgoTargetAffinityInfo affinity;
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
-#if ENABLE_OPENCL || ENABLE_HIP
-    // enable OpenCL buffer access since the kernel_f callback uses OpenCL buffers instead of host accessible buffers
+#if ENABLE_HIP
     vx_bool enableBufferAccess = vx_true_e;
     if (affinity.device_type == AGO_TARGET_AFFINITY_GPU)
         STATUS_ERROR_CHECK(vxSetKernelAttribute(kernel, VX_KERNEL_ATTRIBUTE_AMD_GPU_BUFFER_ACCESS_ENABLE, &enableBufferAccess, sizeof(enableBufferAccess)));

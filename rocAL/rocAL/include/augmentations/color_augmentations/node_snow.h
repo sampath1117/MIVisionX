@@ -31,8 +31,8 @@ class SnowNode : public Node
 public:
     SnowNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     SnowNode() = delete;
-    void init(float shift,int layout);
-    void init(FloatParam *shift, int layout);
+    void init(float shift);
+    void init(FloatParam *shift);
 protected:
     void create_node() override;
     void update_node() override;

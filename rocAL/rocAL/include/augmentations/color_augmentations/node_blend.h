@@ -30,14 +30,14 @@ class BlendNode : public Node
 public:
     BlendNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     BlendNode() = delete;
-    void init(float shift, int layout);
-    void init(FloatParam *shift, int layout);
+    void init(float shift);
+    void init(FloatParam *shift);
 
 protected:
     void update_node() override;
     void create_node() override;
 private:
     ParameterVX<float> _shift;
-    unsigned _layout, _roi_type;
+    unsigned _layout=0, _roi_type=0;
     constexpr static float SHIFT_RANGE [2] = {0.1, 0.9};
 };

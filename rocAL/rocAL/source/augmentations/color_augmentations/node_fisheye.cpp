@@ -29,13 +29,10 @@ FisheyeNode::FisheyeNode(const std::vector<rocalTensor *> &inputs, const std::ve
 {
 }
 
-void FisheyeNode::create_node()
-{
+void FisheyeNode::create_node() {
     if(_node)
         return;
     
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
 
@@ -44,16 +41,11 @@ void FisheyeNode::create_node()
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the fish eye (vxExtrppNode_FisheyebatchPD) node failed: "+ TOSTR(status))
-
-
 }
-void FisheyeNode::init(int layout)
-{
-    _layout=layout;
-    _roi_type = 0;
-
+void FisheyeNode::init() {
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void FisheyeNode::update_node()
-{
+void FisheyeNode::update_node() {
 }

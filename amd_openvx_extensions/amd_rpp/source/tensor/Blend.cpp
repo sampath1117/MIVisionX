@@ -36,10 +36,8 @@ struct BlendLocalData
     vx_size channels;
     RpptDescPtr src_desc_ptr;
     RpptDescPtr dst_desc_ptr;
-
     RpptDesc srcDesc;
     RpptDesc dstDesc;
-
     RpptROI *roi_tensor_Ptr;
     RpptRoiType roiType;
     size_t in_tensor_dims[NUM_OF_DIMS]; // will have NHWC info
@@ -47,11 +45,7 @@ struct BlendLocalData
     Rpp32u layout;
     vx_enum in_tensor_type ;
     vx_enum out_tensor_type;
-#if ENABLE_OPENCL
-    cl_mem cl_pSrc;
-    cl_mem cl_pSrc1;
-    cl_mem cl_pDst;
-#elif ENABLE_HIP
+#if ENABLE_HIP
     void *hip_pSrc;
     void *hip_pSrc1;
     void *hip_pDst;
@@ -87,11 +81,7 @@ static vx_status VX_CALLBACK refreshBlend(vx_node node, const vx_reference *para
     }
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
     {
-#if ENABLE_OPENCL
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_OPENCL, &data->cl_pSrc, sizeof(data->cl_pSrc)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[1], VX_TENSOR_BUFFER_OPENCL, &data->cl_pSrc1, sizeof(data->cl_pSrc1)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[3], VX_TENSOR_BUFFER_OPENCL, &data->cl_pDst, sizeof(data->cl_pDst)));
-#elif ENABLE_HIP
+#if ENABLE_HIP
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->hip_pSrc, sizeof(data->hip_pSrc)));
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[1], VX_TENSOR_BUFFER_HIP, &data->hip_pSrc1, sizeof(data->hip_pSrc1)));
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[3], VX_TENSOR_BUFFER_HIP, &data->hip_pDst, sizeof(data->hip_pDst)));
@@ -186,11 +176,7 @@ static vx_status VX_CALLBACK processBlend(vx_node node, const vx_reference *para
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
     {
-#if ENABLE_OPENCL
-        refreshBlend(node, parameters, num, data);
-        rpp_status = rppt_blend_gpu((void *)data->cl_pSrc,(void *)data->hip_pSrc1, data->src_desc_ptr, (void *)data->cl_pDst, data->src_desc_ptr,  data->alpha,  data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
-        return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-#elif ENABLE_HIP
+#if ENABLE_HIP
         refreshBlend(node, parameters, num, data);
         rpp_status = rppt_blend_gpu((void *)data->hip_pSrc,(void *)data->hip_pSrc1, data->src_desc_ptr, (void *)data->hip_pDst, data->src_desc_ptr,  data->alpha, data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
@@ -216,7 +202,7 @@ static vx_status VX_CALLBACK initializeBlend(vx_node node, const vx_reference *p
     unsigned roiType;
     memset(data, 0, sizeof(*data));
 #if ENABLE_OPENCL
-    STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_OPENCL_COMMAND_QUEUE, &data->handle.cmdq, sizeof(data->handle.cmdq)));
+    THROW("initialize : Brightness OpenCL backend is not supported")
 #elif ENABLE_HIP
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_HIP_STREAM, &data->handle.hipstream, sizeof(data->handle.hipstream)));
 #endif
@@ -224,10 +210,8 @@ static vx_status VX_CALLBACK initializeBlend(vx_node node, const vx_reference *p
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[7], &data->nbatchSize));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[5], &data->layout, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[6], &roiType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    if(roiType == 1)
-        data->roiType = RpptRoiType::XYWH;
-    else
-        data->roiType = RpptRoiType::LTRB;
+    data->roiType = (roiType == 0) ? RpptRoiType::XYWH : RpptRoiType::LTRB;
+
     data->src_desc_ptr = &data->srcDesc;
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_NUMBER_OF_DIMS, &data->src_desc_ptr->numDims, sizeof(data->src_desc_ptr->numDims)));
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_DIMS, &data->in_tensor_dims, sizeof(vx_size) * data->src_desc_ptr->numDims));
@@ -331,10 +315,7 @@ static vx_status VX_CALLBACK initializeBlend(vx_node node, const vx_reference *p
     data->alpha = (vx_float32 *)malloc(sizeof(vx_float32) * data->src_desc_ptr->n);
     // data->beta = (vx_float32 *)malloc(sizeof(vx_float32) * data->src_desc_ptr->n);
     refreshBlend(node, parameters, num, data);
-#if ENABLE_OPENCL
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
-        rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.cmdq, data->nbatchSize);
-#elif ENABLE_HIP
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.hipstream, data->nbatchSize);
 #endif
@@ -349,7 +330,7 @@ static vx_status VX_CALLBACK uninitializeBlend(vx_node node, const vx_reference 
 {
     BlendLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-#if ENABLE_OPENCL || ENABLE_HIP
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppDestroyGPU(data->rppHandle);
 #endif
@@ -381,10 +362,7 @@ static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
     else
         supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
 
-// hardcode the affinity to  CPU for OpenCL backend to avoid VerifyGraph failure since there is no codegen callback for amd_rpp nodes
-#if ENABLE_OPENCL
-    supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
-#endif
+
     return VX_SUCCESS;
 }
 
@@ -402,8 +380,7 @@ vx_status Blend_Register(vx_context context)
     ERROR_CHECK_OBJECT(kernel);
     AgoTargetAffinityInfo affinity;
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
-#if ENABLE_OPENCL || ENABLE_HIP
-    // enable OpenCL buffer access since the kernel_f callback uses OpenCL buffers instead of host accessible buffers
+#if ENABLE_HIP
     vx_bool enableBufferAccess = vx_true_e;
     if (affinity.device_type == AGO_TARGET_AFFINITY_GPU)
         STATUS_ERROR_CHECK(vxSetKernelAttribute(kernel, VX_KERNEL_ATTRIBUTE_AMD_GPU_BUFFER_ACCESS_ENABLE, &enableBufferAccess, sizeof(enableBufferAccess)));

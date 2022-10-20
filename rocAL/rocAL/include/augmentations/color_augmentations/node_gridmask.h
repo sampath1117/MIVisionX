@@ -30,7 +30,7 @@ class GridmaskNode : public Node
 public:
     GridmaskNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     GridmaskNode() = delete;
-    void init(int tile_width, float grid_ratio, float grid_angle,int shift_x,int shift_y,int layout);
+    void init(int tile_width, float grid_ratio, float grid_angle,int shift_x,int shift_y);
 
 protected:
     void update_node() override;
@@ -38,5 +38,5 @@ protected:
 private:
     int _tile_width ,_shift_x, _shift_y;
     float _grid_ratio, _grid_angle;
-    unsigned _layout, _roi_type;
+    unsigned _layout = 0, _roi_type = 0;
 };

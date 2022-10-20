@@ -41,12 +41,12 @@ void BlendNode::create_node()
         THROW("Uninitialized input/output arguments")
 
     _shift.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
-    // if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-    //     _layout = 1;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-    //     _layout = 2;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-    //     _layout = 3;
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
@@ -62,20 +62,14 @@ void BlendNode::create_node()
 
 }
 
-void BlendNode::init(float shfit, int layout)
+void BlendNode::init(float shfit)
 {
     _shift.set_param(shfit);
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
-
 }
 
-void BlendNode::init(FloatParam* shfit, int layout)
+void BlendNode::init(FloatParam* shfit)
 {
     _shift.set_param(core(shfit));
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
-
 }
 
 void BlendNode::update_node()

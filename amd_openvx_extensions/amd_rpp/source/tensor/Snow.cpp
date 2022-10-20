@@ -46,12 +46,10 @@ struct SnowLocalData {
     RpptDesc dstDesc;
     vx_enum in_tensor_type;
     vx_enum out_tensor_type;
-#if ENABLE_OPENCL
-    cl_mem cl_pSrc;
-    cl_mem cl_pDst;
-#elif ENABLE_HIP
-    void *hip_pSrc;
-    void *hip_pDst;
+#if ENABLE_HIP
+    void *pSrc_dev;
+    void *pDst_dev;
+    RpptROI *hip_roi_tensor_Ptr;
 #endif
 };
 
@@ -59,15 +57,12 @@ static vx_status VX_CALLBACK refreshSnow(vx_node node, const vx_reference *param
     vx_status status = VX_SUCCESS;
     STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[1], 0, data->nbatchSize * 4, sizeof(unsigned), data->roi_tensor_Ptr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[3], 0, data->nbatchSize, sizeof(vx_float32), data->kernelSize, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    if (data->layout == 0 || data->layout == 1) 
-    {
-        for (int i = 0; i < data->nbatchSize; i++)
-        {
+    if (data->layout == 0 || data->layout == 1) {
+        for (int i = 0; i < data->nbatchSize; i++) {
             data->srcDimensions[i].width = data->roi_tensor_Ptr[i].xywhROI.roiWidth;
             data->srcDimensions[i].height = data->roi_tensor_Ptr[i].xywhROI.roiHeight;
         }
-    }
-    if (data->layout == 2 || data->layout == 3) {
+    } else if (data->layout == 2 || data->layout == 3) {
         unsigned num_of_frames = data->in_tensor_dims[1];  // Num of frames 'F'
         for (int n = data->nbatchSize - 1; n >= 0; n--) {
             unsigned index = n * num_of_frames;
@@ -79,17 +74,13 @@ static vx_status VX_CALLBACK refreshSnow(vx_node node, const vx_reference *param
         }
     }
     if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
-#if ENABLE_OPENCL
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_OPENCL, &data->cl_pSrc, sizeof(data->cl_pSrc)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_OPENCL, &data->cl_pDst, sizeof(data->cl_pDst)));
-#elif ENABLE_HIP
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->hip_pSrc, sizeof(data->hip_pSrc)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->hip_pDst, sizeof(data->hip_pDst)));
+#if ENABLE_HIP
+        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->pSrc_dev, sizeof(data->pSrc_dev)));
+        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->pDst_dev, sizeof(data->pDst_dev)));
+        hipMemcpy(data->hip_roi_tensor_Ptr, data->roi_tensor_Ptr, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
+
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
 #endif
-    }
-    if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
-        // STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
-        //     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
         if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_UINT8) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
@@ -103,12 +94,12 @@ static vx_status VX_CALLBACK refreshSnow(vx_node node, const vx_reference *param
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float32)));
         }
-        // vx_float16 is not supported. Have to disable it once it is done.
-        // else if(in_tensor_type == vx_type_e::VX_TYPE_UINT8 && out_tensor_type == vx_type_e::VX_TYPE_FLOAT16)
-        // {
-        //     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
-        //     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[3], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float16)));
-        // }
+#if defined(AMD_FP16_SUPPORT)
+        else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT16 && data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT16) {
+            STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_float16)));
+            STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float16)));
+        }
+#endif
     }
     return status;
 }
@@ -155,37 +146,16 @@ static vx_status VX_CALLBACK processSnow(vx_node node, const vx_reference *param
     vx_status return_status = VX_SUCCESS;
     SnowLocalData *data = NULL;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
-    {
-#if ENABLE_OPENCL
-        [[refresh]]Snow(node, parameters, num, data);
-        // if (df_image == VX_DF_IMAGE_U8)
-        // {
-        //     rpp_status = rppi_blur_u8_pln1_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
-        // }
-        // else if (df_image == VX_DF_IMAGE_RGB)
-        // {
-            rpp_status = rppi_snow_u8_pkd3_batchPD_gpu((void *)data->cl_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->cl_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
-        // }
-        return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-#elif ENABLE_HIP
+    if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
+#if ENABLE_HIP
         refreshSnow(node, parameters, num, data);
-        // if (df_image == VX_DF_IMAGE_U8)
-        // {
-        //     rpp_status = rppi_blur_u8_pln1_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
-        // }
-        // else if (df_image == VX_DF_IMAGE_RGB)
-        // {
-            rpp_status = rppi_snow_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
-        // }
+        rpp_status = rppi_snow_u8_pkd3_batchPD_gpu((void *)data->pSrc_dev, data->srcDimensions, data->maxSrcDimensions, (void *)data->pDst_dev, data->kernelSize, data->nbatchSize, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-#endif
     }
-    if (data->device_type == AGO_TARGET_AFFINITY_CPU)
-    {
+    if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+#endif
         refreshSnow(node, parameters, num, data);
         rpp_status = rppi_snow_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
-        
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     return return_status;
@@ -195,19 +165,15 @@ static vx_status VX_CALLBACK initializeSnow(vx_node node, const vx_reference *pa
     SnowLocalData *data = new SnowLocalData;
     unsigned roiType;
     memset(data, 0, sizeof(*data));
-#if ENABLE_OPENCL
-    STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_OPENCL_COMMAND_QUEUE, &data->handle.cmdq, sizeof(data->handle.cmdq)));
-#elif ENABLE_HIP
+#if ENABLE_HIP
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_HIP_STREAM, &data->handle.hipstream, sizeof(data->handle.hipstream)));
 #endif
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[7], &data->device_type, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[6], &data->nbatchSize));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[5], &roiType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[4], &data->layout, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    if (roiType == 1)
-        data->roiType = RpptRoiType::XYWH;
-    else
-        data->roiType = RpptRoiType::LTRB;
+    data->roiType = (roiType == 0) ? RpptRoiType::XYWH : RpptRoiType::LTRB;
+
     data->src_desc_ptr = &data->srcDesc;
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_NUMBER_OF_DIMS, &data->src_desc_ptr->numDims, sizeof(data->src_desc_ptr->numDims)));
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_DIMS, &data->in_tensor_dims, sizeof(vx_size) * data->src_desc_ptr->numDims));
@@ -216,11 +182,9 @@ static vx_status VX_CALLBACK initializeSnow(vx_node node, const vx_reference *pa
         data->src_desc_ptr->dataType = RpptDataType::U8;
     } else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
         data->src_desc_ptr->dataType = RpptDataType::F32;
+    } else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT16) {
+        data->src_desc_ptr->dataType = RpptDataType::F16;
     }
-    // else if (data->in_tensor_type->dataType == vx_type_e::VX_TYPE_FLOAT16)
-    // {
-    //     data->src_desc_ptr->dataType = RpptDataType::F16;
-    // }
     else if (data->in_tensor_type == vx_type_e::VX_TYPE_INT8) {
         data->src_desc_ptr->dataType = RpptDataType::I8;
     }
@@ -235,51 +199,44 @@ static vx_status VX_CALLBACK initializeSnow(vx_node node, const vx_reference *pa
         data->dst_desc_ptr->dataType = RpptDataType::U8;
     } else if (data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
         data->dst_desc_ptr->dataType = RpptDataType::F32;
-    }
-    // else if (data->src_desc_ptr->dataType == vx_type_e::VX_TYPE_FLOAT16)
-    // {
-    //     data->src_desc_ptr->dataType = RpptDataType::F16;
-    // }
-    else if (data->out_tensor_type == vx_type_e::VX_TYPE_INT8) {
+    } else if (data->src_desc_ptr->dataType == vx_type_e::VX_TYPE_FLOAT16) {
+        data->src_desc_ptr->dataType = RpptDataType::F16;
+    } else if (data->out_tensor_type == vx_type_e::VX_TYPE_INT8) {
         data->dst_desc_ptr->dataType = RpptDataType::I8;
     }
     data->src_desc_ptr->offsetInBytes = 0;
-    if(data->layout == 0)
-    {
+    if(data->layout == 0) {
         data->src_desc_ptr->n = data->in_tensor_dims[0];
         data->maxSrcDimensions.height = data->in_tensor_dims[1];
         data->maxSrcDimensions.width = data->in_tensor_dims[2];
-    }
-    else if(data->layout == 1)
+    } else if(data->layout == 1)
     {
         data->src_desc_ptr->n = data->in_tensor_dims[0];
         data->maxSrcDimensions.height = data->in_tensor_dims[2];
         data->maxSrcDimensions.width = data->in_tensor_dims[3];
-    }
-    else if(data->layout == 2)
+    } else if(data->layout == 2)
     {
         data->src_desc_ptr->n = data->in_tensor_dims[0] * data->in_tensor_dims[1];
         data->maxSrcDimensions.height = data->in_tensor_dims[2];
         data->maxSrcDimensions.width = data->in_tensor_dims[3];
-    }
-    else if(data->layout == 3)
+    } else if(data->layout == 3)
     {
         data->src_desc_ptr->n = data->in_tensor_dims[0] * data->in_tensor_dims[1];
         data->maxSrcDimensions.height = data->in_tensor_dims[3];
         data->maxSrcDimensions.width = data->in_tensor_dims[4];
     }
-    
-    
+#if ENABLE_HIP
+    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
+        hipMalloc(&data->hip_roi_tensor_Ptr, data->src_desc_ptr->n * sizeof(RpptROI));
+#endif
     data->roi_tensor_Ptr = (RpptROI *)calloc(data->src_desc_ptr->n, sizeof(RpptROI));
     data->kernelSize = (vx_float32 *)malloc(sizeof(vx_float32) * data->src_desc_ptr->n);
     data->srcDimensions = (RppiSize *)malloc(sizeof(RppiSize) * data->src_desc_ptr->n);
     data->srcBatch_width = (Rpp32u *)malloc(sizeof(Rpp32u) * data->src_desc_ptr->n);
     data->srcBatch_height = (Rpp32u *)malloc(sizeof(Rpp32u) * data->src_desc_ptr->n);
     refreshSnow(node, parameters, num, data);
-#if ENABLE_OPENCL
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
-        rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.cmdq, data->nbatchSize);
-#elif ENABLE_HIP
+
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.hipstream, data->nbatchSize);
 #endif
@@ -293,7 +250,7 @@ static vx_status VX_CALLBACK initializeSnow(vx_node node, const vx_reference *pa
 static vx_status VX_CALLBACK uninitializeSnow(vx_node node, const vx_reference *parameters, vx_uint32 num) {
     SnowLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-#if ENABLE_OPENCL || ENABLE_HIP
+#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
         rppDestroyGPU(data->rppHandle);
 #endif
@@ -304,6 +261,11 @@ static vx_status VX_CALLBACK uninitializeSnow(vx_node node, const vx_reference *
     free(data->srcBatch_width);
     free(data->srcBatch_height);
     free(data->kernelSize);
+#if ENABLE_HIP
+    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
+        hipFree(data->hip_roi_tensor_Ptr);
+#endif
+
     delete (data);
     return VX_SUCCESS;
 }
@@ -322,10 +284,6 @@ static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
     else
         supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
 
-// hardcode the affinity to  CPU for OpenCL backend to avoid VerifyGraph failure since there is no codegen callback for amd_rpp nodes
-#if ENABLE_OPENCL
-    supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
-#endif
     return VX_SUCCESS;
 }
 
@@ -342,8 +300,7 @@ vx_status Snow_Register(vx_context context) {
     ERROR_CHECK_OBJECT(kernel);
     AgoTargetAffinityInfo affinity;
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
-#if ENABLE_OPENCL || ENABLE_HIP
-    // enable OpenCL buffer access since the kernel_f callback uses OpenCL buffers instead of host accessible buffers
+#if ENABLE_HIP
     vx_bool enableBufferAccess = vx_true_e;
     if (affinity.device_type == AGO_TARGET_AFFINITY_GPU)
         STATUS_ERROR_CHECK(vxSetKernelAttribute(kernel, VX_KERNEL_ATTRIBUTE_AMD_GPU_BUFFER_ACCESS_ENABLE, &enableBufferAccess, sizeof(enableBufferAccess)));

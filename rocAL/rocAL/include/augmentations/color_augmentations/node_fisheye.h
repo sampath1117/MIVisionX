@@ -31,7 +31,7 @@ class FisheyeNode : public Node
 public:
     FisheyeNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     FisheyeNode() = delete;
-    void init(int layout);
+    void init();
 
 protected:
     void create_node() override;

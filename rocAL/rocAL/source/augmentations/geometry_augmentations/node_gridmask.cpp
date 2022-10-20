@@ -40,12 +40,12 @@ void GridmaskNode::create_node()
     if(_outputs.empty() || _inputs.empty())
         THROW("Uninitialized input/output arguments")
 
-    // if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-    //     _layout = 1;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-    //     _layout = 2;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-    //     _layout = 3;
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
@@ -66,22 +66,15 @@ void GridmaskNode::create_node()
 
 }
 
-void GridmaskNode::init(int tile_width, float grid_ratio, float grid_angle,int shift_x,int shift_y, int layout)
+void GridmaskNode::init(int tile_width, float grid_ratio, float grid_angle,int shift_x,int shift_y)
 {
     _tile_width=tile_width;
     _grid_ratio=grid_ratio;
     _grid_angle=grid_angle; 
     _shift_x=shift_x;
     _shift_y=shift_y;  
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
 
 }
-
-// void GridmaskTensorNode::init(FloatParam* shfit)
-// {
-// }
-
 void GridmaskNode::update_node()
 {
 }

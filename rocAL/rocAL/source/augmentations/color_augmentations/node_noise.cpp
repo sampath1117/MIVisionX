@@ -17,18 +17,20 @@ void NoiseTensorNode::create_node()
 {
     if(_node)
         return;
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
+
+    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
+        _roi_type = 1;
 
     _noise_prob.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
     _salt_prob.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
     _noise_value.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
     _salt_value.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
-
-    // if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-    //     _layout = 1;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-    //     _layout = 2;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-    //     _layout = 3;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
@@ -43,28 +45,24 @@ void NoiseTensorNode::create_node()
         THROW("Adding the Noise_batch (vxExtrppNode_Noise) node failed: "+ TOSTR(status))
 }
 
-void NoiseTensorNode::init( float noise_prob, float salt_prob, float noise_value , float salt_value,int seed, int layout)
+void NoiseTensorNode::init( float noise_prob, float salt_prob, float noise_value , float salt_value,int seed)
 {
     _noise_prob.set_param(noise_prob);
     _salt_prob.set_param(salt_prob);
     _noise_value.set_param(noise_value);
     _salt_value.set_param(salt_value);
     _seed=seed;
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
 
 
 }
 
-void NoiseTensorNode::init( FloatParam* noise_prob, FloatParam* salt_prob, FloatParam* noise_value, FloatParam* salt_value, int seed, int layout)
+void NoiseTensorNode::init( FloatParam* noise_prob, FloatParam* salt_prob, FloatParam* noise_value, FloatParam* salt_value, int seed)
 {
     _noise_prob.set_param(core(noise_prob));
     _salt_prob.set_param(core(salt_prob));
     _noise_value.set_param(core(noise_value));
     _salt_value.set_param(core(salt_value));
     _seed=seed;
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
 
 }
 

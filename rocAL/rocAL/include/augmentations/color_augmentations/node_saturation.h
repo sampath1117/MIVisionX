@@ -31,8 +31,8 @@ class SatNode : public Node
 public:
     SatNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     SatNode() = delete;
-    void init(float sat, int layout);
-    void init(FloatParam *sat, int layout);
+    void init(float sat);
+    void init(FloatParam *sat);
 protected:
     void create_node() override;
     void update_node() override;

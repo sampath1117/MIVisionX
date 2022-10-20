@@ -38,8 +38,6 @@ void FogNode::create_node()
 
     _fog_param.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
 
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
 
@@ -51,18 +49,18 @@ void FogNode::create_node()
         THROW("Adding the fog (vxExtrppNode_Fog) node failed: "+ TOSTR(status))
 }
 
-void FogNode::init(float fog_param, int layout)
+void FogNode::init(float fog_param)
 {
     _fog_param.set_param(fog_param);
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void FogNode::init(FloatParam* fog_param, int layout)
+void FogNode::init(FloatParam* fog_param)
 {
     _fog_param.set_param(core(fog_param));
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 void FogNode::update_node()
 {

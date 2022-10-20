@@ -31,8 +31,8 @@ class HueNode : public Node
 public:
     HueNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     HueNode() = delete;
-    void init(float hue, int layout);
-    void init(FloatParam *hue, int layout);
+    void init(float hue);
+    void init(FloatParam *hue);
 protected:
     void create_node() override;
     void update_node() override;

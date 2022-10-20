@@ -33,14 +33,11 @@ SatNode::SatNode(const std::vector<rocalTensor *> &inputs, const std::vector<roc
 {
 }
 
-void SatNode::create_node()
-{
+void SatNode::create_node() {
     if(_node)
         return;
     _sat.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
 
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
 
@@ -48,25 +45,20 @@ void SatNode::create_node()
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the Saturation (vxExtrppNodeSaturationbatchPD) node failed: "+ TOSTR(status))
-
 }
 
-
-void SatNode::init(float sat, int layout)
-{
+void SatNode::init(float sat) {
     _sat.set_param(sat);
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void SatNode::init(FloatParam* sat, int layout)
-{
+void SatNode::init(FloatParam* sat) {
     _sat.set_param(core(sat));
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void SatNode::update_node()
-{
+void SatNode::update_node() {
      _sat.update_array();
 }
