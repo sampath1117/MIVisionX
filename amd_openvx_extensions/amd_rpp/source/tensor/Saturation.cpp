@@ -47,8 +47,8 @@ struct SaturationLocalData {
     vx_enum in_tensor_type;
     vx_enum out_tensor_type;
 #if ENABLE_HIP
-    void *hip_pSrc;
-    void *hip_pDst;
+    void *pSrc_dev;
+    void *pDst_dev;
 #endif
 };
 
@@ -74,11 +74,11 @@ static vx_status VX_CALLBACK refreshSaturation(vx_node node, const vx_reference 
     }
 #if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->hip_pSrc, sizeof(data->hip_pSrc)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->hip_pDst, sizeof(data->hip_pDst)));
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->pSrc_dev, sizeof(data->pSrc_dev)));
+        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->pDst_dev, sizeof(data->pDst_dev)));
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) 
 #endif
-
+    {
         if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_UINT8) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
@@ -147,7 +147,7 @@ static vx_status VX_CALLBACK processSaturation(vx_node node, const vx_reference 
 #if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
         refreshSaturation(node, parameters, num, data);
-        rpp_status = rppi_saturationRGB_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
+        rpp_status = rppi_saturationRGB_u8_pkd3_batchPD_gpu((void *)data->pSrc_dev, data->srcDimensions, data->maxSrcDimensions, (void *)data->pDst_dev, data->kernelSize, data->nbatchSize, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     if (data->device_type == AGO_TARGET_AFFINITY_CPU)
@@ -197,7 +197,7 @@ static vx_status VX_CALLBACK initializeSaturation(vx_node node, const vx_referen
         data->dst_desc_ptr->dataType = RpptDataType::U8;
     } else if (data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
         data->dst_desc_ptr->dataType = RpptDataType::F32;
-    } else if (data->src_desc_ptr->dataType == vx_type_e::VX_TYPE_FLOAT16) {
+    } else if (data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT16) {
         data->src_desc_ptr->dataType = RpptDataType::F16;
     } else if (data->out_tensor_type == vx_type_e::VX_TYPE_INT8) {
         data->dst_desc_ptr->dataType = RpptDataType::I8;

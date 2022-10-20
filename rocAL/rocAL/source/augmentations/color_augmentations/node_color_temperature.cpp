@@ -37,33 +37,28 @@ void ColorTemperatureNode::create_node()
         return;
 
     _adj_value_param.create_array(_graph , VX_TYPE_INT32, _batch_size);
-
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
-
 
     _node = vxExtrppNode_ColorTemperature(_graph->get(), _inputs[0]->handle(),  _src_tensor_roi, _outputs[0]->handle(), _adj_value_param.default_array(), layout, roi_type, _batch_size);
 
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the color temp batch (vxExtrppNode_ColorTemperaturebatchPD) node failed: "+ TOSTR(status))
-
 }
 
-void ColorTemperatureNode::init(int adjustment, int layout)
+void ColorTemperatureNode::init(int adjustment)
 {
     _adj_value_param.set_param(adjustment);
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void ColorTemperatureNode::init(IntParam* adjustment, int layout)
+void ColorTemperatureNode::init(IntParam* adjustment)
 {
     _adj_value_param.set_param(core(adjustment));
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void ColorTemperatureNode::update_node()

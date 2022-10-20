@@ -30,13 +30,10 @@ PixelateNode::PixelateNode(const std::vector<rocalTensor *> &inputs, const std::
 {
 }
 
-void PixelateNode::create_node()
-{
+void PixelateNode::create_node() {
     if(_node)
         return;
 
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
     _node = vxExtrppNode_Pixelate(_graph->get(), _inputs[0]->handle(),  _src_tensor_roi, _outputs[0]->handle(), layout, roi_type, _batch_size);
@@ -44,15 +41,12 @@ void PixelateNode::create_node()
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the pixelate (vxExtrppNode_Pixelate) node failed: "+ TOSTR(status))
-
 }
-void PixelateNode::init(int layout)
-{
-    _layout=layout;
-    _roi_type = 0;
-
+void PixelateNode::init() {
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
-void PixelateNode::update_node()
-{
+
+void PixelateNode::update_node() {
 }
 

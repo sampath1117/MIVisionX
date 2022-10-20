@@ -135,7 +135,7 @@ rocalPixelate(
         output_info.set_data_type(op_tensorDataType);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<PixelateNode>({input}, {output})->init( layout);
+        context->master_graph->add_node<PixelateNode>({input}, {output})->init();
     }
     catch(const std::exception& e)
     {
@@ -214,7 +214,7 @@ rocalColorTemperature(
         output_info.set_data_type(op_tensorDataType);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<ColorTemperatureNode>({input}, {output})->init(adjust_value, layout);
+        context->master_graph->add_node<ColorTemperatureNode>({input}, {output})->init(adjust_value);
     }
     catch(const std::exception& e)
     {
@@ -262,7 +262,7 @@ rocalRain(
         output_info.set_data_type(op_tensorDataType);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<RainNode>({input}, {output})->init(rain_percentage,width,height,rain_transpancy, layout);
+        context->master_graph->add_node<RainNode>({input}, {output})->init(rain_percentage,width,height,rain_transpancy);
     }
     catch(const std::exception& e)
     {
@@ -306,7 +306,7 @@ rocalLensCorrection(
         output_info.set_data_type(op_tensorDataType);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<LensCorrectionNode>({input}, {output})->init(strength,zoom, layout);
+        context->master_graph->add_node<LensCorrectionNode>({input}, {output})->init(strength,zoom);
     }
     catch(const std::exception& e)
     {
@@ -356,7 +356,7 @@ rocalRotate(
              output->reset_tensor_roi();
         
 
-        context->master_graph->add_node<RotateNode>({input}, {output})->init(angle,outputformat, layout);
+        context->master_graph->add_node<RotateNode>({input}, {output})->init(angle,outputformat);
     }
     catch(const std::exception& e)
     {
@@ -750,7 +750,7 @@ rocalFlip(RocalContext p_context,
 
         output = context->master_graph->create_tensor(output_info, is_output);
 
-        context->master_graph->add_node<FlipNode>({input}, {output})->init(horizontal_flag, vertical_flag, layout);
+        context->master_graph->add_node<FlipNode>({input}, {output})->init(horizontal_flag, vertical_flag);
     }
     catch(const std::exception& e)
     {
@@ -1705,7 +1705,7 @@ rocalColorTwist(RocalContext p_context,
         output_info.set_data_type(op_tensorDataType);
 
         output = context->master_graph->create_tensor(output_info, is_output);
-        context->master_graph->add_node<ColorTwistNode>({input}, {output})->init(alpha, beta, hue ,sat, layout);
+        context->master_graph->add_node<ColorTwistNode>({input}, {output})->init(alpha, beta, hue ,sat);
     }
     catch(const std::exception& e)
     {

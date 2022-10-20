@@ -32,8 +32,8 @@ public:
     FlipNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     FlipNode() = delete;
 
-    void init( int h_flag, int v_flag, int layout);
-    void init( IntParam* h_flag_param, IntParam* v_flag_param, int layout);
+    void init( int h_flag, int v_flag);
+    void init( IntParam* h_flag_param, IntParam* v_flag_param);
 
 protected:
     void create_node() override ;

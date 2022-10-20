@@ -45,8 +45,6 @@ void RainNode::create_node()
     _rain_width.create_array(_graph ,VX_TYPE_UINT32, _batch_size);
     _rain_height.create_array(_graph ,VX_TYPE_UINT32, _batch_size);
 
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
 
@@ -55,29 +53,27 @@ void RainNode::create_node()
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the rain (vxExtrppNode_Rain) node failed: "+ TOSTR(status))
-
 }
 
-void RainNode::init(float rain_value, int rain_width, int rain_height, float rain_transparency, int layout)
+void RainNode::init(float rain_value, int rain_width, int rain_height, float rain_transparency)
 {
     _rain_value.set_param(rain_value);
     _rain_width.set_param(rain_width);
     _rain_height.set_param(rain_height);
     _rain_transparency.set_param(rain_transparency);
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void RainNode::init(FloatParam *rain_value, IntParam *rain_width, IntParam *rain_height, FloatParam *rain_transparency, int layout)
+void RainNode::init(FloatParam *rain_value, IntParam *rain_width, IntParam *rain_height, FloatParam *rain_transparency )
 {
     _rain_value.set_param(core(rain_value));
     _rain_width.set_param(core(rain_width));
     _rain_height.set_param(core(rain_height));
     _rain_transparency.set_param(core(rain_transparency));
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
-
 
 void RainNode::update_node()
 {

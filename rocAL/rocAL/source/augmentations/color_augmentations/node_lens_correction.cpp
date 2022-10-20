@@ -41,34 +41,30 @@ void LensCorrectionNode::create_node()
 
     _strength.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
     _zoom.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
 
     _node = vxExtrppNode_LensCorrection(_graph->get(), _inputs[0]->handle(),  _src_tensor_roi, _outputs[0]->handle(), _strength.default_array(), _zoom.default_array(), layout, roi_type, _batch_size);
 
-
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the lens correction (vxExtrppNode_LensCorrection) node failed: "+ TOSTR(status))
-
 }
 
-void LensCorrectionNode::init(float strength, float zoom, int layout)
+void LensCorrectionNode::init(float strength, float zoom)
 {
     _strength.set_param(strength);
     _zoom.set_param(zoom);
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void LensCorrectionNode::init(FloatParam* strength, FloatParam* zoom , int layout)
+void LensCorrectionNode::init(FloatParam* strength, FloatParam* zoom )
 {
     _strength.set_param(core(strength));
     _zoom.set_param(core(zoom));
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void LensCorrectionNode::update_node()

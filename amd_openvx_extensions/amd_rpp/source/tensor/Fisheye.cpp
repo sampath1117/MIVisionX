@@ -74,8 +74,9 @@ static vx_status VX_CALLBACK refreshFisheye(vx_node node, const vx_reference *pa
     if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->pSrc_dev, sizeof(data->pSrc_dev)));
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->pDst_dev, sizeof(data->pDst_dev)));
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
+    {
         if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_UINT8) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
@@ -141,14 +142,14 @@ static vx_status VX_CALLBACK processFisheye(vx_node node, const vx_reference *pa
     vx_status return_status = VX_SUCCESS;
     FisheyeLocalData *data = NULL;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
 #if ENABLE_HIP
+    if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
         refreshFisheye(node, parameters, num, data);
         rpp_status = rppi_fisheye_u8_pkd3_batchPD_gpu((void *)data->pSrc_dev, data->srcDimensions, data->maxSrcDimensions, (void *)data->pDst_dev, data->nbatchSize, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
+    } if (data->device_type == AGO_TARGET_AFFINITY_CPU) 
 #endif
-    }
-    if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+    {
         refreshFisheye(node, parameters, num, data);
         rpp_status = rppi_fisheye_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->nbatchSize, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;

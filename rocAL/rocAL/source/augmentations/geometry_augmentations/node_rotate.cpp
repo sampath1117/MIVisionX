@@ -64,20 +64,20 @@ void RotateNode::create_node()
 
 }
 
-void RotateNode::init(float angle,int outputtoggleformat, int layout)
+void RotateNode::init(float angle,int outputtoggleformat)
 {
     _angle.set_param(angle);
      _outputtoggleformat=outputtoggleformat;
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void RotateNode::init(FloatParam* angle, int outputtoggleformat, int layout)
+void RotateNode::init(FloatParam* angle, int outputtoggleformat)
 {
     _angle.set_param(core(angle));
     _outputtoggleformat=outputtoggleformat;
-    _layout=layout;
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void RotateNode::update_node()

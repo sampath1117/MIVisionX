@@ -57,21 +57,21 @@ void FlipNode::create_node()
         THROW("Adding the brightness_batch (vxExtrppNode_BrightnessbatchPD) node failed: "+ TOSTR(status))
 }
 
-void FlipNode::init( int h_flag, int v_flag, int layout)
+void FlipNode::init( int h_flag, int v_flag)
 {
     _horizontal.set_param(h_flag);
     _vertical.set_param(v_flag);
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 
 }
 
-void FlipNode::init( IntParam* h_flag, IntParam* v_flag, int layout)
+void FlipNode::init( IntParam* h_flag, IntParam* v_flag)
 {
     _horizontal.set_param(core(h_flag));
     _vertical.set_param(core(v_flag));
-    _layout = _roi_type = 0;
-    // _layout = (unsigned) _outputs[0]->layout();
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 
 }
 

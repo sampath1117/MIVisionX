@@ -81,8 +81,9 @@ static vx_status VX_CALLBACK refreshColorJitter(vx_node node, const vx_reference
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->pSrc_dev, sizeof(data->pSrc_dev)));
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->pDst_dev, sizeof(data->pDst_dev)));
         hipMemcpy(data->hip_roi_tensor_Ptr, data->roi_tensor_Ptr, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) 
 #endif
+    {
         if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_UINT8) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
@@ -154,9 +155,9 @@ static vx_status VX_CALLBACK processColorJitter(vx_node node, const vx_reference
         // rpp_status = rppt_color_jitter_gpu((void *)data->pSrc_dev, data->src_desc_ptr, (void *)data->pDst_dev, data->src_desc_ptr,  data->alpha, data->beta, data->hue, data->sat, data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
-    if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+    if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
-
+    {
         refreshColorJitter(node, parameters, num, data);
         rpp_status = rppt_color_jitter_host(data->pSrc, data->src_desc_ptr, data->pDst, data->src_desc_ptr, data->alpha, data->beta,data->hue, data->sat, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
@@ -206,7 +207,7 @@ static vx_status VX_CALLBACK initializeColorJitter(vx_node node, const vx_refere
         data->dst_desc_ptr->dataType= RpptDataType::U8;
     } else if (data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
         data->dst_desc_ptr->dataType = RpptDataType::F32;
-    } else if (data->src_desc_ptr->dataType == vx_type_e::VX_TYPE_FLOAT16) {
+    } else if (data->dst_desc_ptr->dataType == vx_type_e::VX_TYPE_FLOAT16) {
         data->src_desc_ptr->dataType = RpptDataType::F16;
     } else if (data->out_tensor_type == vx_type_e::VX_TYPE_INT8) {
         data->dst_desc_ptr->dataType = RpptDataType::I8;

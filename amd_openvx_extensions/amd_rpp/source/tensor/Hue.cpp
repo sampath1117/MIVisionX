@@ -79,8 +79,9 @@ static vx_status VX_CALLBACK refreshHue(vx_node node, const vx_reference *parame
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->pSrc_dev, sizeof(data->pSrc_dev)));
         STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->pDst_dev, sizeof(data->pDst_dev)));
         hipMemcpy(data->hip_roi_tensor_Ptr, data->roi_tensor_Ptr, data->nbatchSize * sizeof(RpptROI), hipMemcpyHostToDevice);
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
+    {
         if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_UINT8) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
@@ -151,8 +152,9 @@ static vx_status VX_CALLBACK processHue(vx_node node, const vx_reference *parame
         refreshHue(node, parameters, num, data);
         rpp_status = rppi_hueRGB_u8_pkd3_batchPD_gpu((void *)data->pSrc_dev, data->srcDimensions, data->maxSrcDimensions, (void *)data->pDst_dev, data->hue_shift, data->nbatchSize, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
+    {
         refreshHue(node, parameters, num, data);
         rpp_status = rppi_hueRGB_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->hue_shift, data->nbatchSize, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;

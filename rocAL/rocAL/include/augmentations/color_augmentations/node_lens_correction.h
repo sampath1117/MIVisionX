@@ -24,16 +24,13 @@ THE SOFTWARE.
 #include "node.h"
 #include "parameter_factory.h"
 #include "parameter_vx.h"
-
-
-
 class LensCorrectionNode : public Node
 {
 public:
     LensCorrectionNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     LensCorrectionNode() = delete;
-    void init(float strength, float zoom, int layout);
-    void init(FloatParam *strength, FloatParam *zoom, int layout);
+    void init(float strength, float zoom);
+    void init(FloatParam *strength, FloatParam *zoom);
 protected:
     void create_node() override;
     void update_node() override;

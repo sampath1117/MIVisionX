@@ -32,11 +32,10 @@ class PixelateNode : public Node
 public:
     PixelateNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     PixelateNode() = delete;
-    void init(int layout);
+    void init();
 protected:
     void create_node() override;
     void update_node() override;
 private:
     int _layout,_roi_type;
-
 };
