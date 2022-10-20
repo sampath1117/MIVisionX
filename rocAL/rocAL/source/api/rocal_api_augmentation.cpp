@@ -214,7 +214,7 @@ rocalColorTemperature(
         output_info.set_data_type(op_tensorDataType);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
-        context->master_graph->add_node<ColorTemperatureNode>({input}, {output})->init(adjust_value, layout);
+        context->master_graph->add_node<ColorTemperatureNode>({input}, {output})->init(adjust_value);
     }
     catch(const std::exception& e)
     {
