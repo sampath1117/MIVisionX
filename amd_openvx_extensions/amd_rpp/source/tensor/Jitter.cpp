@@ -47,8 +47,8 @@ struct JitterLocalData {
     vx_enum in_tensor_type;
     vx_enum out_tensor_type;
 #if ENABLE_HIP
-    void *hip_pSrc;
-    void *hip_pDst;
+    void *pSrc_dev;
+    void *pDst_dev;
 #endif
 };
 
@@ -56,10 +56,8 @@ static vx_status VX_CALLBACK refreshJitter(vx_node node, const vx_reference *par
     vx_status status = VX_SUCCESS;
     STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[1], 0, data->nbatchSize * 4, sizeof(unsigned), data->roi_tensor_Ptr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
     STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[3], 0, data->nbatchSize, sizeof(vx_uint32), data->kernelSize, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    if (data->layout == 0 || data->layout == 1) 
-    {
-        for (int i = 0; i < data->nbatchSize; i++)
-        {
+    if (data->layout == 0 || data->layout == 1) {
+        for (int i = 0; i < data->nbatchSize; i++) {
             data->srcDimensions[i].width = data->roi_tensor_Ptr[i].xywhROI.roiWidth;
             data->srcDimensions[i].height = data->roi_tensor_Ptr[i].xywhROI.roiHeight;
         }
@@ -75,20 +73,17 @@ static vx_status VX_CALLBACK refreshJitter(vx_node node, const vx_reference *par
             }
         }
     }
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
 #if ENABLE_HIP
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->hip_pSrc, sizeof(data->hip_pSrc)));
-        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->hip_pDst, sizeof(data->hip_pDst)));
+    if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
+        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HIP, &data->pSrc_dev, sizeof(data->pSrc_dev)));
+        STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HIP, &data->pDst_dev, sizeof(data->pDst_dev)));
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) 
 #endif
-    }
-    if (data->device_type == AGO_TARGET_AFFINITY_CPU) {
-        // STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
-        //     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
+    {
         if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_UINT8) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_uint8)));
         } else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT32 && data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
-
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_float32)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float32)));
         } else if (data->in_tensor_type == vx_type_e::VX_TYPE_INT8 && data->out_tensor_type == vx_type_e::VX_TYPE_INT8) {
@@ -97,13 +92,13 @@ static vx_status VX_CALLBACK refreshJitter(vx_node node, const vx_reference *par
         } else if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float32)));
+        } 
+#if defined(AMD_FP16_SUPPORT)
+        else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT16 && data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT16) {
+            STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_float16)));
+            STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float16)));
         }
-        // vx_float16 is not supported. Have to disable it once it is done.
-        // else if(in_tensor_type == vx_type_e::VX_TYPE_UINT8 && out_tensor_type == vx_type_e::VX_TYPE_FLOAT16)
-        // {
-        //     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
-        //     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[3], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float16)));
-        // }
+#endif
     }
     return status;
 }
@@ -150,15 +145,13 @@ static vx_status VX_CALLBACK processJitter(vx_node node, const vx_reference *par
     vx_status return_status = VX_SUCCESS;
     JitterLocalData *data = NULL;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-    if (data->device_type == AGO_TARGET_AFFINITY_GPU)
-    {
 #if ENABLE_HIP
+    if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
         refreshJitter(node, parameters, num, data);
-        rpp_status = rppi_jitter_u8_pkd3_batchPD_gpu((void *)data->hip_pSrc, data->srcDimensions, data->maxSrcDimensions, (void *)data->hip_pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
+        rpp_status = rppi_jitter_u8_pkd3_batchPD_gpu((void *)data->pSrc_dev, data->srcDimensions, data->maxSrcDimensions, (void *)data->pDst_dev, data->kernelSize, data->nbatchSize, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
-    }
-    if (data->device_type == AGO_TARGET_AFFINITY_CPU)
     {
         refreshJitter(node, parameters, num, data);
         rpp_status = rppi_jitter_u8_pkd3_batchPD_host(data->pSrc, data->srcDimensions, data->maxSrcDimensions, data->pDst, data->kernelSize, data->nbatchSize, data->rppHandle);
@@ -188,12 +181,9 @@ static vx_status VX_CALLBACK initializeJitter(vx_node node, const vx_reference *
         data->src_desc_ptr->dataType = RpptDataType::U8;
     } else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
         data->src_desc_ptr->dataType = RpptDataType::F32;
-    }
-    // else if (data->in_tensor_type->dataType == vx_type_e::VX_TYPE_FLOAT16)
-    // {
-    //     data->src_desc_ptr->dataType = RpptDataType::F16;
-    // }
-    else if (data->in_tensor_type == vx_type_e::VX_TYPE_INT8) {
+    } else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT16) {
+        data->src_desc_ptr->dataType = RpptDataType::F16;
+    } else if (data->in_tensor_type == vx_type_e::VX_TYPE_INT8) {
         data->src_desc_ptr->dataType = RpptDataType::I8;
     }
     // Querying for output tensor
@@ -204,44 +194,32 @@ static vx_status VX_CALLBACK initializeJitter(vx_node node, const vx_reference *
     if (data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
         data->dst_desc_ptr->dataType = RpptDataType::F32;
     } else if (data->out_tensor_type == vx_type_e::VX_TYPE_UINT8) {
-
         data->dst_desc_ptr->dataType = RpptDataType::U8;
     } else if (data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
         data->dst_desc_ptr->dataType = RpptDataType::F32;
-    }
-    // else if (data->src_desc_ptr->dataType == vx_type_e::VX_TYPE_FLOAT16)
-    // {
-    //     data->src_desc_ptr->dataType = RpptDataType::F16;
-    // }
-    else if (data->out_tensor_type == vx_type_e::VX_TYPE_INT8) {
+    } else if (data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT16) {
+        data->src_desc_ptr->dataType = RpptDataType::F16;
+    } else if (data->out_tensor_type == vx_type_e::VX_TYPE_INT8) {
         data->dst_desc_ptr->dataType = RpptDataType::I8;
     }
     data->src_desc_ptr->offsetInBytes = 0;
-    if(data->layout == 0)
-    {
+    if(data->layout == 0) {
         data->src_desc_ptr->n = data->in_tensor_dims[0];
         data->maxSrcDimensions.height = data->in_tensor_dims[1];
         data->maxSrcDimensions.width = data->in_tensor_dims[2];
-    }
-    else if(data->layout == 1)
-    {
+    } else if(data->layout == 1) {
         data->src_desc_ptr->n = data->in_tensor_dims[0];
         data->maxSrcDimensions.height = data->in_tensor_dims[2];
         data->maxSrcDimensions.width = data->in_tensor_dims[3];
-    }
-    else if(data->layout == 2)
-    {
+    } else if(data->layout == 2) {
         data->src_desc_ptr->n = data->in_tensor_dims[0] * data->in_tensor_dims[1];
         data->maxSrcDimensions.height = data->in_tensor_dims[2];
         data->maxSrcDimensions.width = data->in_tensor_dims[3];
-    }
-    else if(data->layout == 3)
-    {
+    } else if(data->layout == 3) {
         data->src_desc_ptr->n = data->in_tensor_dims[0] * data->in_tensor_dims[1];
         data->maxSrcDimensions.height = data->in_tensor_dims[3];
         data->maxSrcDimensions.width = data->in_tensor_dims[4];
     }
-   
    
     data->roi_tensor_Ptr = (RpptROI *)calloc(data->src_desc_ptr->n, sizeof(RpptROI));
     data->kernelSize = (vx_uint32 *)malloc(sizeof(vx_uint32) * data->src_desc_ptr->n);

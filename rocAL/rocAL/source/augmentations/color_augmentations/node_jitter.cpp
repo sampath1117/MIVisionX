@@ -36,15 +36,6 @@ void JitterNode::create_node()
 {
     if(_node)
         return;
-    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-        _layout = 1;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-        _layout = 2;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-        _layout = 3;
-
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
 
     _kernel_size.create_array(_graph ,VX_TYPE_UINT32, _batch_size);
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
@@ -61,13 +52,15 @@ void JitterNode::create_node()
 void JitterNode::init(int kernel_size)
 {
     _kernel_size.set_param(kernel_size);
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void JitterNode::init(IntParam *kernel_size)
 {
     _kernel_size.set_param(core(kernel_size));
-    _roi_type = 0;
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void JitterNode::update_node()

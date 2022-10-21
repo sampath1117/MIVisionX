@@ -17,15 +17,6 @@ void NoiseTensorNode::create_node()
 {
     if(_node)
         return;
-    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-        _layout = 1;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-        _layout = 2;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-        _layout = 3;
-
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
 
     _noise_prob.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
     _salt_prob.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
@@ -52,8 +43,8 @@ void NoiseTensorNode::init( float noise_prob, float salt_prob, float noise_value
     _noise_value.set_param(noise_value);
     _salt_value.set_param(salt_value);
     _seed=seed;
-
-
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void NoiseTensorNode::init( FloatParam* noise_prob, FloatParam* salt_prob, FloatParam* noise_value, FloatParam* salt_value, int seed)
@@ -63,7 +54,8 @@ void NoiseTensorNode::init( FloatParam* noise_prob, FloatParam* salt_prob, Float
     _noise_value.set_param(core(noise_value));
     _salt_value.set_param(core(salt_value));
     _seed=seed;
-
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 

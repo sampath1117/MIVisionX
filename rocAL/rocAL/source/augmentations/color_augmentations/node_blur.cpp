@@ -35,16 +35,6 @@ void BlurNode::create_node()
     if(_node)
         return;
     _sdev.create_array(_graph ,VX_TYPE_UINT32, _batch_size);
-    
-    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-        _layout = 1;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-        _layout = 2;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-        _layout = 3;
-
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
@@ -53,25 +43,23 @@ void BlurNode::create_node()
     
     _node = vxExtrppNode_Blur(_graph->get(), _inputs[0]->handle(),  _src_tensor_roi, _outputs[0]->handle(), _sdev.default_array(), layout, roi_type, _batch_size);
 
-
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the blur (vxExtrppNode_blur) node failed: "+ TOSTR(status))
-
 }
 
 void BlurNode::init(int sdev)
 {
     _sdev.set_param(sdev);
-    _roi_type = 0;
-
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void BlurNode::init(IntParam* sdev)
 {
     _sdev.set_param(core(sdev));
-    _roi_type = 0;
-
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void BlurNode::update_node()

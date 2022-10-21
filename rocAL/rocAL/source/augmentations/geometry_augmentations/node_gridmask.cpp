@@ -40,16 +40,6 @@ void GridmaskNode::create_node()
     if(_outputs.empty() || _inputs.empty())
         THROW("Uninitialized input/output arguments")
 
-    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-        _layout = 1;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-        _layout = 2;
-    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-        _layout = 3;
-
-    if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
-        _roi_type = 1;
-
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
     vx_scalar tile_width = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_tile_width);
@@ -73,6 +63,8 @@ void GridmaskNode::init(int tile_width, float grid_ratio, float grid_angle,int s
     _grid_angle=grid_angle; 
     _shift_x=shift_x;
     _shift_y=shift_y;  
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 
 }
 void GridmaskNode::update_node()
