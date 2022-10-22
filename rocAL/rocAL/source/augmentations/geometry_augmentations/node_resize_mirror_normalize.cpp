@@ -31,8 +31,7 @@ ResizeMirrorNormalizeNode::ResizeMirrorNormalizeNode(const std::vector<rocalTens
 {
 }
     
-void ResizeMirrorNormalizeNode::create_node()
-{
+void ResizeMirrorNormalizeNode::create_node(){
     if(_node)
         return;
     std::vector<uint32_t> dst_roi_width(_batch_size,_outputs[0]->info().max_dims()[0]);
@@ -73,21 +72,19 @@ void ResizeMirrorNormalizeNode::create_node()
    _node = vxExtrppNode_ResizeMirrorNormalize(_graph->get(), _inputs[0]->handle(),
                                              _src_tensor_roi,_outputs[0]->handle(),_src_tensor_roi,_dst_roi_width,_dst_roi_height,
                                              interpolation,_mean_array, _std_dev_array, _mirror.default_array() ,
-                                             is_packed, chnToggle,layout, roi_type, _batch_size);
+                                             layout, roi_type, _batch_size);
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the resize (vxExtrppNode_ResizebatchPD) node failed: "+ TOSTR(status))
 }
-void ResizeMirrorNormalizeNode::update_node()
-{
+void ResizeMirrorNormalizeNode::update_node() {
     _mirror.update_array();
 }
-void ResizeMirrorNormalizeNode::init(int interpolation_type,std::vector<float>& mean, std::vector<float>& std_dev, IntParam *mirror, int layout)
-{
+void ResizeMirrorNormalizeNode::init(int interpolation_type,std::vector<float>& mean, std::vector<float>& std_dev, IntParam *mirror) {
   _interpolation_type=interpolation_type;
   _mean   = mean;
   _std_dev = std_dev;
   _mirror.set_param(core(mirror));
-  _layout=layout;
-    // _layout = (unsigned) _outputs[0]->layout();
+  _layout = (int)_inputs[0]->info().layout();
+  _roi_type = (int)_inputs[0]->info().roi_type();
 
 }

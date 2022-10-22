@@ -32,8 +32,8 @@ public:
     WarpAffineNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     WarpAffineNode() = delete;
 
-    void init( float x0, float x1,float x2 ,float x3, float x4,float x5,int interpolation_type, int layout);
-    void init( FloatParam* x0, FloatParam* x1,  FloatParam* y0,  FloatParam* y1,  FloatParam* o0,  FloatParam* o1,int interpolation_type, int layout);
+    void init( float x0, float x1,float x2 ,float x3, float x4,float x5,int interpolation_type);
+    void init( FloatParam* x0, FloatParam* x1,  FloatParam* y0,  FloatParam* y1,  FloatParam* o0,  FloatParam* o1,int interpolation_type);
 
 protected:
     void create_node() override ;

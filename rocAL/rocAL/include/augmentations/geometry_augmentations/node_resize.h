@@ -32,7 +32,7 @@ public:
     unsigned int get_dst_width() { return _outputs[0]->info().max_dims()[0]; }
     unsigned int get_dst_height() { return _outputs[0]->info().max_dims()[1]; }
     void init(unsigned dest_width, unsigned dest_height, RocalResizeScalingMode scaling_mode,
-              std::vector<unsigned> max_size, RocalResizeInterpolationType interpolation_type, int layout);
+              std::vector<unsigned> max_size, RocalResizeInterpolationType interpolation_type);
     void adjust_out_roi_size();
 protected:
     void create_node() override;
