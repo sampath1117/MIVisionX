@@ -346,10 +346,10 @@ static vx_status VX_CALLBACK initializeCrop(vx_node node, const vx_reference *pa
         data->src_desc_ptr->strides.cStride = 1;
         data->src_desc_ptr->layout = RpptLayout::NHWC;
     
-        data->dst_desc_ptr->n = data->out_tensor_dims[0] * data->in_tensor_dims[1];
+        data->dst_desc_ptr->n = data->out_tensor_dims[0] * data->out_tensor_dims[1];
         data->dst_desc_ptr->h = data->out_tensor_dims[2];
         data->dst_desc_ptr->w = data->out_tensor_dims[3];
-        data->dst_desc_ptr->c = data->out_tensor_dims[1];
+        data->dst_desc_ptr->c = data->out_tensor_dims[4];
         data->dst_desc_ptr->strides.nStride = data->dst_desc_ptr->c * data->dst_desc_ptr->w * data->dst_desc_ptr->h;
         data->dst_desc_ptr->strides.cStride = data->dst_desc_ptr->w * data->dst_desc_ptr->h;
         data->dst_desc_ptr->strides.hStride = data->dst_desc_ptr->w;
@@ -368,10 +368,10 @@ static vx_status VX_CALLBACK initializeCrop(vx_node node, const vx_reference *pa
         data->src_desc_ptr->strides.wStride = 1;
         data->src_desc_ptr->layout = RpptLayout::NCHW;
 
-        data->dst_desc_ptr->n = data->out_tensor_dims[0];
-        data->dst_desc_ptr->h = data->out_tensor_dims[2];
-        data->dst_desc_ptr->w = data->out_tensor_dims[3];
-        data->dst_desc_ptr->c = data->out_tensor_dims[1];
+        data->dst_desc_ptr->n = data->out_tensor_dims[0]*data->out_tensor_dims[1];
+        data->dst_desc_ptr->h = data->out_tensor_dims[3];
+        data->dst_desc_ptr->w = data->out_tensor_dims[4];
+        data->dst_desc_ptr->c = data->out_tensor_dims[2];
         data->dst_desc_ptr->strides.nStride = data->dst_desc_ptr->c * data->dst_desc_ptr->w * data->dst_desc_ptr->h;
         data->dst_desc_ptr->strides.cStride = data->dst_desc_ptr->w * data->dst_desc_ptr->h;
         data->dst_desc_ptr->strides.hStride = data->dst_desc_ptr->w;
