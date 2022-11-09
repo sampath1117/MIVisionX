@@ -85,6 +85,15 @@ ROCAL_API_CALL rocalCreateCOCOReader(RocalContext p_context, const char* source_
 }
 
 RocalMetaData
+ROCAL_API_CALL rocalCreateCOCOReaderKeyPoints(RocalContext p_context, const char* source_path, bool is_output, bool mask, bool is_box_encoder, float sigma, unsigned pose_output_width, unsigned pose_output_height) {
+    if (!p_context)
+        THROW("Invalid rocal context passed to  rocalCreateCOCOReaderKeyPoints")
+    auto context = static_cast<Context*>(p_context);
+
+    return context->master_graph->create_coco_meta_data_reader(source_path, is_output, mask, MetaDataReaderType::COCO_KEY_POINTS_META_DATA_READER, MetaDataType::KeyPoints, is_box_encoder, sigma, pose_output_width, pose_output_height);
+}
+
+RocalMetaData
 ROCAL_API_CALL rocalCreateTFReader(RocalContext p_context, const char* source_path, bool is_output,const char* user_key_for_label, const char* user_key_for_filename)
 {
     if (!p_context)
@@ -131,7 +140,7 @@ ROCAL_API_CALL rocalCreateTFReaderDetection(RocalContext p_context, const char* 
     return context->master_graph->create_tf_record_meta_data_reader(source_path , MetaDataReaderType::TF_DETECTION_META_DATA_READER,  MetaDataType::BoundingBox, feature_key_map);
 }
 
-RocalMetaData 
+RocalMetaData
 ROCAL_API_CALL rocalCreateCaffeLMDBLabelReader(RocalContext p_context, const char *source_path)
 {
     if (!p_context)
@@ -140,7 +149,7 @@ ROCAL_API_CALL rocalCreateCaffeLMDBLabelReader(RocalContext p_context, const cha
     return context->master_graph->create_caffe_lmdb_record_meta_data_reader(source_path, MetaDataReaderType::CAFFE_META_DATA_READER, MetaDataType::Label);
 }
 
-RocalMetaData 
+RocalMetaData
 ROCAL_API_CALL rocalCreateCaffeLMDBReaderDetection(RocalContext p_context, const char *source_path)
 {
     if (!p_context)
@@ -437,6 +446,26 @@ ROCAL_API_CALL rocalGetEncodedBoxesAndLables(RocalContext p_context, int num_enc
     // {
     //     WRN("rocalGetEncodedBoxesAndLables::Empty tensors returned from rocAL")
     // }
+}
+
+void
+ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context, RocalJointsData **joints_data)
+{
+    if (!p_context)
+        THROW("Invalid rocal context passed to rocalGetBoundingBoxCords")
+    auto context = static_cast<Context*>(p_context);
+    auto meta_data = context->master_graph->meta_data();
+    size_t meta_data_batch_size = meta_data.second->get_joints_data_batch().center_batch.size();
+
+    if(context->user_batch_size() != meta_data_batch_size)
+        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+    if(!meta_data.second)
+    {
+        WRN("No label has been loaded for this output image")
+        return;
+    }
+
+    *joints_data = (RocalJointsData *)(&(meta_data.second->get_joints_data_batch()));
 }
 
 

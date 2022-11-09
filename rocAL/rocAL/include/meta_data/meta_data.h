@@ -28,6 +28,12 @@ THE SOFTWARE.
 #include <cstring>
 #include "commons.h"
 
+// Defined constants since needed in reader and meta nodes for Pose Estimation
+#define NUMBER_OF_JOINTS 17
+#define NUMBER_OF_JOINTS_HALFBODY 8
+#define PIXEL_STD  200
+#define SCALE_CONSTANT_CS 1.25
+#define SCALE_CONSTANT_HALF_BODY 1.5
 
 typedef struct BoundingBoxCord_
 {
@@ -46,6 +52,38 @@ typedef  std::vector<ImgSize> ImgSizes;
 
 typedef std::vector<std::vector<float>> coords;
 typedef std::vector<float> MaskCords;
+
+typedef std::vector<int> ImageIDBatch,AnnotationIDBatch;
+typedef std::vector<std::string> ImagePathBatch;
+typedef std::vector<float> Joint,JointVisibility,ScoreBatch,RotationBatch;
+typedef std::vector<std::vector<float>> Joints,JointsVisibility, CenterBatch, ScaleBatch;
+typedef std::vector<std::vector<std::vector<float>>> JointsBatch, JointsVisibilityBatch;
+
+typedef struct
+{
+    int image_id;
+    int annotation_id;
+    std::string image_path;
+    float center[2];
+    float scale[2];
+    Joints joints;
+    JointsVisibility joints_visibility;
+    float score;
+    float rotation;
+}JointsData;
+
+typedef struct
+{
+    ImageIDBatch image_id_batch;
+    AnnotationIDBatch annotation_id_batch;
+    ImagePathBatch image_path_batch;
+    CenterBatch center_batch;
+    ScaleBatch scale_batch;
+    JointsBatch joints_batch;
+    JointsVisibilityBatch joints_visibility_batch;
+    ScoreBatch score_batch;
+    RotationBatch rotation_batch;
+}JointsDataBatch;
 
 struct MetaData
 {
@@ -79,11 +117,13 @@ struct MetaData
         _mask_coords_dims = {_mask_cords.size(), 1};
         return _mask_coords_dims;
     }
+    const JointsData& get_joints_data(){ return _joints_data; }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
     BoundingBoxCords_xcycwh _bb_cords_xcycwh = {}; // For bb use
     BoundingBoxLabels _bb_label_ids = {};// For bb use
     ImgSize _img_size = {};
+    JointsData _joints_data = {};
     int _label_id = -1; // For label use only
     MaskCords _mask_cords = {};
     std::vector<size_t> _bb_labels_dims = {};
@@ -137,13 +177,24 @@ struct BoundingBox : public MetaData
     void set_bb_cords_xcycwh(BoundingBoxCords_xcycwh bb_cords_xcycwh) { _bb_cords_xcycwh =std::move(bb_cords_xcycwh); }
     void set_bb_labels(BoundingBoxLabels bb_label_ids) { _bb_label_ids = std::move(bb_label_ids); }
     void set_img_sizes(ImgSize img_size) { _img_size =std::move(img_size); }
-    void set_mask_cords(MaskCords mask_cords) 
-    { 
+    void set_mask_cords(MaskCords mask_cords)
+    {
         _mask_cords = std::move(mask_cords);
         _mask_coords_count = mask_cords.size();
     }
     void set_polygon_counts(std::vector<int> polygon_count) { _polygon_count = std::move(polygon_count); }
     void set_vertices_counts(std::vector<std::vector<int>> vertices_count) { _vertices_count = std::move(vertices_count); }
+};
+
+struct KeyPoint : public MetaData
+{
+    KeyPoint()= default;
+    KeyPoint(ImgSize img_size, JointsData *joints_data)
+    {
+        _img_size = std::move(img_size);
+        _joints_data = std::move(*joints_data);
+    }
+    void set_joints_data(JointsData *joints_data) { _joints_data = std::move(*joints_data); }
 };
 
 struct MetaDataDimensionsBatch
@@ -199,7 +250,7 @@ struct MetaDataBatch
     std::vector<MaskCords>& get_mask_cords_batch() { return _mask_cords; }
     std::vector<std::vector<int>>& get_mask_polygons_count_batch() { return _polygon_counts; }
     std::vector<std::vector<std::vector<int>>>& get_mask_vertices_count_batch() { return _vertices_counts; }
-    void reset_objects_count() { 
+    void reset_objects_count() {
         _total_objects_count = 0;
         _total_mask_coords_count = 0;
     }
@@ -207,6 +258,7 @@ struct MetaDataBatch
     void increment_mask_coords_count(int count) { _total_mask_coords_count += count; }
     int get_batch_object_count() { return _total_objects_count; }
     MetaDataDimensionsBatch& get_metadata_dimensions_batch() { return _metadata_dimensions; }
+    JointsDataBatch & get_joints_data_batch() { return _joints_data; }
 protected:
     std::vector<int> _label_id = {}; // For label use only
     std::vector<BoundingBoxCords> _bb_cords = {};
@@ -220,6 +272,7 @@ protected:
     int _total_objects_count = 0;
     int _total_mask_coords_count;
     MetaDataDimensionsBatch _metadata_dimensions;
+    JointsDataBatch _joints_data = {};
 };
 
 struct LabelBatch : public MetaDataBatch
@@ -334,7 +387,7 @@ struct BoundingBoxBatch: public MetaDataBatch
                 labels_buffer += bb_labels_dims[i][0];
                 bbox_buffer += (bb_coords_dims[i][0] * 4);
                 mask_buffer += mask_coords_dims[i][0];
-            }            
+            }
         }
         else
         {
@@ -356,7 +409,101 @@ struct BoundingBoxBatch: public MetaDataBatch
         return _buffer_size;
     }
 };
+
+struct KeyPointBatch : public MetaDataBatch
+{
+    void clear() override
+    {
+        _img_sizes.clear();
+        _joints_data = {};
+        _bb_cords.clear();
+        _bb_label_ids.clear();
+        _buffer_size.clear();
+        _total_objects_count = 0;
+    }
+    MetaDataBatch&  operator += (MetaDataBatch& other) override
+    {
+        _img_sizes.insert(_img_sizes.end(), other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
+        _joints_data.image_id_batch.insert(_joints_data.image_id_batch.end(), other.get_joints_data_batch().image_id_batch.begin(), other.get_joints_data_batch().image_id_batch.end());
+        _joints_data.annotation_id_batch.insert(_joints_data.annotation_id_batch.end(), other.get_joints_data_batch().annotation_id_batch.begin(), other.get_joints_data_batch().annotation_id_batch.end());
+        _joints_data.center_batch.insert(_joints_data.center_batch.end(), other.get_joints_data_batch().center_batch.begin(), other.get_joints_data_batch().center_batch.end());
+        _joints_data.scale_batch.insert(_joints_data.scale_batch.end(), other.get_joints_data_batch().scale_batch.begin(), other.get_joints_data_batch().scale_batch.end());
+        _joints_data.joints_batch.insert(_joints_data.joints_batch.end(), other.get_joints_data_batch().joints_batch.begin() ,other.get_joints_data_batch().joints_batch.end());
+        _joints_data.joints_visibility_batch.insert(_joints_data.joints_visibility_batch.end(), other.get_joints_data_batch().joints_visibility_batch.begin(), other.get_joints_data_batch().joints_visibility_batch.end());
+        _joints_data.score_batch.insert(_joints_data.score_batch.end(), other.get_joints_data_batch().score_batch.begin(), other.get_joints_data_batch().score_batch.end());
+        _joints_data.rotation_batch.insert(_joints_data.rotation_batch.end(), other.get_joints_data_batch().rotation_batch.begin(), other.get_joints_data_batch().rotation_batch.end());
+        return *this;
+    }
+    void resize(int batch_size) override
+    {
+        _joints_data.image_id_batch.resize(batch_size);
+        _joints_data.annotation_id_batch.resize(batch_size);
+        _joints_data.center_batch.resize(batch_size);
+        _joints_data.scale_batch.resize(batch_size);
+        _joints_data.joints_batch.resize(batch_size);
+        _joints_data.joints_visibility_batch.resize(batch_size);
+        _joints_data.score_batch.resize(batch_size);
+        _joints_data.rotation_batch.resize(batch_size);
+        _bb_cords.resize(batch_size);
+        _bb_label_ids.resize(batch_size);
+    }
+    int size() override
+    {
+        return _joints_data.image_id_batch.size();
+    }
+    int mask_size() override
+    {
+        return _mask_cords.size();
+    }
+    std::shared_ptr<MetaDataBatch> clone() override
+    {
+        return std::make_shared<KeyPointBatch>(*this);
+    }
+    void copy_data(std::vector<void*> buffer, bool is_segmentation) override
+    {
+        if(buffer.size() < 2)
+            THROW("The buffers are insufficient") // TODO -change
+        int *labels_buffer = (int *)buffer[0];
+        float *bbox_buffer = (float *)buffer[1];
+        auto bb_labels_dims = _metadata_dimensions.bb_labels_dims();
+        auto bb_coords_dims = _metadata_dimensions.bb_cords_dims();
+        if(is_segmentation)
+        {
+            float *mask_buffer = (float *)buffer[2];
+            auto mask_coords_dims = _metadata_dimensions.mask_cords_dims();
+            for(unsigned i = 0; i < _bb_label_ids.size(); i++)
+            {
+                mempcpy(labels_buffer, _bb_label_ids[i].data(), bb_labels_dims[i][0] * sizeof(int));
+                memcpy(bbox_buffer, _bb_cords[i].data(), bb_coords_dims[i][0] * sizeof(BoundingBoxCord));
+                memcpy(mask_buffer, _mask_cords[i].data(), mask_coords_dims[i][0] * sizeof(float));
+                labels_buffer += bb_labels_dims[i][0];
+                bbox_buffer += (bb_coords_dims[i][0] * 4);
+                mask_buffer += mask_coords_dims[i][0];
+            }
+        }
+        else
+        {
+            for(unsigned i = 0; i < _bb_label_ids.size(); i++)
+            {
+                mempcpy(labels_buffer, _bb_label_ids[i].data(), bb_labels_dims[i][0] * sizeof(int));
+                memcpy(bbox_buffer, _bb_cords[i].data(), bb_coords_dims[i][0] * sizeof(BoundingBoxCord));
+                labels_buffer += bb_labels_dims[i][0];
+                bbox_buffer += (bb_coords_dims[i][0] * 4);
+            }
+        }
+    }
+    std::vector<size_t>& get_buffer_size(bool is_segmentation) override
+    {
+        _buffer_size.emplace_back(_total_objects_count * sizeof(int));
+        _buffer_size.emplace_back(_total_objects_count * 4 * sizeof(float));
+        if(is_segmentation)
+            _buffer_size.emplace_back(_total_mask_coords_count * sizeof(float));
+        return _buffer_size;
+    }
+};
+
 using ImageNameBatch = std::vector<std::string>;
 using pMetaData = std::shared_ptr<Label>;
 using pMetaDataBox = std::shared_ptr<BoundingBox>;
 using pMetaDataBatch = std::shared_ptr<MetaDataBatch>;
+using pMetaDataKeyPoint = std::shared_ptr<KeyPoint>;

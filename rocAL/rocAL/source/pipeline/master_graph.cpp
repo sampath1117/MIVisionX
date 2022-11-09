@@ -317,7 +317,7 @@ rocalTensor * MasterGraph::create_tensor(const rocalTensorInfo &info, bool is_ou
 
         _internal_tensor_list.push_back(new_tensor);
 
-        auto * output = new rocalTensor(info); 
+        auto * output = new rocalTensor(info);
         if (output->create_from_handle(_context) != 0)
             THROW("Cannot create the tensor from handle")
 
@@ -634,7 +634,7 @@ void MasterGraph::output_routine()
 {
     INFO("Output routine started with "+TOSTR(_remaining_count) + " to load");
     size_t batch_ratio = _is_sequence_reader_output ? _sequence_batch_ratio : _user_to_internal_batch_ratio;
-    if(!_is_sequence_reader_output) 
+    if(!_is_sequence_reader_output)
     {
 #if !ENABLE_HIP
     if(processing_on_device_ocl() && batch_ratio != 1)
@@ -891,8 +891,8 @@ std::vector<rocalTensorList *> MasterGraph::create_cifar10_label_reader(const ch
         _labels_tensor_list.push_back(tensor);
     }
     _metadata_output_tensor_list.emplace_back(&_labels_tensor_list);
-    
-    
+
+
     _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
     if (_augmented_meta_data)
         THROW("Metadata can only have a single output")
@@ -942,13 +942,15 @@ std::vector<rocalTensorList *> MasterGraph::create_video_label_reader(const char
     return _metadata_output_tensor_list;
 }
 
-std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, bool mask, MetaDataReaderType reader_type, MetaDataType label_type, bool is_box_encoder)
+std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, bool mask, MetaDataReaderType reader_type, MetaDataType label_type, bool is_box_encoder, float sigma, unsigned pose_output_width, unsigned pose_output_height)
 {
     if(_meta_data_reader)
         THROW("A metadata reader has already been created")
     if(mask)
         _is_segmentation = true;
     MetaDataConfig config(label_type, reader_type, source_path, std::map<std::string, std::string>(), std::string(), mask);
+    config.set_out_img_width(pose_output_width);
+    config.set_out_img_height(pose_output_height);
     _meta_data_graph = create_meta_data_graph(config);
     _meta_data_reader = create_meta_data_reader(config);
     _meta_data_reader->init(config);
@@ -987,7 +989,7 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
                                             RocalTensorDataType::FP32);
         default_mask_info.set_metadata();
         default_mask_info.set_tensor_layout(RocalTensorlayout::NONE);
-        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info  
+        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info
     }
 
     for(unsigned i = 0; i < _user_batch_size; i++)
