@@ -141,6 +141,7 @@ private:
     rocalTensorList _labels_tensor_list;
     rocalTensorList _bbox_tensor_list;
     rocalTensorList _mask_tensor_list;
+    rocalTensorList _jointsdata_tensor_list;
     std::vector<std::vector<unsigned>> _labels_tensor_dims;
     std::vector<std::vector<unsigned>> _bbox_tensor_dims;
     std::vector<std::vector<unsigned>> _mask_tensor_dims;

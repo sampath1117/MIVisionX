@@ -53,6 +53,9 @@ void COCOMetaDataReaderKeyPoints::lookup(const std::vector<std::string> &image_n
     if (image_names.size() != (unsigned)_output->size())
         _output->resize(image_names.size());
 
+    printf("entered lookup\n");
+
+    _output->reset_objects_count();
     JointsDataBatch joints_data_batch;
     for (unsigned i = 0; i < image_names.size(); i++)
     {
@@ -71,8 +74,10 @@ void COCOMetaDataReaderKeyPoints::lookup(const std::vector<std::string> &image_n
         joints_data_batch.joints_visibility_batch.push_back(joints_data->joints_visibility);
         joints_data_batch.score_batch.push_back(joints_data->score);
         joints_data_batch.rotation_batch.push_back(joints_data->rotation);
+
     }
     _output->get_joints_data_batch() = joints_data_batch;
+    printf("exited lookup\n");
 }
 
 void COCOMetaDataReaderKeyPoints::add(std::string image_id, ImgSize image_size, JointsData *joints_data)

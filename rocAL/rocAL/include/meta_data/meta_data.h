@@ -416,9 +416,6 @@ struct KeyPointBatch : public MetaDataBatch
     {
         _img_sizes.clear();
         _joints_data = {};
-        _bb_cords.clear();
-        _bb_label_ids.clear();
-        _buffer_size.clear();
         _total_objects_count = 0;
     }
     MetaDataBatch&  operator += (MetaDataBatch& other) override
@@ -444,11 +441,11 @@ struct KeyPointBatch : public MetaDataBatch
         _joints_data.joints_visibility_batch.resize(batch_size);
         _joints_data.score_batch.resize(batch_size);
         _joints_data.rotation_batch.resize(batch_size);
-        _bb_cords.resize(batch_size);
-        _bb_label_ids.resize(batch_size);
+        _metadata_dimensions.resize(batch_size);
     }
     int size() override
     {
+        printf("entered keypoint size() call\n");
         return _joints_data.image_id_batch.size();
     }
     int mask_size() override
@@ -483,14 +480,36 @@ struct KeyPointBatch : public MetaDataBatch
         }
         else
         {
+            printf("entered copy case\n");
+            std::cerr<<_bb_label_ids.size()<<std::endl;
+            std::cerr<<bb_labels_dims.size()<<std::endl;
             for(unsigned i = 0; i < _bb_label_ids.size(); i++)
             {
+                std::cerr<<bb_labels_dims[i][0]<<std::endl;
                 mempcpy(labels_buffer, _bb_label_ids[i].data(), bb_labels_dims[i][0] * sizeof(int));
                 memcpy(bbox_buffer, _bb_cords[i].data(), bb_coords_dims[i][0] * sizeof(BoundingBoxCord));
                 labels_buffer += bb_labels_dims[i][0];
                 bbox_buffer += (bb_coords_dims[i][0] * 4);
             }
+            printf("exited copy case\n");
         }
+    }
+    void copy_data1(std::vector<void*> buffer, bool is_segmentation)
+    {
+        if(buffer.size() < 2)
+            THROW("The buffers are insufficient") // TODO -change
+        int *labels_buffer = (int *)buffer[0];
+        float *bbox_buffer = (float *)buffer[1];
+        // JointsDataBatch *joints_data_buffer = (JointsDataBatch *)buffer[3];
+        // size_t bs = _joints_data.image_id_batch.size();
+        // memcpy(joints_data_buffer->image_id_batch.data(),  _joints_data.image_id_batch.data(), bs * sizeof(int));
+        // memcpy(joints_data_buffer->annotation_id_batch.data(),  _joints_data.annotation_id_batch.data(), bs * sizeof(int));
+        // memcpy(joints_data_buffer->center_batch.data(),  _joints_data.center_batch.data(), bs * 2 * sizeof(float));
+        // memcpy(joints_data_buffer->scale_batch.data(),  _joints_data.center_batch.data(), bs * 2 * sizeof(float));
+        // memcpy(joints_data_buffer->joints_batch.data(),  _joints_data.joints_batch.data(), bs * 17 * 2 * sizeof(float));
+        // memcpy(joints_data_buffer->joints_visibility_batch.data(), _joints_data.joints_visibility_batch.data(), bs * 17 * 2 * sizeof(float));
+        // memcpy(joints_data_buffer->score_batch.data(),  _joints_data.score_batch.data(), bs * sizeof(int));
+        // memcpy(joints_data_buffer->rotation_batch.data(), _joints_data.rotation_batch.data(), bs * sizeof(float));
     }
     std::vector<size_t>& get_buffer_size(bool is_segmentation) override
     {
