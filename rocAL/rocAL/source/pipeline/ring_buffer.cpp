@@ -411,27 +411,24 @@ void RingBuffer::increment_write_ptr()
     _wait_for_load.notify_all();
 }
 
-void RingBuffer::set_meta_data(ImageNameBatch names, pMetaDataBatch meta_data, bool is_segmentation)
+void RingBuffer::set_meta_data(ImageNameBatch names, pMetaDataBatch meta_data, bool is_segmentation, bool is_pose_estimation)
 {
     if(meta_data == nullptr)
         _last_image_meta_data = std::move(std::make_pair(std::move(names), pMetaDataBatch()));
     else
     {
         _last_image_meta_data = std::move(std::make_pair(std::move(names), meta_data));
-        // if(!_box_encoder_gpu)
-        // {
-        //     auto actual_buffer_size = meta_data->get_buffer_size(is_segmentation);
-        //     for(unsigned i = 0; i < _meta_data_sub_buffer_count; i++)
-        //     {
-        //         printf("printing actual buffer size\n");
-        //         std::cerr<<actual_buffer_size[i]<<std::endl;
-        //         if(actual_buffer_size[i] > _meta_data_sub_buffer_size[i])
-        //             rellocate_meta_data_buffer(_host_meta_data_buffers[_write_ptr][i], actual_buffer_size[i], i);
-        //     }
-        //     printf("doing meta data copy\n");
-        //     meta_data->copy_data(_host_meta_data_buffers[_write_ptr], is_segmentation);
-        //     printf("completed meta data copy\n");
-        // }
+        if(!_box_encoder_gpu && !is_pose_estimation)
+        {
+            auto actual_buffer_size = meta_data->get_buffer_size(is_segmentation);
+            for(unsigned i = 0; i < _meta_data_sub_buffer_count; i++)
+            {
+                std::cerr<<actual_buffer_size[i]<<std::endl;
+                if(actual_buffer_size[i] > _meta_data_sub_buffer_size[i])
+                    rellocate_meta_data_buffer(_host_meta_data_buffers[_write_ptr][i], actual_buffer_size[i], i);
+            }
+            meta_data->copy_data(_host_meta_data_buffers[_write_ptr], is_segmentation);
+        }
     }
 }
 

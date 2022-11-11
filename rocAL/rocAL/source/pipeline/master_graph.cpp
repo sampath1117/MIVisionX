@@ -308,7 +308,6 @@ MasterGraph::create_loader_output_tensor(const rocalTensorInfo &info)
 
 rocalTensor * MasterGraph::create_tensor(const rocalTensorInfo &info, bool is_output)
 {
-    printf("inside create_tensor\n");
     auto* new_tensor = new rocalTensor(info);
     // if the tensor is not an output tensor, the tensor creation is deferred and later it'll be created as a virtual tensor
     if(is_output)
@@ -666,7 +665,6 @@ void MasterGraph::output_routine()
             }
             _rb_block_if_full_time.start();
             // _ring_buffer.get_write_buffers() is blocking and blocks here until user uses processed image by calling run() and frees space in the ring_buffer
-            printf("at _ring_buffer.get_write_buffers()\n");
             auto tensor_write_buffer = _ring_buffer.get_write_buffers();
             _rb_block_if_full_time.end();
 
@@ -676,7 +674,6 @@ void MasterGraph::output_routine()
             for(unsigned cycle_idx = 0; cycle_idx < 1; cycle_idx++)
             {
                 // Swap handles on the input tensor, so that new tensor is loaded to be processed
-                printf("at _loader_module->load_next()\n");
                 auto load_ret = _loader_module->load_next();
                 if (load_ret != LoaderModuleStatus::OK)
                     THROW("Loader module failed to load next batch of images, status " + TOSTR(load_ret))
@@ -695,14 +692,11 @@ void MasterGraph::output_routine()
                 if (!_processing)
                     break;
 
-                std::cerr<<"tensorlist size: "<<_internal_tensor_list.size()<<std::endl;
                 // Swap handles on the output tensor, so that new processed tensor will be written to the a new buffer
                 for (size_t idx = 0; idx < _internal_tensor_list.size(); idx++)
                 {
                     // if(_internal_tensor_list.size() != 0)
-                    printf("inside tensor list loop\n");
                     size_t tensor_each_cycle_size = tensor_each_cycle_size_vec[idx]; // TODO - Batch ratio calculation TO be removed
-                    printf("checking affinity\n");
                     if(_affinity == RocalAffinity::GPU)
                     {
                         _internal_tensor_list[idx]->swap_handle(tensor_write_buffer[idx]);
@@ -712,7 +706,6 @@ void MasterGraph::output_routine()
                         // Have to change float to the equivalent of max size data type
                         if(_internal_tensor_list[idx]->info().data_type() == RocalTensorDataType::FP32)
                         {
-                            printf("fp32 8 swap_handle\n");
                             auto this_cycle_buffer_ptr = (vx_float32 *) tensor_write_buffer[idx] + tensor_each_cycle_size * cycle_idx;
                             _internal_tensor_list[idx]->swap_handle(this_cycle_buffer_ptr);
                         }
@@ -725,7 +718,6 @@ void MasterGraph::output_routine()
 #endif
                         else if(_internal_tensor_list[idx]->info().data_type() == RocalTensorDataType::UINT8)
                         {
-                            printf("uint 8 swap_handle\n");
                             auto this_cycle_buffer_ptr = (vx_uint8 *) tensor_write_buffer[idx] + tensor_each_cycle_size * cycle_idx;
                             _internal_tensor_list[idx]->swap_handle(this_cycle_buffer_ptr);
 
@@ -744,7 +736,6 @@ void MasterGraph::output_routine()
                 }
 
                 update_node_parameters();
-                printf("update_node_parameters()\n");
                 if(_augmented_meta_data)
                 {
                     if (_meta_data_graph)
@@ -755,19 +746,14 @@ void MasterGraph::output_routine()
                         }
                         else
                         {
-                            // printf("_meta_data_graph->update_meta_data\n");
-                            // _meta_data_graph->update_meta_data(_augmented_meta_data, decode_image_info, _is_segmentation);
+                            _meta_data_graph->update_meta_data(_augmented_meta_data, decode_image_info, _is_segmentation);
                         }
-                        printf("_meta_data_graph->process\n");
                         _meta_data_graph->process(_augmented_meta_data, _is_segmentation);
                     }
-                    printf("full_batch_meta_data->concatenate\n");
                     if (full_batch_meta_data)
                         full_batch_meta_data->concatenate(_augmented_meta_data);
                     else
                         full_batch_meta_data = _augmented_meta_data->clone();
-
-                    printf("complete\n");
                 }
 
                 // get roi width and height of output image
@@ -782,7 +768,6 @@ void MasterGraph::output_routine()
                 _resize_height.insert(_resize_height.begin(), temp_height_arr);
 
                 _process_time.start();
-                printf("_graph->process()\n");
                 _graph->process();
                 _process_time.end();
 
@@ -801,9 +786,7 @@ void MasterGraph::output_routine()
                     _meta_data_graph->update_box_encoder_meta_data(&_anchors, full_batch_meta_data, _criteria, _offset, _scale, _means, _stds);
             }
             _bencode_time.end();
-            printf("_ring_buffer.set_meta_data\n");
-            _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data, _is_segmentation);
-            printf(" _ring_buffer.push()\n");
+            _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data, _is_segmentation, _is_pose_estimation);
             _ring_buffer.push();
             // full_batch_meta_data->clear();
         }
@@ -974,31 +957,12 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
     _meta_data_reader = create_meta_data_reader(config);
     _meta_data_reader->init(config);
     _meta_data_reader->read_all(source_path);
-
     bool keypoint = reader_type == (MetaDataReaderType::COCO_KEY_POINTS_META_DATA_READER);
+    set_pose_estimation(keypoint);
+
     unsigned num_of_dims;
     std::vector<size_t> dims;
-
-    if(keypoint)
-    {
-        num_of_dims = 2;
-        // dims.resize(num_of_dims);
-        // dims.at(0) = MAX_MASK_BUFFER;
-        // dims.at(1) = 1;
-        // rocalTensorInfo default_jointsdata_info;
-        // default_jointsdata_info  = rocalTensorInfo(dims,
-        //                                     _mem_type,
-        //                                     RocalTensorDataType::FP32);
-        // default_jointsdata_info.set_metadata();
-        // default_jointsdata_info.set_tensor_layout(RocalTensorlayout::NONE);
-        // _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info
-        // for(unsigned i = 0; i < _user_batch_size; i++)
-        // {
-        //     auto jointsdata_info = default_jointsdata_info;
-        //     _jointsdata_tensor_list.push_back(new rocalTensor(jointsdata_info));
-        // }
-    }
-    else
+    if(!keypoint)
     {
         num_of_dims = 1;
         dims.resize(num_of_dims);
@@ -1048,9 +1012,13 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
                 _mask_tensor_list.push_back(new rocalTensor(mask_info));
             }
         }
+        _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
+        _metadata_output_tensor_list.emplace_back(&_labels_tensor_list);
+        _metadata_output_tensor_list.emplace_back(&_bbox_tensor_list);
+        if(mask)
+            _metadata_output_tensor_list.emplace_back(&_mask_tensor_list);
     }
 
-    // _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
     if(is_output)
     {
         if (_augmented_meta_data)
@@ -1059,19 +1027,6 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
             _augmented_meta_data = _meta_data_reader->get_output();
     }
 
-    if(keypoint)
-    {
-        // _metadata_output_tensor_list.emplace_back(&_jointsdata_tensor_list);
-        int a = 1;
-    }
-    else
-    {
-        _metadata_output_tensor_list.emplace_back(&_labels_tensor_list);
-        _metadata_output_tensor_list.emplace_back(&_bbox_tensor_list);
-        if(mask)
-            _metadata_output_tensor_list.emplace_back(&_mask_tensor_list);
-    }
-    printf("completed meta data reading");
     return _metadata_output_tensor_list;
 }
 

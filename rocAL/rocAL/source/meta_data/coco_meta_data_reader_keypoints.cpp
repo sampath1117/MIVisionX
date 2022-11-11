@@ -53,8 +53,6 @@ void COCOMetaDataReaderKeyPoints::lookup(const std::vector<std::string> &image_n
     if (image_names.size() != (unsigned)_output->size())
         _output->resize(image_names.size());
 
-    printf("entered lookup\n");
-
     _output->reset_objects_count();
     JointsDataBatch joints_data_batch;
     for (unsigned i = 0; i < image_names.size(); i++)
@@ -77,7 +75,6 @@ void COCOMetaDataReaderKeyPoints::lookup(const std::vector<std::string> &image_n
 
     }
     _output->get_joints_data_batch() = joints_data_batch;
-    printf("exited lookup\n");
 }
 
 void COCOMetaDataReaderKeyPoints::add(std::string image_id, ImgSize image_size, JointsData *joints_data)
@@ -377,7 +374,7 @@ void COCOMetaDataReaderKeyPoints::read_all(const std::string &path)
         }
     }
     _coco_metadata_read_time.end(); // Debug timing
-    print_map_contents();
+    // print_map_contents();
     // std::cout << "coco read time in sec: " << _coco_metadata_read_time.get_timing() / 1000 << std::endl;
 }
 
