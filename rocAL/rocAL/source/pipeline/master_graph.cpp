@@ -1405,6 +1405,27 @@ ImgSizes& MasterGraph::get_image_sizes()
     return _ring_buffer.get_meta_data().second->get_img_sizes_batch();
 }
 
+rocalTensor* MasterGraph::joints_data_meta_data()
+{
+    if(_ring_buffer.level() == 0)
+        THROW("No meta data has been loaded")
+
+    std::vector<size_t> dims;
+    dims.resize(1);
+    dims.at(0) = 1;
+    auto tensor_info  = rocalTensorInfo(dims,
+                                            RocalMemType::HOST,
+                                            RocalTensorDataType::INT32);
+    tensor_info.set_metadata();
+    tensor_info.set_tensor_layout(RocalTensorlayout::NONE);
+    _joints_data_tensor = new rocalTensor(tensor_info);
+
+    auto meta_data = _ring_buffer.get_meta_data();
+    _joints_data_tensor->set_mem_handle((void *)(&(meta_data.second->get_joints_data_batch())));
+
+    return _joints_data_tensor;
+}
+
 
 size_t MasterGraph::compute_optimum_internal_batch_size(size_t user_batch_size, RocalAffinity affinity)
 {

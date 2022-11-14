@@ -448,24 +448,14 @@ ROCAL_API_CALL rocalGetEncodedBoxesAndLables(RocalContext p_context, int num_enc
     // }
 }
 
-void
-ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context, RocalJointsData **joints_data)
+RocalTensor
+ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context)
 {
     if (!p_context)
-        THROW("Invalid rocal context passed to rocalGetBoundingBoxCords")
+        THROW("Invalid rocal context passed to rocalGetJointsDataPtr")
+
     auto context = static_cast<Context*>(p_context);
-    auto meta_data = context->master_graph->meta_data();
-    size_t meta_data_batch_size = meta_data.second->get_joints_data_batch().center_batch.size();
-
-    if(context->user_batch_size() != meta_data_batch_size)
-        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
-    if(!meta_data.second)
-    {
-        WRN("No label has been loaded for this output image")
-        return;
-    }
-
-    *joints_data = (RocalJointsData *)(&(meta_data.second->get_joints_data_batch()));
+    return context->master_graph->joints_data_meta_data();
 }
 
 
