@@ -196,4 +196,10 @@ extern "C" RocalMetaData ROCAL_API_CALL rocalGetEncodedBoxesAndLables(RocalConte
 /// \param joints_data The user's rocalJointsData pointer that will be pointed to JointsDataBatch pointer
 extern "C" RocalTensor ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext rocal_context);
 
+//
+/// \param rocal_context
+/// \param buf1 The user's buffer that will be filled with Target values
+/// \param buf2 The user's buffer that will be filled with Target weight
+extern "C" void ROCAL_API_CALL rocalGetImageTargets(RocalContext rocal_context, float *buf1, float* buf2);
+
 #endif //MIVISIONX_ROCAL_API_META_DATA_H

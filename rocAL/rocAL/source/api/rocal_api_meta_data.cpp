@@ -81,7 +81,6 @@ ROCAL_API_CALL rocalCreateCOCOReader(RocalContext p_context, const char* source_
         THROW("Invalid rocal context passed to rocalCreateCOCOReader")
     auto context = static_cast<Context*>(p_context);
 
-    context->master_graph->set_keypoint();
     return context->master_graph->create_coco_meta_data_reader(source_path, is_output, mask, MetaDataReaderType::COCO_META_DATA_READER,  MetaDataType::BoundingBox, is_box_encoder);
 }
 
@@ -91,6 +90,7 @@ ROCAL_API_CALL rocalCreateCOCOReaderKeyPoints(RocalContext p_context, const char
         THROW("Invalid rocal context passed to  rocalCreateCOCOReaderKeyPoints")
     auto context = static_cast<Context*>(p_context);
 
+    context->master_graph->set_keypoint();
     return context->master_graph->create_coco_meta_data_reader(source_path, is_output, mask, MetaDataReaderType::COCO_KEY_POINTS_META_DATA_READER, MetaDataType::KeyPoints, is_box_encoder, sigma, pose_output_width, pose_output_height);
 }
 
@@ -459,4 +459,47 @@ ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context)
     return context->master_graph->joints_data_meta_data();
 }
 
+void
+ROCAL_API_CALL rocalGetImageTargets(RocalContext p_context, float *buf1,float *buf2)
+{
+
+    if (!p_context)
+        THROW("Invalid rali context passed to rocalGetImageTargets")
+    auto context = static_cast<Context*>(p_context);
+    auto meta_data = context->master_graph->meta_data();
+    size_t meta_data_batch_size = meta_data.second->get_img_targets_batch().size();
+
+    if(context->user_batch_size() != meta_data_batch_size)
+        THROW("meta data batch size is wrong " + TOSTR(meta_data_batch_size) + " != "+ TOSTR(context->user_batch_size() ))
+    if(!meta_data.second)
+    {
+        WRN("No label has been loaded for this output image")
+        return;
+    }
+
+
+    for(unsigned i = 0; i < meta_data_batch_size ; i++)
+    {
+        unsigned annotation_size = meta_data.second->get_img_targets_batch()[i].size();
+
+        for(unsigned j = 0; j < annotation_size ; j++)
+        {
+            unsigned kps = meta_data.second->get_img_targets_batch()[i][j].size();
+            memcpy(buf2, meta_data.second->get_img_targets_weight_batch()[i][j].data() , sizeof(float)* meta_data.second->get_img_targets_weight_batch()[i][j].size());
+            buf2 += (annotation_size * NUMBER_OF_JOINTS);
+
+            for (unsigned k = 0; k < kps ; k++)
+            {
+                unsigned width_size = meta_data.second->get_img_targets_batch()[i][j][k].size();
+
+                for(unsigned f = 0; f < width_size ; f++)
+                {
+                    unsigned h = meta_data.second->get_img_targets_batch()[i][j][k][f].size();
+                    memcpy(buf1, meta_data.second->get_img_targets_batch()[i][j][k][f].data() , sizeof(float)* meta_data.second->get_img_targets_batch()[i][j][k][f].size());
+                    buf1 += (h);
+                }
+            }
+        }
+    }
+}
 

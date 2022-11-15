@@ -773,6 +773,10 @@ void MasterGraph::output_routine()
                 _graph->process();
                 _process_time.end();
 
+                if(_is_keypoint)
+                {
+                    update_keypoint_target_meta_data(_gaussian_sigma, _output_image_width_pose, _output_image_height_pose, full_batch_meta_data);
+                }
             }
             _bencode_time.start();
             if(_is_box_encoder )
@@ -788,7 +792,7 @@ void MasterGraph::output_routine()
                     _meta_data_graph->update_box_encoder_meta_data(&_anchors, full_batch_meta_data, _criteria, _offset, _scale, _means, _stds);
             }
             _bencode_time.end();
-            _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data, _is_segmentation, _is_keypoint);
+            _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data, _is_segmentation, true);
             _ring_buffer.push();
             // full_batch_meta_data->clear();
         }
@@ -960,6 +964,12 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
     _meta_data_reader->init(config);
     _meta_data_reader->read_all(source_path);
     bool keypoint = is_keypoint();
+    if(keypoint)
+    {
+        _gaussian_sigma = sigma;
+        _output_image_width_pose = pose_output_width;
+        _output_image_height_pose = pose_output_height;
+    }
 
     unsigned num_of_dims;
     std::vector<size_t> dims;
@@ -1528,4 +1538,101 @@ MasterGraph::get_bbox_encoded_buffers(size_t num_encoded_boxes)
         bbox_encoded_output.emplace_back(&_bbox_tensor_list);
     }
     return bbox_encoded_output;
+}
+
+void MasterGraph::update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data)
+{
+    //Generate gaussians
+    int tmp_size = sigma * 3;
+    int gauss_size = 2 * tmp_size + 1;
+
+    float x[gauss_size];
+    for (int i = 0; i < gauss_size; i++)
+    {
+        x[i] = i;
+    }
+
+    float g[gauss_size][gauss_size];
+    for (int i = 0; i < gauss_size; i++)
+    {
+        for (int j = 0; j < gauss_size; j++)
+        {
+            g[i][j] = exp(-(pow((x[i] - tmp_size), 2) + pow((x[j] - tmp_size), 2)) / (2 * tmp_size));
+        }
+    }
+
+    auto target_width = output_width / 4;
+    auto target_height = output_height / 4;
+
+    // std::cout << "Target Width:" << target_width << std::endl;
+    // std::cout << "Target Height:" << target_height << std::endl;
+
+    int ann_count = full_batch_meta_data->get_joints_data_batch().annotation_id_batch.size();
+    //std::cout << "bb count: " << bb_count << std::endl;
+    float feat_stride[2] = { (float) output_width / target_width, (float) output_height  / target_height};
+
+    for (int j = 0; j < ann_count; j++)
+    {
+        ImageTargets img_targets;
+        ImageTargetsWeight img_targets_weight;
+
+        Targets bb_targets;
+        TargetsWeight bb_targets_weight;
+
+        for (int k = 0; k < NUMBER_OF_JOINTS; k++)
+        {
+            Target bb_target;
+            bb_target.resize(target_height, std::vector<float>(target_width, 0));
+            TargetWeight bb_target_weight = full_batch_meta_data->get_joints_data_batch().joints_visibility_batch[j][k][0];
+            std::vector<float> key_point;
+            key_point = full_batch_meta_data->get_joints_data_batch().joints_batch[j][k];
+            // std::cout << "keypoint values: " << key_point[0] << " " << key_point[1] << std::endl;
+
+            int mu_x = (key_point[0] / feat_stride[0]) + 0.5;
+            int mu_y = (key_point[1] / feat_stride[1]) + 0.5;
+
+            int ul[2] = {mu_x - tmp_size, mu_y - tmp_size};
+            int br[2] = {mu_x + tmp_size + 1, mu_y + tmp_size + 1};
+
+            if (ul[0] >= target_width || ul[1] >= target_height || br[0] < 0 || br[1] < 0)
+            {
+                bb_target_weight = 0;
+                bb_targets_weight.push_back(bb_target_weight);
+                bb_targets.push_back(bb_target);
+                continue;
+            }
+
+            //Gaussian range
+            int g_x[2] = {std::max(0, -ul[0]), std::min(br[0], target_width) - ul[0]};
+            int g_y[2] = {std::max(0, -ul[1]), std::min(br[1], target_height) - ul[1]};
+
+            //Image range
+            int img_x[2] = {std::max(0, ul[0]), std::min(br[0], target_width)};
+            int img_y[2] = {std::max(0, ul[1]), std::min(br[1], target_height)};
+
+            if (bb_target_weight > 0.5)
+            {
+                int y_range = img_y[1] - img_y[0];
+                int x_range = img_x[1] - img_x[0];
+
+                for (int y = 0; y < y_range; y++)
+                {
+                    for (int x = 0; x < x_range; x++)
+                    {
+                        bb_target[img_y[0] + y][img_x[0] + x] = g[g_y[0] + y][g_x[0] + x];
+                    }
+                }
+            }
+
+            bb_targets.push_back(bb_target);
+            bb_targets_weight.push_back(bb_target_weight);
+            bb_target.clear();
+        }
+        img_targets.push_back(bb_targets);
+        img_targets_weight.push_back(bb_targets_weight);
+        bb_targets.clear();
+        bb_targets_weight.clear();
+        full_batch_meta_data->get_img_targets_batch()[j] = img_targets;
+        full_batch_meta_data->get_img_targets_weight_batch()[j] = img_targets_weight;
+    }
 }

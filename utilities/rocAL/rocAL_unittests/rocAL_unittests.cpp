@@ -692,6 +692,29 @@ break;
                         std::cout << "x : " << joints_data->joints_batch[i][k][0] << " , y : " << joints_data->joints_batch[i][k][1] << " , v : " << joints_data->joints_visibility_batch[i][k][0] << std::endl;
                     }
                 }
+
+                float img_targets[size * 17 * 96 * 72];
+                float img_targets_weight[size * 17];
+                rocalGetImageTargets(handle, img_targets, img_targets_weight);
+                int cnt = 0;
+                for (int k = 0; k < size * 17; k++)
+                {
+                    std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
+                    std::cout<<"Heat map number: "<<k<<std::endl;
+                    for(int i = 0; i < 96 ; i++)
+                    {
+                        for(int j = 0; j < 72 ; j++)
+                        {
+                            cnt = cnt+1;
+                            if(img_targets[cnt]!=0)
+                            {
+                                std::cout<<img_targets[cnt]<<" ";
+                            }
+                        }
+                        std::cout<<std::endl;
+                    }
+                    std::cout<<std::endl;
+                }
             }
             break;
             default:

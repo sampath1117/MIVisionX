@@ -53,6 +53,13 @@ typedef  std::vector<ImgSize> ImgSizes;
 typedef std::vector<std::vector<float>> coords;
 typedef std::vector<float> MaskCords;
 
+typedef std::vector<std::vector<float> > Target;
+typedef std::vector<Target> Targets;
+typedef std::vector<Targets> ImageTargets;
+typedef float TargetWeight;
+typedef std::vector<TargetWeight> TargetsWeight;
+typedef std::vector<TargetsWeight> ImageTargetsWeight;
+
 typedef std::vector<int> ImageIDBatch,AnnotationIDBatch;
 typedef std::vector<std::string> ImagePathBatch;
 typedef std::vector<float> Joint,JointVisibility,ScoreBatch,RotationBatch;
@@ -118,12 +125,13 @@ struct MetaData
         return _mask_coords_dims;
     }
     const JointsData& get_joints_data(){ return _joints_data; }
+    ImageTargets& get_img_targets() { return _img_targets; }
+    ImageTargetsWeight& get_img_targets_weight() { return _img_targets_weight; }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
     BoundingBoxCords_xcycwh _bb_cords_xcycwh = {}; // For bb use
     BoundingBoxLabels _bb_label_ids = {};// For bb use
     ImgSize _img_size = {};
-    JointsData _joints_data = {};
     int _label_id = -1; // For label use only
     MaskCords _mask_cords = {};
     std::vector<size_t> _bb_labels_dims = {};
@@ -133,6 +141,9 @@ protected:
     std::vector<std::vector<int>> _vertices_count = {};
     int _object_count = 0;
     int _mask_coords_count = 0;
+    JointsData _joints_data = {};
+    ImageTargets _img_targets = {};
+    ImageTargetsWeight _img_targets_weight = {};
 };
 
 struct Label : public MetaData
@@ -195,6 +206,8 @@ struct KeyPoint : public MetaData
         _joints_data = std::move(*joints_data);
     }
     void set_joints_data(JointsData *joints_data) { _joints_data = std::move(*joints_data); }
+    void set_img_targets(ImageTargets img_targets) { _img_targets = std::move(img_targets); }
+    void set_img_targets_weight(ImageTargetsWeight img_targets_weight) { _img_targets_weight = std::move(img_targets_weight); }
 };
 
 struct MetaDataDimensionsBatch
@@ -259,6 +272,8 @@ struct MetaDataBatch
     int get_batch_object_count() { return _total_objects_count; }
     MetaDataDimensionsBatch& get_metadata_dimensions_batch() { return _metadata_dimensions; }
     JointsDataBatch & get_joints_data_batch() { return _joints_data; }
+    std::vector<ImageTargets>& get_img_targets_batch() { return _img_targets; }
+    std::vector<ImageTargetsWeight>& get_img_targets_weight_batch() { return _img_targets_weight; }
 protected:
     std::vector<int> _label_id = {}; // For label use only
     std::vector<BoundingBoxCords> _bb_cords = {};
@@ -273,6 +288,8 @@ protected:
     int _total_mask_coords_count;
     MetaDataDimensionsBatch _metadata_dimensions;
     JointsDataBatch _joints_data = {};
+    std::vector<ImageTargets> _img_targets = {};
+    std::vector<ImageTargetsWeight> _img_targets_weight = {};
 };
 
 struct LabelBatch : public MetaDataBatch
@@ -415,11 +432,15 @@ struct KeyPointBatch : public MetaDataBatch
     void clear() override
     {
         _img_sizes.clear();
+        _img_targets.clear();
+        _img_targets_weight.clear();
         _joints_data = {};
     }
     MetaDataBatch&  operator += (MetaDataBatch& other) override
     {
         _img_sizes.insert(_img_sizes.end(), other.get_img_sizes_batch().begin(), other.get_img_sizes_batch().end());
+        _img_targets.insert(_img_targets.end(),other.get_img_targets_batch().begin(),other.get_img_targets_batch().end());
+        _img_targets_weight.insert(_img_targets_weight.end(),other.get_img_targets_weight_batch().begin(),other.get_img_targets_weight_batch().end());
         _joints_data.image_id_batch.insert(_joints_data.image_id_batch.end(), other.get_joints_data_batch().image_id_batch.begin(), other.get_joints_data_batch().image_id_batch.end());
         _joints_data.annotation_id_batch.insert(_joints_data.annotation_id_batch.end(), other.get_joints_data_batch().annotation_id_batch.begin(), other.get_joints_data_batch().annotation_id_batch.end());
         _joints_data.center_batch.insert(_joints_data.center_batch.end(), other.get_joints_data_batch().center_batch.begin(), other.get_joints_data_batch().center_batch.end());
@@ -432,6 +453,7 @@ struct KeyPointBatch : public MetaDataBatch
     }
     void resize(int batch_size) override
     {
+        _img_sizes.resize(batch_size);
         _joints_data.image_id_batch.resize(batch_size);
         _joints_data.annotation_id_batch.resize(batch_size);
         _joints_data.center_batch.resize(batch_size);
@@ -440,7 +462,8 @@ struct KeyPointBatch : public MetaDataBatch
         _joints_data.joints_visibility_batch.resize(batch_size);
         _joints_data.score_batch.resize(batch_size);
         _joints_data.rotation_batch.resize(batch_size);
-        _img_sizes.resize(batch_size);
+        _img_targets.resize(batch_size);
+        _img_targets_weight.resize(batch_size);
     }
     int size() override
     {

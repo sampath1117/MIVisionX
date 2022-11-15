@@ -105,6 +105,7 @@ public:
     bool is_segmentation() { return _is_segmentation; };
     bool is_keypoint() { return _is_keypoint; };
     void set_keypoint() { _is_keypoint = true; }
+    void update_keypoint_target_meta_data(float sigma, int output_width, int output_height, pMetaDataBatch full_batch_meta_data);
     std::vector<rocalTensorList *> get_bbox_encoded_buffers(size_t num_encoded_boxes);
     size_t bounding_box_batch_count(int* buf, pMetaDataBatch meta_data_batch);
     bool is_sequence_reader_output() {return _is_sequence_reader_output; }
@@ -202,6 +203,9 @@ private:
     size_t _sequence_batch_ratio; //!< Indicates the _user_to_internal_batch_ratio when sequence reader outputs are required
     bool _is_sequence_reader_output = false; //!< Set to true if Sequence Reader is invoked.
     TimingDBG _rb_block_if_empty_time, _rb_block_if_full_time;
+    float _gaussian_sigma;
+    int _output_image_width_pose;
+    int _output_image_height_pose;
 };
 
 template <typename T>
