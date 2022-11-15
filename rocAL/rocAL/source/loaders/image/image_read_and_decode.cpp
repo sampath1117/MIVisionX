@@ -218,13 +218,11 @@ ImageReadAndDecode::load(unsigned char* buff,
     }
     else {
         while ((file_counter != _batch_size) && _reader->count_items() > 0) {
-
-            uint64_t fsize = _reader->open();
+            size_t fsize = _reader->open();
             if (fsize == 0) {
                 WRN("Opened file " + _reader->id() + " of size 0");
                 continue;
             }
-
             _compressed_buff[file_counter].reserve(fsize);
             _actual_read_size[file_counter] = _reader->read_data(_compressed_buff[file_counter].data(), fsize);
             _image_names[file_counter] = _reader->id();
@@ -267,7 +265,6 @@ ImageReadAndDecode::load(unsigned char* buff,
             {
                 _decoder[i]->set_bbox_coords(_bbox_coords[i]);
             }
-
             if (_decoder[i]->decode(_compressed_buff[i].data(), _compressed_image_size[i], _decompressed_buff_ptrs[i],
                                     max_decoded_width, max_decoded_height,
                                     original_width, original_height,
@@ -283,7 +280,6 @@ ImageReadAndDecode::load(unsigned char* buff,
             roi_height[i] = _actual_decoded_height[i];
             actual_width[i] = _original_width[i];
             actual_height[i] = _original_height[i];
-            
         }
     }
     _bbox_coords.clear();

@@ -99,7 +99,9 @@ enum RocalDecodeDevice
 enum RocalTensorLayout
 {
     ROCAL_NHWC = 0,
-    ROCAL_NCHW = 1
+    ROCAL_NCHW = 1,
+    ROCAL_NFHWC,
+    ROCAL_NFCHW
 };
 
 enum RocalTensorOutputType

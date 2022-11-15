@@ -28,8 +28,7 @@ ResizeNode::ResizeNode(const std::vector<rocalTensor *> &inputs, const std::vect
 {
 }
 
-void ResizeNode::create_node()
-{
+void ResizeNode::create_node() {
     if(_node)
         return;
     std::vector<uint32_t> dst_roi_width(_batch_size,_outputs[0]->info().max_dims()[0]);
@@ -47,15 +46,11 @@ void ResizeNode::create_node()
     bool packed;
     vx_scalar interpolation = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_interpolation_type);
 
-    unsigned int chnShift = 0;
-    vx_scalar  chnToggle = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&chnShift);
-    vx_scalar is_packed = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_BOOL,&packed);
-
     vx_scalar layout = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_layout);
     vx_scalar roi_type = vxCreateScalar(vxGetContext((vx_reference)_graph->get()),VX_TYPE_UINT32,&_roi_type);
    _node = vxExtrppNode_Resize(_graph->get(), _inputs[0]->handle(),
                                                    _src_tensor_roi, _outputs[0]->handle(), _dst_tensor_roi, _dst_roi_width, _dst_roi_height, interpolation,
-                                                 is_packed, chnToggle,layout, roi_type, _batch_size);
+                                                    layout, roi_type, _batch_size);
 
     vx_status status;
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
@@ -86,8 +81,7 @@ void ResizeNode::update_node() {
 }
 
 void ResizeNode::init(unsigned dest_width, unsigned dest_height, RocalResizeScalingMode scaling_mode,
-                      std::vector<unsigned> max_size, RocalResizeInterpolationType interpolation_type, int layout)
-{
+                      std::vector<unsigned> max_size, RocalResizeInterpolationType interpolation_type) {
     _interpolation_type = (int)interpolation_type;
     _scaling_mode = scaling_mode;
     _out_width = dest_width;
@@ -96,8 +90,8 @@ void ResizeNode::init(unsigned dest_width, unsigned dest_height, RocalResizeScal
         _max_width = max_size[0];
         _max_height = max_size[1];
     }
-  _layout=layout;
-    // _layout = (unsigned) _outputs[0]->layout();
+    _layout = (int)_inputs[0]->info().layout();
+    _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
 void ResizeNode::adjust_out_roi_size() {

@@ -38,5 +38,6 @@ protected:
     void create_node() override;
 private:
     ParameterVX<float> _shift;
+    unsigned _layout, _roi_type;
     constexpr static float SHIFT_RANGE [2] = {0.3, 7.00};
 };

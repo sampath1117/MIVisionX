@@ -646,7 +646,6 @@ void MasterGraph::output_routine()
     }
     try {
 
-        _process_time.start();
         while (_processing)
         {
             std::vector<size_t> tensor_each_cycle_size_vec = tensor_output_byte_size(); // /batch_ratio;
@@ -766,7 +765,11 @@ void MasterGraph::output_routine()
                 }
                 _resize_width.insert(_resize_width.begin(), temp_width_arr);
                 _resize_height.insert(_resize_height.begin(), temp_height_arr);
+
+                _process_time.start();
                 _graph->process();
+                _process_time.end();
+
             }
             _bencode_time.start();
             if(_is_box_encoder )
@@ -786,7 +789,6 @@ void MasterGraph::output_routine()
             _ring_buffer.push();
             // full_batch_meta_data->clear();
         }
-        _process_time.end();
     }
     catch (const std::exception &e)
     {
@@ -794,7 +796,6 @@ void MasterGraph::output_routine()
         _processing = false;
         _ring_buffer.release_all_blocked_calls();
     }
-    _process_time.end();
 }
 
 void MasterGraph::start_processing()

@@ -303,7 +303,7 @@ template<> inline std::shared_ptr<Cifar10LoaderNode> MasterGraph::add_node(const
     auto node = std::make_shared<Cifar10LoaderNode>(outputs[0], _device.resources());
     _loader_module = node->get_loader_module();
     _loader_module->set_prefetch_queue_depth(_prefetch_queue_depth);
-    // _root_nodes.push_back(node);
+    _root_nodes.push_back(node);
     for(auto& output: outputs)
         _tensor_map.insert(make_pair(output, node));
 

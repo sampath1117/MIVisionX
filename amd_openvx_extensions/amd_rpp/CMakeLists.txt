@@ -30,8 +30,17 @@ if(GPU_SUPPORT AND "${BACKEND}" STREQUAL "OPENCL")
     find_package(OpenCL    QUIET)
 elseif(GPU_SUPPORT AND "${BACKEND}" STREQUAL "HIP")
     SET(OpenCL_FOUND FALSE)
-    list(APPEND CMAKE_PREFIX_PATH ${ROCM_PATH}/hip ${ROCM_PATH})
+    IF(NOT DEFINED ENV{HSA_PATH})
+        SET(HSA_PATH ${ROCM_PATH})
+    ELSE()
+        SET(HSA_PATH $ENV{HSA_PATH})
+    ENDIF()
     find_package(HIP QUIET REQUIRED)
+    if(HIP_COMPILER STREQUAL clang)
+        set(HIP_LIBRARY amdhip64)
+    else()
+        message(FATAL_ERROR "Unsupported HIP compiler")
+    endif()
 endif()
 
 include_directories(../../amd_openvx/openvx/include/
@@ -124,6 +133,33 @@ list(APPEND SOURCES
         source/tensor/Copy.cpp
         source/tensor/CropMirrorNormalize.cpp
         source/tensor/GammaCorrection.cpp
+        source/tensor/Resize.cpp
+        source/tensor/Exposure.cpp
+        source/tensor/ColorCast.cpp
+        source/tensor/Spatter.cpp
+        source/tensor/ColorTwist.cpp
+        source/tensor/Crop.cpp
+        source/tensor/Contrast.cpp
+        source/tensor/ResizeMirrorNormalize.cpp
+        source/tensor/Flip.cpp
+        source/tensor/ColorJitter.cpp
+        source/tensor/Noise.cpp
+        source/tensor/Blend.cpp
+        source/tensor/Gridmask.cpp
+        source/tensor/WarpAffine.cpp
+        source/tensor/Blur.cpp
+        source/tensor/Vignette.cpp
+        source/tensor/Jitter.cpp
+        source/tensor/Snow.cpp
+        source/tensor/Fog.cpp
+        source/tensor/Saturation.cpp
+        source/tensor/Hue.cpp
+        source/tensor/Fisheye.cpp
+        source/tensor/ColorTemperature.cpp
+        source/tensor/Rain.cpp
+        source/tensor/LensCorrection.cpp
+        source/tensor/Pixelate.cpp
+        source/tensor/Rotate.cpp
         source/tensor/Nop.cpp
         source/tensor/Resize.cpp
         source/tensor/Crop.cpp
@@ -158,7 +194,7 @@ elseif (GPU_SUPPORT AND "${BACKEND}" STREQUAL "HIP" AND HIP_FOUND)
     set_target_properties(openvx PROPERTIES POSITION_INDEPENDENT_CODE ON)
     # TBD -- CHECK to FIX
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGPU_SUPPORT=1 -DRPP_BACKEND_HIP=1") # Currently used by rpp. To be removed.
-    target_link_libraries(vx_rpp amd_rpp boost_filesystem boost_system hip::host)
+    target_link_libraries(vx_rpp amd_rpp boost_filesystem boost_system ${HIP_LIBRARY})
 else()
     message("-- ${Red}WARNING: OpenCL/HIP Not Found -- amd_rpp module excluded${ColourReset}")
 endif()

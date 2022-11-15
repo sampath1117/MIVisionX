@@ -78,6 +78,7 @@ THE SOFTWARE.
 #endif
 
 #if ENABLE_HIP
+#define __HIP_PLATFORM_AMD__
 #include "hip/hip_runtime.h"
 #include "hip/hip_runtime_api.h"
 #endif

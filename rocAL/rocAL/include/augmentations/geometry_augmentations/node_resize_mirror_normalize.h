@@ -10,7 +10,7 @@ class ResizeMirrorNormalizeNode : public Node
 public:
     ResizeMirrorNormalizeNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     ResizeMirrorNormalizeNode() = delete;
-    void init(int interpolation_type,std::vector<float>& mean,  std::vector<float>& std_dev, IntParam *mirror, int layout);
+    void init(int interpolation_type,std::vector<float>& mean,  std::vector<float>& std_dev, IntParam *mirror);
     vx_array return_mirror(){ return _mirror.default_array();  }
 
     unsigned int get_dst_width() { return _outputs[0]->info().max_dims()[0]; }
