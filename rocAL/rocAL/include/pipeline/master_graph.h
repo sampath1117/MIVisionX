@@ -103,8 +103,8 @@ public:
     std::shared_ptr<MetaDataReader> meta_data_reader() { return _meta_data_reader; }
     bool is_random_bbox_crop() {return _is_random_bbox_crop; }
     bool is_segmentation() { return _is_segmentation; };
-    bool is_pose_estimation() { return _is_pose_estimation; };
-    void set_pose_estimation(bool val) { _is_pose_estimation = val; }
+    bool is_keypoint() { return _is_keypoint; };
+    void set_keypoint() { _is_keypoint = true; }
     std::vector<rocalTensorList *> get_bbox_encoded_buffers(size_t num_encoded_boxes);
     size_t bounding_box_batch_count(int* buf, pMetaDataBatch meta_data_batch);
     bool is_sequence_reader_output() {return _is_sequence_reader_output; }
@@ -149,7 +149,7 @@ private:
     std::vector<std::vector<unsigned>> _mask_tensor_dims;
     rocalTensor * _joints_data_tensor;
     std::vector<size_t> _meta_data_buffer_size;
-
+//
 #if ENABLE_HIP
     void * _output_tensor;//!< In the GPU processing case , is used to convert the U8 samples to float32 before they are being transfered back to host
     DeviceManagerHip   _device;//!< Keeps the device related constructs needed for running on GPU
@@ -182,7 +182,7 @@ private:
     const RocalTensorDataType _out_data_type;
     bool _is_random_bbox_crop = false;
     bool _is_segmentation = false;
-    bool _is_pose_estimation = false;
+    bool _is_keypoint = false;
     std::vector<std::vector<uint32_t>> _resize_width;
     std::vector<std::vector<uint32_t>> _resize_height;
     // box encoder variables

@@ -352,6 +352,7 @@ rocalSequenceReader(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
+        bool keypoint = context->master_graph->is_keypoint();
 
         context->master_graph->add_node<ImageLoaderNode>({}, {output})->init(internal_shard_count,
                                                                             source_path, "",
@@ -363,7 +364,9 @@ rocalSequenceReader(
                                                                             context->master_graph->sequence_batch_size(),
                                                                             context->master_graph->mem_type(),
                                                                             context->master_graph->meta_data_reader(),
-                                                                            decoder_keep_original, "",
+                                                                            decoder_keep_original,
+                                                                            keypoint,
+                                                                            "",
                                                                             sequence_length,
                                                                             step, stride);
         context->master_graph->set_loop(loop);
@@ -1079,7 +1082,7 @@ rocalJpegCOCOFileSource(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
-
+        bool keypoint = context->master_graph->is_keypoint();
         context->master_graph->add_node<ImageLoaderNode>({}, {output})->init(internal_shard_count,
                                                                             source_path, json_path,
                                                                             std::map<std::string, std::string>(),
@@ -1090,7 +1093,8 @@ rocalJpegCOCOFileSource(
                                                                             context->user_batch_size(),
                                                                             context->master_graph->mem_type(),
                                                                             context->master_graph->meta_data_reader(),
-                                                                            decoder_keep_original);
+                                                                            decoder_keep_original,
+                                                                            keypoint);
 
         context->master_graph->set_loop(loop);
 

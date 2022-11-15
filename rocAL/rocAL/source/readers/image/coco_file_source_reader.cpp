@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <commons.h>
 #include "coco_meta_data_reader.h"
+#include "coco_meta_data_reader_keypoints.h"
 #include "coco_file_source_reader.h"
 #include <boost/filesystem.hpp>
 #include "meta_data_reader_factory.h"
@@ -46,6 +47,12 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     _loop = desc.loop();
     _shuffle = desc.shuffle();
     _meta_data_reader = desc.meta_data_reader();
+    _keypoint = desc.is_keypoint();
+    if(_meta_data_reader && _keypoint)
+    {
+        //_annotation_image_key_map is present only in COCO keypoints pipeline
+        _annotation_image_key_map = static_cast<COCOMetaDataReaderKeyPoints *>(_meta_data_reader.get())->annotation_image_key_map();
+    }
 
     if(_json_path == "")
     {
@@ -56,11 +63,49 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     //    std::cout<<"Metadata reader not initialized for COCO file source\n";
 
     ret = subfolder_reading();
+    /// if _keypoint is set we need to process by annotation. Iterate the map and for every annotation
+    // check if the image is present in the path user shared. If so add it in a new temp list and assign
+    // it to the _file_names list at the end.
+    if(_keypoint)
+    {
+        std::size_t annotation_size = _annotation_image_key_map.size();
+        std::vector<std::string> temp_file_names;
+
+        temp_file_names.reserve(annotation_size);
+        _annotation_ids.reserve(annotation_size);
+        for (auto &elem : _annotation_image_key_map)
+        {
+            auto itr = std::find(_files.begin(), _files.end(), elem.second);
+            if(itr != _files.end())
+            {
+                int index = std::distance(_files.begin(), itr);
+                _annotation_ids.push_back(elem.first);
+                temp_file_names.push_back(_file_names[index]);
+            }
+        }
+        _file_names.clear();
+        _file_names = temp_file_names;
+
+        //To handle case where number of images is not a multiple of batch size or number of images < batch size
+        size_t temp_file_names_size = temp_file_names.size();
+        size_t remaining_images = temp_file_names_size % _batch_count;
+        if (remaining_images > 0)
+        {
+            _in_batch_read_count = remaining_images;
+            _last_file_name = _file_names[temp_file_names_size - 1];
+            std::string last_annotation_id = _annotation_ids[temp_file_names_size - 1];
+            for (uint i = 0; i < (_batch_count - remaining_images); i++)
+                 _annotation_ids.push_back(last_annotation_id);
+            replicate_last_image_to_fill_last_shard();
+        }
+        _file_count_all_shards = _file_id = _file_names.size();
+    }
+
     // the following code is required to make every shard the same size:: required for multi-gpu training
     if (_shard_count > 1 && _batch_count > 1) {
         int _num_batches = _file_names.size()/_batch_count;
-        int max_batches_per_shard = (_file_count_all_shards + _shard_count-1)/_shard_count;
-        max_batches_per_shard = (max_batches_per_shard + _batch_count-1)/_batch_count;
+        int max_batches_per_shard = (_file_count_all_shards + _shard_count - 1)/_shard_count;
+        max_batches_per_shard = (max_batches_per_shard + _batch_count - 1)/_batch_count;
         if (_num_batches < max_batches_per_shard) {
             replicate_last_batch_to_pad_partial_shard();
         }
@@ -68,7 +113,21 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     //shuffle dataset if set
     _shuffle_time.start();
     if (ret == Reader::Status::OK && _shuffle)
-        std::random_shuffle(_file_names.begin(), _file_names.end());
+    {
+        if(_keypoint)
+        {
+            //shuffle both file names and annotations id's in same order
+            auto seed = unsigned(std::time(0));
+            _generator.seed(seed);
+            std::shuffle(_file_names.begin(), _file_names.end(), _generator);
+            _generator.seed(seed);
+            std::shuffle(_annotation_ids.begin(), _annotation_ids.end(), _generator);
+        }
+        else
+        {
+            std::random_shuffle(_file_names.begin(), _file_names.end());
+        }
+    }
     _shuffle_time.end();
     return ret;
 }
@@ -81,13 +140,20 @@ void COCOFileSourceReader::incremenet_read_ptr()
 size_t COCOFileSourceReader::open()
 {
     auto file_path = _file_names[_curr_file_idx]; // Get next file name
-    incremenet_read_ptr();
-    _last_id = file_path;
-    auto last_slash_idx = _last_id.find_last_of("\\/");
-    if (std::string::npos != last_slash_idx)
+    if (_keypoint)
     {
-        _last_id.erase(0, last_slash_idx + 1);
+        _last_id = _annotation_ids[_curr_file_idx];
     }
+    else
+    {
+        _last_id = file_path;
+        auto last_slash_idx = _last_id.find_last_of("\\/");
+        if (std::string::npos != last_slash_idx)
+        {
+            _last_id.erase(0, last_slash_idx + 1);
+        }
+    }
+    incremenet_read_ptr();
 
 #if USE_STDIO_FILE
     _current_fPtr = fopen(file_path.c_str(), "rb"); // Open the file,
@@ -166,7 +232,21 @@ int COCOFileSourceReader::release()
 void COCOFileSourceReader::reset()
 {
     if (_shuffle)
-        std::random_shuffle(_file_names.begin(), _file_names.end());
+    {
+        if(_keypoint)
+        {
+            //shuffle both file names and annotations id's in same order
+            auto seed = unsigned(std::time(0));
+            _generator.seed(seed);
+            std::shuffle(_file_names.begin(), _file_names.end(), _generator);
+            _generator.seed(seed);
+            std::shuffle(_annotation_ids.begin(), _annotation_ids.end(), _generator);
+        }
+        else
+        {
+            std::random_shuffle(_file_names.begin(), _file_names.end());
+        }
+    }
     _read_counter = 0;
     _curr_file_idx = 0;
 }
@@ -239,7 +319,7 @@ Reader::Status COCOFileSourceReader::open_folder()
     {
         if (_entity->d_type != DT_REG)
             continue;
-        if(!_meta_data_reader || _meta_data_reader->exists(_entity->d_name)) {
+        if(!_meta_data_reader || _keypoint || _meta_data_reader->exists(_entity->d_name)) {
             if (get_file_shard_id() != _shard_id)
             {
                 _file_count_all_shards++;
@@ -251,6 +331,7 @@ Reader::Status COCOFileSourceReader::open_folder()
             std::string file_path = _folder_path;
             file_path.append("/");
             file_path.append(_entity->d_name);
+            _files.push_back(_entity->d_name);
             _last_file_name = file_path;
             _file_names.push_back(file_path);
             _file_count_all_shards++;

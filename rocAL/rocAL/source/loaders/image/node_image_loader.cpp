@@ -35,7 +35,7 @@ ImageLoaderNode::ImageLoaderNode(rocalTensor *output, DeviceResources device_res
 
 
 void ImageLoaderNode::init(unsigned internal_shard_count, const std::string &source_path, const std::string &json_path, const std::map<std::string, std::string> feature_key_map, StorageType storage_type, DecoderType decoder_type, bool shuffle, bool loop,
-                           size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader, bool decoder_keep_orig, const char* file_prefix, unsigned sequence_length, unsigned step, unsigned stride)
+                           size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader, bool decoder_keep_orig, bool keypoint, const char* file_prefix, unsigned sequence_length, unsigned step, unsigned stride)
 {
     if(!_loader_module)
         THROW("ERROR: loader module is not set for ImageLoaderNode, cannot initialize")
@@ -43,7 +43,7 @@ void ImageLoaderNode::init(unsigned internal_shard_count, const std::string &sou
         THROW("Shard count should be greater than or equal to one")
     _loader_module->set_output(_outputs[0]);
     // Set reader and decoder config accordingly for the ImageLoaderNode
-    auto reader_cfg = ReaderConfig(storage_type, source_path, json_path, feature_key_map, shuffle, loop);
+    auto reader_cfg = ReaderConfig(storage_type, source_path, json_path, feature_key_map, shuffle, loop, true);
     reader_cfg.set_shard_count(internal_shard_count);
     reader_cfg.set_batch_count(load_batch_count);
     reader_cfg.set_file_prefix(file_prefix);

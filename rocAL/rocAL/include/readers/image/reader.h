@@ -57,7 +57,7 @@ struct ReaderConfig
 {
     explicit ReaderConfig(StorageType type, std::string path = "", std::string json_path = "",
                           const std::map<std::string, std::string> feature_key_map = std::map<std::string, std::string>(),
-                          bool shuffle = false, bool loop = false) : _type(type), _path(path), _json_path(json_path), _feature_key_map(feature_key_map), _shuffle(shuffle), _loop(loop) {}
+                          bool shuffle = false, bool loop = false, bool keypoint = false) : _type(type), _path(path), _json_path(json_path), _feature_key_map(feature_key_map), _shuffle(shuffle), _loop(loop), _keypoint(keypoint) {}
     virtual StorageType type() { return _type; };
     void set_path(const std::string &path) { _path = path; }
     void set_shard_id(size_t shard_id) { _shard_id = shard_id; }
@@ -82,6 +82,7 @@ struct ReaderConfig
     size_t get_sequence_length() { return _sequence_length; }
     size_t get_frame_step() { return _sequence_frame_step; }
     size_t get_frame_stride() { return _sequence_frame_stride; }
+    bool is_keypoint() { return _keypoint; }
 #ifdef ROCAL_VIDEO
     // void set_total_frames_count(size_t total) { _total_frames_count = total; }
     void set_video_properties(VideoProperties video_prop) { _video_prop = video_prop;}
@@ -108,6 +109,7 @@ private:
     size_t _sequence_length = 1; // Video reader module sequence length
     size_t _sequence_frame_step;
     size_t _sequence_frame_stride = 1;
+    bool _keypoint = false;
 #ifdef ROCAL_VIDEO
     VideoProperties _video_prop;
     // size_t _total_frames_count;
@@ -164,7 +166,7 @@ public:
     virtual std::string id() = 0;
     //! Returns the number of items remained in this resource
     virtual unsigned count_items() = 0;
-    
+
     //! return shuffle_time if applicable
     virtual unsigned long long get_shuffle_time() = 0;
 

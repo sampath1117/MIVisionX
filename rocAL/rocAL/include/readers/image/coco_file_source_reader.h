@@ -78,6 +78,7 @@ private:
     DIR *_sub_dir;
     struct dirent *_entity;
     std::vector<std::string> _file_names;
+    std::vector<std::string> _annotation_ids;
     std::vector<std::string> _files;
     unsigned  _curr_file_idx;
     FILE* _current_fPtr;
@@ -105,4 +106,7 @@ private:
     void replicate_last_image_to_fill_last_shard();
     void replicate_last_batch_to_pad_partial_shard();
     TimingDBG _shuffle_time;
+    bool _keypoint = false;
+    std::map<std::string, std::string> _annotation_image_key_map;
+    std::mt19937 _generator;
 };
