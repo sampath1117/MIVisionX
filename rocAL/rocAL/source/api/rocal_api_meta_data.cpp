@@ -503,3 +503,24 @@ ROCAL_API_CALL rocalGetImageTargets(RocalContext p_context, float *buf1,float *b
     }
 }
 
+RocalTensorList
+ROCAL_API_CALL rocalGetTarget(RocalContext p_context)
+{
+
+     if (!p_context)
+        THROW("Invalid rocal context passed to rocalGetTarget")
+
+    auto context = static_cast<Context*>(p_context);
+    return context->master_graph->image_target_meta_data();
+}
+
+RocalTensorList
+ROCAL_API_CALL rocalGetTargetWeight(RocalContext p_context)
+{
+
+     if (!p_context)
+        THROW("Invalid rocal context passed to rocalGetTargetWeight")
+
+    auto context = static_cast<Context*>(p_context);
+    return context->master_graph->image_target_weight_meta_data();
+}

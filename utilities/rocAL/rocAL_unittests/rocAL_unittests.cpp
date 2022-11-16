@@ -283,9 +283,9 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
             bool box_encoder = false;
             rocalCreateCOCOReaderKeyPoints(handle, json_path, true, mask, box_encoder, sigma, (unsigned)width, (unsigned)height);
             if (decode_max_height <= 0 || decode_max_width <= 0)
-                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false);
+                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, false, false);
             else
-                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, true, true, false, ROCAL_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
+                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, true, false, false, ROCAL_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
         }
         break;
 #if 0
@@ -693,28 +693,59 @@ break;
                     }
                 }
 
-                float img_targets[size * 17 * 96 * 72];
-                float img_targets_weight[size * 17];
-                rocalGetImageTargets(handle, img_targets, img_targets_weight);
-                int cnt = 0;
-                for (int k = 0; k < size * 17; k++)
+                RocalTensorList img_targets = rocalGetTarget(handle);
+                RocalTensorList img_targets_weight = rocalGetTargetWeight(handle);
+                for(int itr = 0; itr < size; itr++)
                 {
-                    std::cout<<"Heat map weight: "<<img_targets_weight[k]<<std::endl;
-                    std::cout<<"Heat map number: "<<k<<std::endl;
-                    for(int i = 0; i < 96 ; i++)
+                    float *targets_buffer = (float *)(img_targets->at(itr)->buffer());
+                    float *targets_weight_buffer = (float *)(img_targets_weight->at(itr)->buffer());
+                    int cnt = 0;
+                    for (int k = 0; k < 17; k++)
                     {
-                        for(int j = 0; j < 72 ; j++)
+                        std::cout<<"Heat map weight: "<<targets_weight_buffer[k]<<std::endl;
+                        std::cout<<"Heat map number: "<<k<<std::endl;
+                        for(int i = 0; i < 96 ; i++)
                         {
-                            cnt = cnt+1;
-                            if(img_targets[cnt]!=0)
+                            for(int j = 0; j < 72 ; j++)
                             {
-                                std::cout<<img_targets[cnt]<<" ";
+                                cnt = cnt+1;
+                                if(targets_buffer[cnt]!=0)
+                                {
+                                    std::cout<<targets_buffer[cnt]<<" ";
+                                }
                             }
+                            std::cout<<std::endl;
                         }
                         std::cout<<std::endl;
                     }
-                    std::cout<<std::endl;
                 }
+
+                // float img_targets[size * 17 * 96 * 72];
+                // float img_targets_weight[size * 17];
+                // rocalGetImageTargets(handle, img_targets, img_targets_weight);
+                // int cnt = 0;
+                // for (int itr = 0; itr < size; itr++)
+                // {
+                //     for (int k = 0; k < 17; k++)
+                //     {
+                //         std::cout<<"Heat map weight: "<<img_targets_weight[itr * 17 + k]<<std::endl;
+                //         std::cout<<"Heat map number: "<<k<<std::endl;
+                //         for(int i = 0; i < 96 ; i++)
+                //         {
+                //             for(int j = 0; j < 72 ; j++)
+                //             {
+                //                 cnt = cnt+1;
+                //                 if(img_targets[cnt]!=0)
+                //                 {
+                //                     std::cout<<img_targets[cnt]<<" ";
+                //                 }
+                //             }
+                //             std::cout<<std::endl;
+                //         }
+                //         std::cout<<std::endl;
+                //     }
+                // }
+
             }
             break;
             default:

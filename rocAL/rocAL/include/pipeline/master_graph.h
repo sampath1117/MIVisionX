@@ -93,6 +93,8 @@ public:
     rocalTensorList * mask_meta_data();
     ImgSizes& get_image_sizes();
     rocalTensor* joints_data_meta_data();
+    rocalTensorList* image_target_meta_data();
+    rocalTensorList* image_target_weight_meta_data();
 
     void set_loop(bool val) { _loop = val; }
     void set_output(rocalTensor* output_image);
@@ -145,9 +147,13 @@ private:
     rocalTensorList _labels_tensor_list;
     rocalTensorList _bbox_tensor_list;
     rocalTensorList _mask_tensor_list;
+    rocalTensorList _target_tensor_list;
+    rocalTensorList _target_weight_tensor_list;
     std::vector<std::vector<unsigned>> _labels_tensor_dims;
     std::vector<std::vector<unsigned>> _bbox_tensor_dims;
     std::vector<std::vector<unsigned>> _mask_tensor_dims;
+    std::vector<std::vector<unsigned>> _target_tensor_dims;
+    std::vector<std::vector<unsigned>> _target_weight_tensor_dims;
     rocalTensor * _joints_data_tensor;
     std::vector<size_t> _meta_data_buffer_size;
 //

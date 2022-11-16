@@ -477,14 +477,42 @@ struct KeyPointBatch : public MetaDataBatch
     {
         return std::make_shared<KeyPointBatch>(*this);
     }
-    void copy_data(std::vector<void*> buffer, bool is_segmentation) override { }
+    void copy_data(std::vector<void*> buffer, bool is_segmentation) override
+    {
+        if(buffer.size() < 2)
+            THROW("The buffers are insufficient") // TODO -change
 
+        float *targets_buffer = (float *)buffer[0];
+        float *targets_visibility_buffer = (float *)buffer[1];
+        for(unsigned i = 0; i <_img_targets.size(); i++)
+        {
+            unsigned annotation_size = _img_targets[i].size();
+            for(unsigned j = 0; j < annotation_size ; j++)
+            {
+                unsigned kps = _img_targets[i][j].size();
+                memcpy(targets_visibility_buffer,  _img_targets_weight[i][j].data() , sizeof(float) * _img_targets_weight[i][j].size());
+                targets_visibility_buffer += (annotation_size * NUMBER_OF_JOINTS);
+                for (unsigned k = 0; k < kps ; k++)
+                {
+                    unsigned width_size = _img_targets[i][j][k].size();
+                    for(unsigned f = 0; f < width_size ; f++)
+                    {
+                        unsigned h = _img_targets[i][j][k][f].size();
+                        memcpy(targets_buffer, _img_targets[i][j][k][f].data() , sizeof(float) * _img_targets[i][j][k][f].size());
+                        targets_buffer += (h);
+                    }
+                }
+            }
+        }
+    }
     std::vector<size_t>& get_buffer_size(bool is_segmentation) override
     {
-        _buffer_size.emplace_back(_total_objects_count * sizeof(int));
-        _buffer_size.emplace_back(_total_objects_count * 4 * sizeof(float));
-        if(is_segmentation)
-            _buffer_size.emplace_back(_total_mask_coords_count * sizeof(float));
+        size_t bs = _img_targets.size();
+        size_t height = _img_targets[0][0][0].size();
+        size_t width = _img_targets[0][0][0][0].size();
+        _buffer_size.emplace_back(bs * NUMBER_OF_JOINTS * height * width * sizeof(float));
+        _buffer_size.emplace_back(bs * NUMBER_OF_JOINTS * 1 * sizeof(float));
+
         return _buffer_size;
     }
 };

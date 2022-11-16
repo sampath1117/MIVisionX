@@ -964,16 +964,52 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
     _meta_data_reader->init(config);
     _meta_data_reader->read_all(source_path);
     bool keypoint = is_keypoint();
+
+    unsigned num_of_dims;
+    std::vector<size_t> dims;
     if(keypoint)
     {
         _gaussian_sigma = sigma;
         _output_image_width_pose = pose_output_width;
         _output_image_height_pose = pose_output_height;
-    }
 
-    unsigned num_of_dims;
-    std::vector<size_t> dims;
-    if(!keypoint)
+        num_of_dims = 4;
+        dims.resize(num_of_dims);
+        dims.at(0) = 1;
+        dims.at(1) = NUMBER_OF_JOINTS;
+        dims.at(2) = pose_output_height / 4;
+        dims.at(3) = pose_output_width / 4;
+        auto default_target_info  = rocalTensorInfo(dims,
+                                            _mem_type,
+                                            RocalTensorDataType::FP32);
+        default_target_info.set_metadata();
+        default_target_info.set_tensor_layout(RocalTensorlayout::NONE);
+        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1) * dims.at(2) * dims.at(3) * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info
+
+        num_of_dims = 2;
+        dims.resize(num_of_dims);
+        dims.at(0) = 1;
+        dims.at(1) = NUMBER_OF_JOINTS;
+        auto default_target_weight_info  = rocalTensorInfo(dims,
+                                            _mem_type,
+                                            RocalTensorDataType::FP32);
+        default_target_weight_info.set_metadata();
+        default_target_weight_info.set_tensor_layout(RocalTensorlayout::NONE);
+        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1) * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info
+
+        for(unsigned i = 0; i < _user_batch_size; i++)
+        {
+            auto target_info = default_target_info;
+            auto target_weight_info = default_target_weight_info;
+
+            _target_tensor_list.push_back(new rocalTensor(target_info));
+            _target_weight_tensor_list.push_back(new rocalTensor(target_weight_info));
+        }
+        _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
+        _metadata_output_tensor_list.emplace_back(&_target_tensor_list);
+        _metadata_output_tensor_list.emplace_back(&_target_weight_tensor_list);
+    }
+    else
     {
         num_of_dims = 1;
         dims.resize(num_of_dims);
@@ -1434,6 +1470,40 @@ rocalTensor* MasterGraph::joints_data_meta_data()
     _joints_data_tensor->set_mem_handle((void *)(&(meta_data.second->get_joints_data_batch())));
 
     return _joints_data_tensor;
+}
+
+rocalTensorList* MasterGraph::image_target_meta_data()
+{
+    if(_ring_buffer.level() == 0)
+        THROW("No meta data has been loaded")
+
+    auto meta_data_buffers = (unsigned char *)_ring_buffer.get_meta_read_buffers()[0]; // Get bbox buffer from ring buffer
+    auto target_tensor_dims = _target_tensor_list[0]->info().dims();
+    for(unsigned i = 0; i < _target_tensor_list.size(); i++)
+    {
+        _target_tensor_list[i]->set_dims(target_tensor_dims);
+        _target_tensor_list[i]->set_mem_handle((void *)meta_data_buffers);
+        meta_data_buffers += _target_tensor_list[i]->info().data_size();
+    }
+
+    return &_target_tensor_list;
+}
+
+rocalTensorList* MasterGraph::image_target_weight_meta_data()
+{
+    if(_ring_buffer.level() == 0)
+        THROW("No meta data has been loaded")
+
+    auto meta_data_buffers = (unsigned char *)_ring_buffer.get_meta_read_buffers()[1]; // Get bbox buffer from ring buffer
+    auto target_weight_tensor_dims = _target_weight_tensor_list[0]->info().dims();
+    for(unsigned i = 0; i < _target_weight_tensor_list.size(); i++)
+    {
+        _target_weight_tensor_list[i]->set_dims(target_weight_tensor_dims);
+        _target_weight_tensor_list[i]->set_mem_handle((void *)meta_data_buffers);
+        meta_data_buffers += _target_weight_tensor_list[i]->info().data_size();
+    }
+
+    return &_target_weight_tensor_list;
 }
 
 
