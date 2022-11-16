@@ -90,6 +90,8 @@ ROCAL_API_CALL rocalCreateCOCOReaderKeyPoints(RocalContext p_context, const char
         THROW("Invalid rocal context passed to  rocalCreateCOCOReaderKeyPoints")
     auto context = static_cast<Context*>(p_context);
 
+    std::cerr<<"entered keypoint reader"<<std::endl;
+
     context->master_graph->set_keypoint();
     return context->master_graph->create_coco_meta_data_reader(source_path, is_output, mask, MetaDataReaderType::COCO_KEY_POINTS_META_DATA_READER, MetaDataType::KeyPoints, is_box_encoder, sigma, pose_output_width, pose_output_height);
 }
@@ -450,7 +452,7 @@ ROCAL_API_CALL rocalGetEncodedBoxesAndLables(RocalContext p_context, int num_enc
 }
 
 RocalTensor
-ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context)
+ROCAL_API_CALL rocalGetJointsData(RocalContext p_context)
 {
     if (!p_context)
         THROW("Invalid rocal context passed to rocalGetJointsDataPtr")

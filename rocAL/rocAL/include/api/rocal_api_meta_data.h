@@ -194,7 +194,7 @@ extern "C" RocalMetaData ROCAL_API_CALL rocalGetEncodedBoxesAndLables(RocalConte
 ///
 /// \param rocal_context
 /// \param joints_data The user's rocalJointsData pointer that will be pointed to JointsDataBatch pointer
-extern "C" RocalTensor ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext rocal_context);
+extern "C" RocalTensor ROCAL_API_CALL rocalGetJointsData(RocalContext rocal_context);
 
 //
 /// \param rocal_context

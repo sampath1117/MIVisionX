@@ -27,6 +27,21 @@ def coco(*inputs,file_root='', annotations_file='', bytes_per_sample_hint=0, dum
     meta_data = b.COCOReader(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
     return (meta_data, labels, bboxes)
 
+def coco_keypoints(*inputs,file_root='', annotations_file='', bytes_per_sample_hint=0, dump_meta_files=False, dump_meta_files_path='', file_list='', initial_fill=1024,  lazy_init=False, ltrb=False, masks=False, meta_files_path='', num_shards=1, pad_last_batch=False, prefetch_queue_depth=1,
+                    preserve=False, random_shuffle=False, ratio=False, read_ahead=False,
+                    save_img_ids=False, seed=-1, shard_id=0, shuffle_after_epoch=False, size_threshold=0.1, is_box_encoder=False,
+                    skip_cached_images=False, skip_empty=False, stick_to_shard=False, tensor_init_bytes=1048576,
+                    sigma = 3.0, output_image_width = 288, output_image_height = 384):
+
+    Pipeline._current_pipeline._reader = "COCOReaderKeyPoints"
+    #Output
+    labels = []
+    bboxes = []
+    kwargs_pybind = {"source_path": annotations_file, "is_output":True, "mask":False, "is_box_encoder":is_box_encoder, "sigma": sigma, "pose_output_width": output_image_width , "pose_output_height": output_image_height}
+    b.setSeed(seed)
+    meta_data = b.COCOReaderKeyPoints(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
+    return (meta_data, labels, bboxes)
+
 
 
 

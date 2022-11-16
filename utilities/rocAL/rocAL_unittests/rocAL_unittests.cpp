@@ -676,7 +676,7 @@ break;
             case 4: // keypoints pipeline
             {
                 int size = inputBatchSize;
-                RocalJointsData *joints_data = (RocalJointsData *)(rocalGetJointsDataPtr(handle)->buffer());
+                RocalJointsData *joints_data = (RocalJointsData *)(rocalGetJointsData(handle)->buffer());
                 for (int i = 0; i < size; i++)
                 {
                     std::cout << "ImageID: " << joints_data->image_id_batch[i] << std::endl;

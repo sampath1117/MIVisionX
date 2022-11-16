@@ -80,6 +80,22 @@ namespace rocal
         return py::bytes(s);
     }
 
+    py::object wrapper_joints_data_copy(RocalContext context, py::dict joints)
+    {
+
+       RocalJointsData *test = (RocalJointsData *)(rocalGetJointsData(context)->buffer());
+        joints["imgId"] = test->image_id_batch;
+        joints["annId"] = test->annotation_id_batch;
+        joints["imgPath"] = test->image_path_batch;
+        joints["center"] = test->center_batch;
+        joints["scale"] = test->scale_batch;
+        joints["joints"] = test->joints_batch;
+        joints["joints_visibility"] = test->joints_visibility_batch;
+        joints["score"] = test->score_batch;
+        joints["rotation"] = test->rotation_batch;
+        return py::cast<py::none>(Py_None);
+    }
+
     PYBIND11_MODULE(rocal_pybind, m)
     {
         m.doc() = "Python bindings for the C++ portions of ROCAL";
@@ -208,6 +224,8 @@ namespace rocal
                     uint h = output_tensor_list.at(idx)->info().max_dims().at(1);
                     uint w = output_tensor_list.at(idx)->info().max_dims().at(0);
 
+                    printf("image dims: %u\n", output_tensor_list.at(idx)->info().num_of_dims());
+
                     if (output_tensor_list.at(idx)->info().layout() == RocalTensorlayout::NHWC)
                     {
                         unsigned n = output_tensor_list.at(idx)->info().dims().at(0);
@@ -310,6 +328,7 @@ namespace rocal
         m.def("setOutputImages", &rocalSetOutputs);
         m.def("labelReader", &rocalCreateLabelReader, py::return_value_policy::reference);
         m.def("COCOReader", &rocalCreateCOCOReader, py::return_value_policy::reference);
+        m.def("COCOReaderKeyPoints", &rocalCreateCOCOReaderKeyPoints, py::return_value_policy::reference);
         // rocal_api_meta_data.h
         m.def("RandomBBoxCrop", &rocalRandomBBoxCrop);
         m.def("BoxEncoder",&rocalBoxEncoder);
@@ -328,6 +347,7 @@ namespace rocal
             rocalGetImageSizes(context,ptr);
         }
         );
+        m.def("rocalGetJointsData",&wrapper_joints_data_copy);
         // rocal_api_parameter.h
         m.def("setSeed", &rocalSetSeed);
         m.def("getSeed", &rocalGetSeed);
@@ -412,6 +432,54 @@ namespace rocal
         return std::make_pair(labels_array, bboxes_array);
             }
         );
+
+        m.def(
+            "rocalGetTarget", [](RocalContext context)
+    {
+            rocalTensorList *target = rocalGetTarget(context);
+            // printf("number of dims %u\n", target->at(0)->info().num_of_dims());
+            uint bs = target->size();
+            uint d1 = target->at(0)->info().dims().at(0);
+            uint d2 = target->at(0)->info().dims().at(1);
+            uint d3 = target->at(0)->info().dims().at(2);
+            uint d4 = target->at(0)->info().dims().at(3);
+            // uint d5 = output_tensor_list.at(0)->info().dims().at(4);
+            // std::cerr<<"LABELS SIZE ::"<<labels->size();
+            // for (int i = 0; i < labels->size(); i++) {
+            //     int *labels_buffer = (int *)(labels->at(i)->buffer());
+            //     std::cerr << ">>>>> LABELS : " << labels_buffer[0] << "\t";
+            // }
+            return py::array(py::buffer_info(
+                            (float *)(target->at(0)->buffer()),
+                            sizeof(float),
+                            py::format_descriptor<float>::format(),
+                            1,
+                            {bs * d1 * d2 * d3 * d4},
+                            {sizeof(float)}));
+    }
+            );
+        m.def(
+            "rocalGetTargetWeight", [](RocalContext context)
+    {
+            rocalTensorList *target_weight = rocalGetTargetWeight(context);
+            uint bs = target_weight->size();
+            uint d1 = target_weight->at(0)->info().dims().at(0);
+            uint d2 = target_weight->at(0)->info().dims().at(1);
+            // std::cerr<<"LABELS SIZE ::"<<labels->size();
+            // for (int i = 0; i < labels->size(); i++) {
+            //     int *labels_buffer = (int *)(labels->at(i)->buffer());
+            //     std::cerr << ">>>>> LABELS : " << labels_buffer[0] << "\t";
+            // }
+            return py::array(py::buffer_info(
+                            (float *)(target_weight->at(0)->buffer()),
+                            sizeof(float),
+                            py::format_descriptor<float>::format(),
+                            1,
+                            {bs * d1 * d2},
+                            {sizeof(float)}));
+    }
+            );
+
         // rocal_api_data_loaders.h
         m.def("ImageDecoder", &rocalJpegFileSource, "Reads file from the source given and decodes it according to the policy",
               py::return_value_policy::reference,

@@ -7,7 +7,7 @@ def image(*inputs, user_feature_key_map = None, path='', file_root ='', annotati
                  preserve=False, seed=-1, split_stages=False, use_chunk_allocator= False, use_fast_idct = False, device = None):
     reader = Pipeline._current_pipeline._reader
 
-    if( reader == 'COCOReader'):
+    if( reader == 'COCOReader' or reader == 'COCOReaderKeyPoints'):
         kwargs_pybind = {
             "source_path": file_root,
             "json_path": annotations_file,

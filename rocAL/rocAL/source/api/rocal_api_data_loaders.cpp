@@ -453,6 +453,7 @@ rocalSequenceReaderSingleShard(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
+        bool keypoint = context->master_graph->is_keypoint();
 
         context->master_graph->add_node<ImageLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path, "",
@@ -464,6 +465,7 @@ rocalSequenceReaderSingleShard(
                                                                                         context->master_graph->mem_type(),
                                                                                         context->master_graph->meta_data_reader(),
                                                                                         decoder_keep_original,
+                                                                                        keypoint,
                                                                                         std::map<std::string, std::string>(),
                                                                                         sequence_length,
                                                                                         step, stride);
@@ -1177,6 +1179,7 @@ rocalJpegCOCOFileSourceSingleShard(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
+        bool keypoint = context->master_graph->is_keypoint();
 
         context->master_graph->add_node<ImageLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path, json_path,
@@ -1187,7 +1190,8 @@ rocalJpegCOCOFileSourceSingleShard(
                                                                                         context->user_batch_size(),
                                                                                         context->master_graph->mem_type(),
                                                                                         context->master_graph->meta_data_reader(),
-                                                                                        decoder_keep_original);
+                                                                                        decoder_keep_original,
+                                                                                        keypoint);
         context->master_graph->set_loop(loop);
 
         if(is_output)

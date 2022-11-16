@@ -301,6 +301,15 @@ class Pipeline(object):
     def rocalGetOutputTensors(self):
         return b.rocalGetOutputTensors(self._handle)
 
+    def rocalGetJointsData(self, dictionary):
+        return b.rocalGetJointsData(self._handle, dictionary)
+
+    def rocalGetTarget(self):
+        return b.rocalGetTarget(self._handle)
+
+    def rocalGetTargetWeight(self):
+        return b.rocalGetTargetWeight(self._handle)
+
     def run(self):
         """
         It rises StopIteration if data set reached its end.

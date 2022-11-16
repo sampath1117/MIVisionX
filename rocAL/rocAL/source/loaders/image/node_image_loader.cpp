@@ -43,7 +43,7 @@ void ImageLoaderNode::init(unsigned internal_shard_count, const std::string &sou
         THROW("Shard count should be greater than or equal to one")
     _loader_module->set_output(_outputs[0]);
     // Set reader and decoder config accordingly for the ImageLoaderNode
-    auto reader_cfg = ReaderConfig(storage_type, source_path, json_path, feature_key_map, shuffle, loop, true);
+    auto reader_cfg = ReaderConfig(storage_type, source_path, json_path, feature_key_map, shuffle, loop, keypoint);
     reader_cfg.set_shard_count(internal_shard_count);
     reader_cfg.set_batch_count(load_batch_count);
     reader_cfg.set_file_prefix(file_prefix);
