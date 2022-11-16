@@ -455,9 +455,14 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
 break;
 case 16:
     {
+        float rotate_prob = 0.5;
+        float half_body_prob = 0.3;
+        float scale_factor = 0.35;
+        float rotate_factor = 45.0;
+        bool is_train = false;
         std::cout << ">>>>>>> Running "
                   << "rocalwarp_affine" << std::endl;
-        image1 = rocalWarpAffine(handle, input1, tensorLayout, tensorOutputType, true);
+        image1 = rocalWarpAffine(handle, input1, tensorLayout, tensorOutputType, true, is_train, height, width, rotate_prob, half_body_prob, scale_factor, rotate_factor);
 
     }
 break;

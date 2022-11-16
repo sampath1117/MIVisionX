@@ -251,7 +251,8 @@ extern "C" RocalTensor ROCAL_API_CALL rocalGridmask(RocalContext p_context,
                                                     float gridvalue=0.6,
                                                     unsigned int x=0,
                                                     unsigned int y=0);
-                                    
+
+/*                              
 extern "C" RocalTensor ROCAL_API_CALL rocalWarpAffine(RocalContext p_context,
                                                     RocalTensor p_input,
                                                     RocalTensorLayout rocal_tensor_layout,
@@ -264,6 +265,24 @@ extern "C" RocalTensor ROCAL_API_CALL rocalWarpAffine(RocalContext p_context,
                                                     RocalFloatParam o0=0,
                                                     RocalFloatParam o1=0,
                                                     int interpolation_type=0);
+                                                    */
+                                                
+extern "C" RocalTensor ROCAL_API_CALL rocalWarpAffine(RocalContext p_context,
+                              RocalTensor p_input,
+                              RocalTensorLayout rocal_tensor_layout,
+                              RocalTensorOutputType rocal_tensor_output_type,
+                              bool is_output,
+                              bool is_train,
+                              unsigned dest_height, unsigned dest_width,
+                              float rotate_probability, float half_body_probability,
+                              float scale_factor, float rotation_factor,
+                              RocalFloatParam x0=NULL,
+                              RocalFloatParam x1=NULL,
+                              RocalFloatParam y0=NULL,
+                              RocalFloatParam y1=NULL,
+                              RocalFloatParam o0=NULL,
+                              RocalFloatParam o1=NULL,
+                              int interpolation_type=0);
                                             
 extern "C" RocalTensor ROCAL_API_CALL rocalColorJitter(RocalContext context, RocalTensor input,RocalTensorLayout rocal_tensor_layout,RocalTensorOutputType rocal_tensor_output_type, bool is_output,
                                                    RocalFloatParam alpha = NULL, RocalFloatParam beta = NULL, RocalFloatParam hue = NULL, RocalFloatParam sat = NULL);

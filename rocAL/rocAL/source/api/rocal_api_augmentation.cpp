@@ -1089,6 +1089,7 @@ rocalColorJitter(RocalContext p_context,
     return output;
 }
 
+/*
 RocalTensor
 ROCAL_API_CALL rocalWarpAffine(RocalContext p_context,
                               RocalTensor p_input,
@@ -1127,6 +1128,58 @@ ROCAL_API_CALL rocalWarpAffine(RocalContext p_context,
 
         output = context->master_graph->create_tensor(output_info, is_output);
         context->master_graph->add_node<WarpAffineNode>({input}, {output})->init(_x0,_x1,_y0,_y1,_o0,_o1, interpolation_type);
+    }
+    catch(const std::exception& e)
+    {
+        context->capture_error(e.what());
+        ERR(e.what())
+    }
+    return output;
+}
+*/
+
+RocalTensor
+ROCAL_API_CALL rocalWarpAffine(RocalContext p_context,
+                              RocalTensor p_input,
+                              RocalTensorLayout rocal_tensor_layout,
+                              RocalTensorOutputType rocal_tensor_output_type,
+                              bool is_output,
+                              bool is_train,
+                              unsigned dest_height, unsigned dest_width,
+                              float rotate_probability, float half_body_probability,
+                              float scale_factor, float rotation_factor,
+                              RocalFloatParam x0,
+                              RocalFloatParam x1,
+                              RocalFloatParam y0,
+                              RocalFloatParam y1,
+                              RocalFloatParam o0,
+                              RocalFloatParam o1,
+                              int interpolation_type)
+{
+    if(!p_context || !p_input)
+        THROW("Null values passed as input")
+    rocalTensor* output = nullptr;
+    auto context = static_cast<Context*>(p_context);
+    auto input = static_cast<rocalTensor*>(p_input);
+    auto _x0 = static_cast<FloatParam*>(x0);
+    auto _x1 = static_cast<FloatParam*>(x1);
+    auto _y0 = static_cast<FloatParam*>(y0);
+    auto _y1 = static_cast<FloatParam*>(y1);
+    auto _o0 = static_cast<FloatParam*>(o0);
+    auto _o1 = static_cast<FloatParam*>(o1);
+    RocalTensorlayout op_tensorLayout;
+    RocalTensorDataType op_tensorDataType;
+    try
+    {
+        int layout=0;
+        get_rocal_tensor_layout(rocal_tensor_layout, op_tensorLayout, layout);
+        get_rocal_tensor_data_type(rocal_tensor_output_type, op_tensorDataType);
+        rocalTensorInfo output_info = input->info();
+        output_info.set_tensor_layout(op_tensorLayout);
+        output_info.set_data_type(op_tensorDataType);
+
+        output = context->master_graph->create_tensor(output_info, is_output);
+        context->master_graph->add_node<WarpAffineNode>({input}, {output})->init(is_train, rotate_probability, half_body_probability, scale_factor, rotation_factor,_x0,_x1,_y0,_y1,_o0,_o1, interpolation_type);
     }
     catch(const std::exception& e)
     {
