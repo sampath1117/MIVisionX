@@ -33,7 +33,7 @@ public:
     unsigned int get_dst_height() { return _outputs[0]->info().max_dims()[1]; }
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     vx_array  _dst_roi_width , _dst_roi_height ;
     std::vector<uint> _dest_width_val, _dest_height_val;

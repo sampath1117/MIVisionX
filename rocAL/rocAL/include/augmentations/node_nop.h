@@ -31,5 +31,5 @@ public:
     NopNode() = delete;
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 };

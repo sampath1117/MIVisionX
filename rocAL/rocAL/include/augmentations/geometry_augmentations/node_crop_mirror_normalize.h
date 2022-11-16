@@ -37,7 +37,7 @@ public:
     std::shared_ptr<RocalCropParam> return_crop_param() { return _crop_param; }
 protected:
     void create_node() override ;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     std::shared_ptr<RocalCropParam> _crop_param;
     std::vector<vx_float32> _mean_vx, _std_dev_vx;

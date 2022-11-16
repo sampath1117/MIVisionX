@@ -33,7 +33,7 @@ public:
     void init(int tile_width, float grid_ratio, float grid_angle,int shift_x,int shift_y);
 
 protected:
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
     void create_node() override;
 private:
     int _tile_width ,_shift_x, _shift_y;

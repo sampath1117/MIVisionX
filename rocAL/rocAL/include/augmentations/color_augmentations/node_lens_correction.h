@@ -33,7 +33,7 @@ public:
     void init(FloatParam *strength, FloatParam *zoom);
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     ParameterVX<float> _strength;
     ParameterVX<float> _zoom;

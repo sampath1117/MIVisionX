@@ -35,7 +35,7 @@ public:
     void init(FloatParam *shift);
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     ParameterVX<float> _shift;
     int _layout,_roi_type;

@@ -59,7 +59,7 @@ void NoiseTensorNode::init( FloatParam* noise_prob, FloatParam* salt_prob, Float
 }
 
 
-void NoiseTensorNode::update_node()
+void NoiseTensorNode::update_node(MetaDataBatch* meta_data)
 {
     _noise_prob.update_array();
     _salt_prob.update_array();

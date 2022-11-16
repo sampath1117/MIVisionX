@@ -86,6 +86,6 @@ void WarpAffineNode::init(FloatParam* x0, FloatParam* x1, FloatParam* y0, FloatP
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void WarpAffineNode::update_node() {
+void WarpAffineNode::update_node(MetaDataBatch* meta_data) {
     update_affine_array();
 }

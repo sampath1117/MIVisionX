@@ -36,7 +36,7 @@ public:
     void adjust_out_roi_size();
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     vx_array  _dst_roi_width , _dst_roi_height;
     unsigned _layout, _roi_type;

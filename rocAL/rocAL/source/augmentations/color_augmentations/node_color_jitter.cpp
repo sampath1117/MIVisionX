@@ -77,7 +77,7 @@ void ColorJitterNode::init( FloatParam* alpha, FloatParam* beta, FloatParam* hue
 }
 
 
-void ColorJitterNode::update_node()
+void ColorJitterNode::update_node(MetaDataBatch* meta_data)
 {
     _alpha.update_array();
     _beta.update_array();

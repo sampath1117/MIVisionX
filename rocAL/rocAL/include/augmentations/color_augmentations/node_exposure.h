@@ -38,7 +38,7 @@ public:
 
 protected:
     void create_node() override ;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
 
     ParameterVX<float> _shift;

@@ -34,7 +34,7 @@ public:
     void init(unsigned int* new_order, unsigned int new_sequence_length, unsigned int sequence_length, unsigned int sequence_count);
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     std::vector<unsigned int> _new_order;
     unsigned int  _new_sequence_length, _sequence_length, _sequence_count;

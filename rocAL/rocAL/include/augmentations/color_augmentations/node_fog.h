@@ -33,7 +33,7 @@ public:
     void init(FloatParam *fog_param);
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     ParameterVX<float> _fog_param;
     int _layout,_roi_type;

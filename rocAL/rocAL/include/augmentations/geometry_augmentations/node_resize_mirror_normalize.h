@@ -19,7 +19,7 @@ public:
     vx_array get_src_height() { return _src_roi_height; }
 protected:
     void create_node() override ;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     std::vector<vx_float32> _mean_vx, _std_dev_vx;
     vx_array  _mean_array, _std_dev_array,_mirror_array, _dst_roi_width , _dst_roi_height,_src_roi_width, _src_roi_height;

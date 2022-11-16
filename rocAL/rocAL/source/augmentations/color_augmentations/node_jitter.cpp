@@ -63,7 +63,7 @@ void JitterNode::init(IntParam *kernel_size)
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void JitterNode::update_node()
+void JitterNode::update_node(MetaDataBatch* meta_data)
 {
     _kernel_size.update_array();
 }

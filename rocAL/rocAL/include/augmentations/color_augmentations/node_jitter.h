@@ -35,7 +35,7 @@ public:
     void init(IntParam *kernel_size);
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     ParameterVX<int> _kernel_size;
     int _layout=0,_roi_type;

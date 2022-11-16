@@ -59,6 +59,6 @@ void SatNode::init(FloatParam* sat) {
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void SatNode::update_node() {
+void SatNode::update_node(MetaDataBatch* meta_data) {
      _sat.update_array();
 }

@@ -36,6 +36,6 @@ _layout = (int)_inputs[0]->info().layout();
 
 }
 
-void SpatterNode::update_node()
+void SpatterNode::update_node(MetaDataBatch* meta_data)
 {
 }

@@ -39,7 +39,7 @@ public:
     std::shared_ptr<RocalCropParam> get_crop_param() { return _crop_param; }
 protected:
     void create_node() override ;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
 
     size_t _dest_width;

@@ -35,7 +35,7 @@ public:
         _batch_size(outputs[0]->info().batch_size()) {}
     virtual ~Node();
     void create(std::shared_ptr<Graph> graph);
-    void update_parameters();
+    void update_parameters(MetaDataBatch* meta_data);
     std::vector<rocalTensor *> input() { return _inputs; };
     std::vector<rocalTensor *> output() { return _outputs; };
     void add_next(const std::shared_ptr<rocalTensor>& node) {} // To be implemented
@@ -45,7 +45,7 @@ public:
     bool _is_ssd = false;
 protected:
     virtual void create_node() = 0;
-    virtual void update_node() = 0;
+    virtual void update_node(MetaDataBatch* meta_data) = 0;
     virtual void update_src_roi();
     const std::vector<rocalTensor *> _inputs;
     const std::vector<rocalTensor *> _outputs;

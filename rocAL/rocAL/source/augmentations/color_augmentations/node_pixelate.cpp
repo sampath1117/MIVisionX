@@ -47,6 +47,6 @@ void PixelateNode::init() {
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void PixelateNode::update_node() {
+void PixelateNode::update_node(MetaDataBatch* meta_data) {
 }
 

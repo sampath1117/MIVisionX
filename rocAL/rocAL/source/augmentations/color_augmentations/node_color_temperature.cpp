@@ -61,7 +61,7 @@ void ColorTemperatureNode::init(IntParam* adjustment)
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void ColorTemperatureNode::update_node()
+void ColorTemperatureNode::update_node(MetaDataBatch* meta_data)
 {
     _adj_value_param.update_array();
 }

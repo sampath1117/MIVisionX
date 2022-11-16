@@ -35,7 +35,7 @@ public:
     void init(FloatParam *sdev);
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     ParameterVX<float> _sdev;
     int _layout=0,_roi_type=0;

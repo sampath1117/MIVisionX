@@ -62,7 +62,7 @@ void FogNode::init(FloatParam* fog_param)
     _layout = (int)_inputs[0]->info().layout();
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
-void FogNode::update_node()
+void FogNode::update_node(MetaDataBatch* meta_data)
 {
     _fog_param.update_array();
 }

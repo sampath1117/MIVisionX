@@ -54,7 +54,7 @@ public:
 
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 
 private:
     std::shared_ptr<RocalRandomCropParam> _meta_crop_param;

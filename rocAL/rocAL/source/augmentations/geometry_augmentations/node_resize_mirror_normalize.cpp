@@ -76,7 +76,7 @@ void ResizeMirrorNormalizeNode::create_node(){
     if((status = vxGetStatus((vx_reference)_node)) != VX_SUCCESS)
         THROW("Adding the resize (vxExtrppNode_ResizebatchPD) node failed: "+ TOSTR(status))
 }
-void ResizeMirrorNormalizeNode::update_node() {
+void ResizeMirrorNormalizeNode::update_node(MetaDataBatch* meta_data) {
     _mirror.update_array();
 }
 void ResizeMirrorNormalizeNode::init(int interpolation_type,std::vector<float>& mean, std::vector<float>& std_dev, IntParam *mirror) {

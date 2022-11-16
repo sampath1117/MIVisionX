@@ -331,6 +331,7 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
 
     RocalTensor image1,image2;
     RocalIntParam flip = rocalCreateIntParameter(1);
+    printf("Test case: %d\n", test_case);
     switch (test_case)
     {
     case 0:

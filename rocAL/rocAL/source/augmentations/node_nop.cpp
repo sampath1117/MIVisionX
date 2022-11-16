@@ -43,6 +43,6 @@ void NopNode::create_node()
 
 }
 
-void NopNode::update_node()
+void NopNode::update_node(MetaDataBatch* meta_data)
 {
 }

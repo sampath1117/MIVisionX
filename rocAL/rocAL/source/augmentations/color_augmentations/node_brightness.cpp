@@ -73,7 +73,7 @@ void BrightnessNode::init( FloatParam* alpha, FloatParam* beta)
 }
 
 
-void BrightnessNode::update_node()
+void BrightnessNode::update_node(MetaDataBatch* meta_data)
 {
     _alpha.update_array();
     _beta.update_array();

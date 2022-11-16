@@ -35,7 +35,7 @@ public:
 
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     int _layout,_roi_type;
 };

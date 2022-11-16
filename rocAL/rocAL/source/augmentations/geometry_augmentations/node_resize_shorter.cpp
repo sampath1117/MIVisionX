@@ -69,7 +69,7 @@ void ResizeShorterNode::create_node()
         THROW("Adding the resize (vxExtrppNode_Resize) node failed: " + TOSTR(status))
 }
 
-void ResizeShorterNode::update_node()
+void ResizeShorterNode::update_node(MetaDataBatch* meta_data)
 {
     std::shared_ptr<std::vector<RocalROI>> src_roi = _inputs[0]->info().get_roi();
 

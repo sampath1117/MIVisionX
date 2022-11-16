@@ -67,7 +67,7 @@ void LensCorrectionNode::init(FloatParam* strength, FloatParam* zoom )
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void LensCorrectionNode::update_node()
+void LensCorrectionNode::update_node(MetaDataBatch* meta_data)
 {
     _strength.update_array();
     _zoom.update_array();

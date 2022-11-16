@@ -63,7 +63,7 @@ void SnowNode::init(FloatParam* shfit)
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void SnowNode::update_node()
+void SnowNode::update_node(MetaDataBatch* meta_data)
 {
     _shift.update_array();
 }

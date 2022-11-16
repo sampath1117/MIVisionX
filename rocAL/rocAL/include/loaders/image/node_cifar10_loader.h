@@ -49,7 +49,7 @@ public:
     std::shared_ptr<LoaderModule> get_loader_module();
 protected:
     void create_node() override {};
-    void update_node() override {};
+    void update_node(MetaDataBatch* meta_data) override {};
 private:
     std::shared_ptr<CIFAR10DataLoader> _loader_module = nullptr;
 };

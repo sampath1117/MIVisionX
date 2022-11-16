@@ -57,10 +57,10 @@ Node::create(std::shared_ptr<Graph> graph)
 }
 
 void
-Node::update_parameters()
+Node::update_parameters(MetaDataBatch* meta_data)
 {
     update_src_roi();
-    update_node();
+    update_node(meta_data);
 }
 
 void

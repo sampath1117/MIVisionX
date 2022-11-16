@@ -51,7 +51,7 @@ void ColorTwistNode::init( FloatParam* alpha, FloatParam* beta, FloatParam* hue,
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void ColorTwistNode::update_node()
+void ColorTwistNode::update_node(MetaDataBatch* meta_data)
 {
     _alpha.update_array();
     _beta.update_array();

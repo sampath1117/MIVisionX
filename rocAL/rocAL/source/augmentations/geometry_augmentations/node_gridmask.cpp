@@ -67,6 +67,6 @@ void GridmaskNode::init(int tile_width, float grid_ratio, float grid_angle,int s
     _roi_type = (int)_inputs[0]->info().roi_type();
 
 }
-void GridmaskNode::update_node()
+void GridmaskNode::update_node(MetaDataBatch* meta_data)
 {
 }

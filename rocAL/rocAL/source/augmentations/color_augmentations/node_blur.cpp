@@ -62,7 +62,7 @@ void BlurNode::init(IntParam* sdev)
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void BlurNode::update_node()
+void BlurNode::update_node(MetaDataBatch* meta_data)
 {
     _sdev.update_array();
 }

@@ -34,7 +34,7 @@ public:
     void init(FloatParam *shift);
 
 protected:
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
     void create_node() override;
 private:
     ParameterVX<float> _shift;

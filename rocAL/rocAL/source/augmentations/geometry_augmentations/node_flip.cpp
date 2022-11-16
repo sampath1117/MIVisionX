@@ -76,7 +76,7 @@ void FlipNode::init( IntParam* h_flag, IntParam* v_flag)
 }
 
 
-void FlipNode::update_node()
+void FlipNode::update_node(MetaDataBatch* meta_data)
 {
 
     _horizontal.update_array();

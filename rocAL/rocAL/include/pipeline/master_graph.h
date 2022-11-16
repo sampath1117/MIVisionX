@@ -112,7 +112,7 @@ public:
     void set_sequence_batch_size(size_t sequence_length) { _sequence_batch_size = _user_batch_size * sequence_length; }
     void set_sequence_batch_ratio() { _sequence_batch_ratio = _sequence_batch_size / _internal_batch_size; }
 private:
-    Status update_node_parameters();
+    Status update_node_parameters(MetaDataBatch* meta_data);
     Status allocate_output_tensor();
     Status deallocate_output_tensor();
     void create_single_graph();

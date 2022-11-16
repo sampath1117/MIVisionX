@@ -380,14 +380,14 @@ void MasterGraph::release()
 }
 
 MasterGraph::Status
-MasterGraph::update_node_parameters()
+MasterGraph::update_node_parameters(MetaDataBatch* meta_data)
 {
     // Randomize random parameters
     ParameterFactory::instance()->renew_parameters();
 
     // Apply renewed parameters to VX parameters used in augmentation
     for(auto& node: _nodes)
-        node->update_parameters();
+        node->update_parameters(meta_data);
 
     return Status::OK;
 }
@@ -735,7 +735,7 @@ void MasterGraph::output_routine()
                     }
                 }
 
-                update_node_parameters();
+                update_node_parameters(_augmented_meta_data);
                 if(_augmented_meta_data)
                 {
                     if (_meta_data_graph)

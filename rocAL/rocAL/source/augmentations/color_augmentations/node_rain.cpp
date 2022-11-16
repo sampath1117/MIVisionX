@@ -75,7 +75,7 @@ void RainNode::init(FloatParam *rain_value, IntParam *rain_width, IntParam *rain
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void RainNode::update_node()
+void RainNode::update_node(MetaDataBatch* meta_data)
 {
     _rain_height.update_array();
     _rain_width.update_array();

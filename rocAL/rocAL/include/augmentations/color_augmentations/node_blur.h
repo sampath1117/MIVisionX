@@ -35,7 +35,7 @@ public:
     void init(IntParam *sdev);
 
 protected:
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
     void create_node() override;
 
 private:

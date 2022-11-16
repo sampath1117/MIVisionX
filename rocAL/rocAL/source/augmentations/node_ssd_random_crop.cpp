@@ -68,7 +68,7 @@ inline double ssd_BBoxIntersectionOverUnion(const BoundingBoxCord &box1, const B
     return iou;
 }
 
-void SSDRandomCropNode::update_node()
+void SSDRandomCropNode::update_node(MetaDataBatch* meta_data)
 {
     _crop_param->set_image_dimensions(_inputs[0]->info().get_roi());
     _crop_param->update_array();

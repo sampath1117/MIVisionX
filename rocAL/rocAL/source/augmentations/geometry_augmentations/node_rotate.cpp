@@ -80,7 +80,7 @@ void RotateNode::init(FloatParam* angle, int outputtoggleformat)
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void RotateNode::update_node()
+void RotateNode::update_node(MetaDataBatch* meta_data)
 {
     _angle.update_array();
 }

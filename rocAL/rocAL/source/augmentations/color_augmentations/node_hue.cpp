@@ -62,6 +62,6 @@ void HueNode::init(FloatParam* hue) {
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void HueNode::update_node() {
+void HueNode::update_node(MetaDataBatch* meta_data) {
      _hue.update_array();
 }

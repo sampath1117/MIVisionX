@@ -81,7 +81,7 @@ void CropMirrorNormalizeNode::create_node()
 
 }
 
-void CropMirrorNormalizeNode::update_node()
+void CropMirrorNormalizeNode::update_node(MetaDataBatch* meta_data)
 {
     _crop_param->set_image_dimensions(_inputs[0]->info().get_roi());
     _crop_param->update_array();

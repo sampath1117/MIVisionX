@@ -49,7 +49,7 @@ public:
     std::shared_ptr<LoaderModule> get_loader_module();
 protected:
     void create_node() override {};
-    void update_node() override {};
+    void update_node(MetaDataBatch* meta_data) override {};
 private:
     DecodeMode _decode_mode  = DecodeMode::CPU;
     std::shared_ptr<VideoLoader> _loader_module = nullptr;

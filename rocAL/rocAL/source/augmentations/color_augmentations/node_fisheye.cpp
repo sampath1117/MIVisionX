@@ -47,5 +47,5 @@ void FisheyeNode::init() {
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void FisheyeNode::update_node() {
+void FisheyeNode::update_node(MetaDataBatch* meta_data) {
 }

@@ -60,7 +60,7 @@ void CropNode::create_node()
         THROW("Error adding the crop tensor (vxExtrppNode_Crop) failed: "+TOSTR(status))
 }
 
-void CropNode::update_node()
+void CropNode::update_node(MetaDataBatch* meta_data)
 {
     _crop_param->set_image_dimensions(_inputs[0]->info().get_roi());
     _crop_param->update_array();

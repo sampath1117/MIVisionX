@@ -67,7 +67,7 @@ void BlendNode::init(FloatParam* shfit)
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void BlendNode::update_node()
+void BlendNode::update_node(MetaDataBatch* meta_data)
 {
      _shift.update_array();
 }

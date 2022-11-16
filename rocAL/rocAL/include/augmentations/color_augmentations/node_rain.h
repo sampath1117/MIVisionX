@@ -35,7 +35,7 @@ public:
     void init(FloatParam *rain_value, IntParam *rain_width, IntParam *rain_height, FloatParam *rain_transparency); 
 protected:
     void create_node() override;
-    void update_node() override;
+    void update_node(MetaDataBatch* meta_data) override;
 private:
     ParameterVX<float> _rain_value;
     ParameterVX<int> _rain_width;

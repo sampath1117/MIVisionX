@@ -62,7 +62,7 @@ void VignetteNode::init(FloatParam* sdev)
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void VignetteNode::update_node()
+void VignetteNode::update_node(MetaDataBatch* meta_data)
 {
     _sdev.update_array();
 }

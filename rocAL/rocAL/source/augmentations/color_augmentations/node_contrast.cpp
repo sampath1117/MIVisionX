@@ -64,7 +64,7 @@ void ContrastNode::init( FloatParam* c_factor, FloatParam* c_center)
 }
 
 
-void ContrastNode::update_node()
+void ContrastNode::update_node(MetaDataBatch* meta_data)
 {
     _factor.update_array();
     _center.update_array();

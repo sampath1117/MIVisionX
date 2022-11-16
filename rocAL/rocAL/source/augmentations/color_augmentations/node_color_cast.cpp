@@ -54,7 +54,7 @@ void ColorCastNode::init( FloatParam* red, FloatParam* green, FloatParam* blue, 
 }
 
 
-void ColorCastNode::update_node()
+void ColorCastNode::update_node(MetaDataBatch* meta_data)
 {
     _red.update_array();
     _green.update_array();

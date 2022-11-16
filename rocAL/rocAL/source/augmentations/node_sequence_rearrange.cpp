@@ -57,6 +57,6 @@ void SequenceRearrangeNode::init(unsigned int* new_order, unsigned int new_seque
     std::copy(new_order, new_order + _new_sequence_length, _new_order.begin());
 }
 
-void SequenceRearrangeNode::update_node()
+void SequenceRearrangeNode::update_node(MetaDataBatch* meta_data)
 {
 }

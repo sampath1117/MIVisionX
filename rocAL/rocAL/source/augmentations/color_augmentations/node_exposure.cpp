@@ -44,7 +44,7 @@ void ExposureNode::init( FloatParam* shift)
 }
 
 
-void ExposureNode::update_node()
+void ExposureNode::update_node(MetaDataBatch* meta_data)
 {
     _shift.update_array();
 }
