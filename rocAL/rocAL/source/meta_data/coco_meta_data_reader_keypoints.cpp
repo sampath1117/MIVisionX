@@ -72,7 +72,7 @@ void COCOMetaDataReaderKeyPoints::lookup(const std::vector<std::string> &image_n
         joints_data_batch.joints_visibility_batch.push_back(joints_data->joints_visibility);
         joints_data_batch.score_batch.push_back(joints_data->score);
         joints_data_batch.rotation_batch.push_back(joints_data->rotation);
-
+        _output->get_img_sizes_batch()[i] = it->second->get_img_size();
     }
     _output->get_joints_data_batch() = joints_data_batch;
 }

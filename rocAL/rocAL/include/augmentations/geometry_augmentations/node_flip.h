@@ -45,4 +45,5 @@ private:
     unsigned _layout, _roi_type;
     constexpr static int HORIZONTAL_RANGE [2] = {0, 2};
     constexpr static int   VERTICAL_RANGE [2] = {0, 2};
+    std::vector<int> _horizontal_val, _vertical_val;
 };

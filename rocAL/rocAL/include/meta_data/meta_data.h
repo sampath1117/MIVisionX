@@ -440,6 +440,7 @@ struct KeyPointBatch : public MetaDataBatch
         _joints_data.joints_visibility_batch.resize(batch_size);
         _joints_data.score_batch.resize(batch_size);
         _joints_data.rotation_batch.resize(batch_size);
+        _img_sizes.resize(batch_size);
     }
     int size() override
     {

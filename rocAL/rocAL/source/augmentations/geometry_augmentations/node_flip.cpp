@@ -63,6 +63,8 @@ void FlipNode::init( int h_flag, int v_flag)
     _vertical.set_param(v_flag);
     _layout = (int)_inputs[0]->info().layout();
     _roi_type = (int)_inputs[0]->info().roi_type();
+    _horizontal_val.resize(_batch_size);
+    _vertical_val.resize(_batch_size);
 
 }
 
@@ -72,14 +74,110 @@ void FlipNode::init( IntParam* h_flag, IntParam* v_flag)
     _vertical.set_param(core(v_flag));
     _layout = (int)_inputs[0]->info().layout();
     _roi_type = (int)_inputs[0]->info().roi_type();
-
+    _horizontal_val.resize(_batch_size);
+    _vertical_val.resize(_batch_size);
 }
 
 
 void FlipNode::update_node(MetaDataBatch* meta_data)
 {
-
     _horizontal.update_array();
     _vertical.update_array();
+    bool pose_estimation = true;
+    vxCopyArrayRange(_horizontal.default_array(), 0, _batch_size, sizeof(int), _horizontal_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange(_vertical.default_array(), 0, _batch_size, sizeof(int), _vertical_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    if (pose_estimation)
+    {
+        unsigned int ann_count = meta_data->get_joints_data_batch().center_batch.size();
+        for (unsigned int ann_index = 0; ann_index < ann_count; ann_index++)
+        {
+            if (_horizontal_val[ann_index] == 1)
+            {
+                float img_width = meta_data->get_img_sizes_batch()[ann_index].w;
+                
+                Joint joint0;
+                JointVisibility joint0_visiblity;
+                Joints joints;
+                JointsVisibility joints_visibility;
+
+                joint0 = meta_data->get_joints_data_batch().joints_batch[ann_index][0];
+
+                
+                joint0_visiblity = meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][0];
+
+                
+                joint0[0] = (img_width - joint0[0] - 1) * (joint0_visiblity[0]);
+
+                
+                std::vector<float> center = meta_data->get_joints_data_batch().center_batch[ann_index];
+                center[0] = img_width - center[0] - 1;
+
+                
+                joints.push_back(joint0);
+                joints_visibility.push_back(joint0_visiblity);
+                
+                for (unsigned int joint_index = 1; joint_index < NUMBER_OF_JOINTS; joint_index = joint_index + 2)
+                {
+                    //std::cout<<"Flipping keypoints: "<<  joint_index<<" "<< joint_index+1<<std::endl;
+                    Joint joint1, joint2;
+                    JointVisibility joint1_visibility, joint2_visibility;
+                    joint1 = meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index];
+                    joint2 = meta_data->get_joints_data_batch().joints_batch[ann_index][joint_index + 1];
+                    joint1_visibility = meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index];
+                    joint2_visibility = meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][joint_index + 1];
+
+                    //Update the keypoint co-ordinates
+                    joint1[0] = (img_width - joint1[0] - 1) * (joint1_visibility[0]);
+                    joint2[0] = (img_width - joint2[0] - 1) * (joint2_visibility[0]);
+
+                    joints.push_back(joint2);
+                    joints.push_back(joint1);
+                    joints_visibility.push_back(joint2_visibility);
+                    joints_visibility.push_back(joint1_visibility);
+                }
+                meta_data->get_joints_data_batch().joints_batch[ann_index] = joints;
+                meta_data->get_joints_data_batch().joints_visibility_batch[ann_index] = joints_visibility;
+                meta_data->get_joints_data_batch().center_batch[ann_index] = center;
+                joints.clear();
+                joints_visibility.clear();
+                center.clear();
+            }
+        }
+    }
+    else
+    {
+        for (unsigned int i = 0; i < _batch_size; i++)
+        {
+            auto bb_count = meta_data->get_bb_labels_batch()[i].size();
+            BoundingBoxLabels labels_buf;
+            BoundingBoxCords coords_buf;
+            coords_buf.resize(bb_count);
+            labels_buf.resize(bb_count);
+            memcpy(labels_buf.data(), meta_data->get_bb_labels_batch()[i].data(), sizeof(int) * bb_count);
+            memcpy(coords_buf.data(), meta_data->get_bb_cords_batch()[i].data(), meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
+            BoundingBoxCords bb_coords;
+
+            for (uint j = 0; j < bb_count; j++)
+            {
+                if (_horizontal_val[i] == 1)
+                {
+                    float l = 1 - coords_buf[j].r;
+                    coords_buf[j].r = 1 - coords_buf[j].l;
+                    coords_buf[j].l = l;
+                }
+                if (_vertical_val[i] == 1)
+                {
+                    float t = 1 - coords_buf[j].b;
+                    coords_buf[j].b = 1 - coords_buf[j].t;
+                    coords_buf[j].t = t;
+                }
+
+                bb_coords.push_back(coords_buf[j]);
+            }
+            meta_data->get_bb_cords_batch()[i] = bb_coords;
+            meta_data->get_bb_labels_batch()[i] = labels_buf;
+        }
+    } 
+
 }
 
