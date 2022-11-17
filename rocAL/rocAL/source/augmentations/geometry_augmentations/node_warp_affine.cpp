@@ -35,8 +35,8 @@ void WarpAffineNode::create_node() {
     }
     _dst_roi_width = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_UINT32, _batch_size);
     _dst_roi_height = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_UINT32, _batch_size);
-    std::vector<uint32_t> dst_roi_width(_batch_size, (_outputs[0]->info().dims()).at(0));
-    std::vector<uint32_t> dst_roi_height(_batch_size, (_outputs[0]->info().dims()).at(1));
+    std::vector<uint32_t> dst_roi_width(_batch_size, (_outputs[0]->info().max_dims()).at(0));
+    std::vector<uint32_t> dst_roi_height(_batch_size, (_outputs[0]->info().max_dims()).at(1));
     width_status = vxAddArrayItems(_dst_roi_width, _batch_size, dst_roi_width.data(), sizeof(vx_uint32));
     height_status = vxAddArrayItems(_dst_roi_height, _batch_size, dst_roi_height.data(), sizeof(vx_uint32));
     if (width_status != 0 || height_status != 0)
@@ -62,11 +62,12 @@ void WarpAffineNode::update_affine_array() {
     if (_is_set_meta_data)
     {
         int ann_count = _meta_data_info->get_joints_data_batch().image_id_batch.size();
-        int output_size[2] = {(int)(_outputs[0]->info().dims()).at(0), (int)(_outputs[0]->info().dims()).at(1)};
+        int output_size[2] = {(int)(_outputs[0]->info().max_dims()).at(0), (int)(_outputs[0]->info().max_dims()).at(1)};
+
         float pi = 3.14;
         std::vector<float> rotate_probability;
         std::vector<float> half_body_probability;
-        
+
         for (int i = 0; i < ann_count; i++)
         {
             float src[2][3] = {0.0};
@@ -121,7 +122,7 @@ void WarpAffineNode::update_affine_array() {
             float src_point[2] = {0.0, -src_w / 2};
             dst_dir[1]  = -dst_w / 2;
             get_dir(src_point, src_dir, r_rad);
-            
+
             src[0][0] = box_center[0] + (shift[0] * scale_temp[0]);
             src[1][0] = box_center[1] + (shift[1] * scale_temp[1]);
             src[0][1] = box_center[0] + src_dir[0] + (shift[0] * scale_temp[0]);
@@ -131,7 +132,7 @@ void WarpAffineNode::update_affine_array() {
             dst[1][0] = dst_padded[1][0] = dst_h * 0.5;
             dst[0][1] = dst_padded[0][1] = dst_w * 0.5 + dst_dir[0] + (shift[0] * scale_temp[0]);
             dst[1][1] = dst_padded[1][1] = dst_h * 0.5 + dst_dir[1] + (shift[1] * scale_temp[1]);
-            
+
             dst_padded[2][0] = 1.0;
             dst_padded[2][1] = 1.0;
             dst_padded[2][2] = 1.0;
@@ -170,7 +171,6 @@ void WarpAffineNode::update_affine_array() {
             Joints joints;
             for (unsigned int keypoint_index = 0; keypoint_index < NUMBER_OF_JOINTS; keypoint_index++)
             {
-                
                 Joint joint;
                 JointVisibility joint_visibility;
                 float temp_x, temp_y;
@@ -283,7 +283,6 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     //Seperate the keypoints into upper body and lower body
     for (uint kp_idx = 0; kp_idx < num_vis_joints; kp_idx++)
     {
-        
         joint = _meta_data_info->get_joints_data_batch().joints_batch[i][vis_joints[kp_idx]];
         if (vis_joints[kp_idx] <= 10)
         {
@@ -318,7 +317,6 @@ void WarpAffineNode::half_body_transform(int i, Center &box_center, Scale &box_s
     auto max_idx = 0;
     for (uint kp_idx = 0; kp_idx < selected_joints.size(); kp_idx++)
     {
-        
         mean_center_x = mean_center_x + selected_joints[kp_idx][0];
         mean_center_y = mean_center_y + selected_joints[kp_idx][1];
 

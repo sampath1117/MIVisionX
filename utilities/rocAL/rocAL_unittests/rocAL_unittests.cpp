@@ -195,9 +195,9 @@ int test(int test_case, int reader_type, int pipeline_type, const char *path, co
             metadata_output = rocalCreateCOCOReader(handle, json_path, true, false);
             // metadata_output = rocalCreateCOCOReader(handle, json_path, true, true);
             if (decode_max_height <= 0 || decode_max_width <= 0)
-                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, true, false);
+                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, false, false);
             else
-                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, true, true, false, ROCAL_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
+                input1 = rocalJpegCOCOFileSource(handle, path, json_path, color_format, num_threads, false, false, false, ROCAL_USE_USER_GIVEN_SIZE, decode_max_width, decode_max_height);
         }
         break;
         case 3: //coco detection partial
@@ -567,7 +567,7 @@ break;
         image1 = rocalColorTwist(handle, input1, tensorLayout, tensorOutputType, true);
     }
     break;
-    
+
     default:
         std::cout << "Not a valid option! Exiting!\n";
         return -1;
