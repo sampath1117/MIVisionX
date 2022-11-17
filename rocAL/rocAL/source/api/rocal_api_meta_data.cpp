@@ -455,7 +455,7 @@ RocalTensor
 ROCAL_API_CALL rocalGetJointsData(RocalContext p_context)
 {
     if (!p_context)
-        THROW("Invalid rocal context passed to rocalGetJointsDataPtr")
+        THROW("Invalid rocal context passed to rocalGetJointsData")
 
     auto context = static_cast<Context*>(p_context);
     return context->master_graph->joints_data_meta_data();

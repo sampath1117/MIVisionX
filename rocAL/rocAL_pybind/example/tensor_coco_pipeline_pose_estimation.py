@@ -33,7 +33,7 @@ class ROCALCOCOIterator(object):
            Epoch size.
     """
 
-    def __init__(self, pipelines, tensor_layout=types.NCHW, reverse_channels=False, multiplier=None, offset=None, tensor_dtype=types.FLOAT, display=False):
+    def __init__(self, pipelines, tensor_layout=types.NCHW, reverse_channels=False, multiplier=None, offset=None, tensor_dtype=types.FLOAT, display=False, output_width = 288, output_height = 384):
 
         try:
             assert pipelines is not None, "Number of provided pipelines has to be at least 1"
@@ -50,6 +50,8 @@ class ROCALCOCOIterator(object):
         self.device_id = self.loader._device_id
         self.display = True
         self.bs = self.loader._batch_size
+        self.output_width = output_width
+        self.output_height = output_height
 
         #Image id of a batch of images
         self.image_id = np.zeros(self.bs, dtype="int32")
@@ -78,17 +80,18 @@ class ROCALCOCOIterator(object):
         torch_gpu_device = torch.device('cpu', self.device_id)
 
         #NHWC default for now
-        self.out = torch.empty((self.bs, self.h, self.w, self.color_format,), dtype=torch.float32, device=torch_gpu_device)
+        self.out = torch.empty((self.bs, self.h, self.w, self.color_format,), dtype=torch.uint8, device=torch_gpu_device)
         self.output_tensor_list[0].copy_data(ctypes.c_void_p(self.out.data_ptr()))
 
         self.joints_data = dict({})
         self.loader.rocalGetJointsData(self.joints_data)
 
         # Image id of a batch of images
-        # self.loader.GetImageId(self.image_id)
+        self.loader.GetImageId(self.image_id)
 
-        h = 96 #int(self.h/(self.bs * 4))
-        w = 72 #int(self.w/4)
+        h = int(self.output_height / 4)
+        w = int(self.output_width / 4)
+        # print("h, w: ", h, w)
 
         #Targets, Target Weights of a batch
         # self.targets = np.zeros((self.bs * 17 * w * h), dtype = "float32")
@@ -99,11 +102,6 @@ class ROCALCOCOIterator(object):
         target_tensor = torch.tensor(self.targets).view(self.bs , 17 , h , w).contiguous()
         target_weights_tensor = torch.tensor(self.target_weights).view(self.bs , 17 ,-1 ).contiguous()
         joints_data_tensor = self.joints_data
-
-        # for i in range(self.bs):
-        #     if self.display:
-        #         img = torch.from_numpy(self.out)
-                # draw_patches(img[i], self.image_id[i], self.device)
 
         return self.out ,target_tensor , target_weights_tensor , joints_data_tensor
 
@@ -126,7 +124,7 @@ def draw_patches(img, idx, device):
 
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     image = cv2.UMat(image).get()
-    cv2.imwrite("OUTPUT_IMAGES_PYTHON/NEW_API/COCO_READER/" + str(idx)+"_"+"train"+".png", image)
+    cv2.imwrite("OUTPUT_IMAGES_PYTHON/NEW_API/COCO_READER_KEYPOINTS/" + str(idx)+"_"+"train"+".png", image)
 
 def main(exp_name,
          epochs,
@@ -188,31 +186,15 @@ def main(exp_name,
         jpegs, bboxes, labels = fn.readers.coco_keypoints(file_root=image_path, annotations_file=annotation_path, random_shuffle=False,shard_id=0, num_shards=world_size,seed=seed, is_box_encoder=False, sigma = gauss_sigma, output_image_width = image_width, output_image_height = image_height)
         images_decoded = fn.decoders.image(jpegs, device="cpu", output_type=types.RGB, file_root=image_path,
                                                  annotations_file=annotation_path, random_shuffle=False, seed=seed, num_shards=world_size, shard_id=local_rank)
-
-        h_flip = fn.random.coin_flip(probability=0.5)
+        h_flip = fn.random.coin_flip(probability=0.9)
         v_flip = fn.random.coin_flip(probability=0.0)
-
-        saturation = fn.uniform(rng_range=[0.5, 1.5])
-        contrast = fn.uniform(rng_range=[0.5, 1.5])
-        brightness = fn.uniform(rng_range=[0.875, 1.125])
-        hue = fn.uniform(rng_range=[-0.05, 0.05])
-        images = fn.color_twist(images_decoded, saturation=saturation, contrast=contrast, brightness=brightness, hue=hue)
-
-        # if is_train:
-        #     images = fn.flip(jpegs, h_flip, v_flip)
-        # images = fn.crop_mirror_normalize(images, device="cpu",
-        #                                   crop=(image_width, image_height),
-        #                                   image_type=types.RGB,
-        #                                   mirror=v_flip,
-        #                                   rocal_tensor_layout = types.NHWC,
-        #                                   rocal_tensor_output_type = types.FLOAT,
-        #                                   mean = [0.0, 0.0, 0.0],
-        #                                   std = [1.0, 1.0, 1.0])
-        coco_train_pipeline.set_outputs(images)
+        flip_images = fn.flip(images_decoded, h_flip = h_flip, v_flip = v_flip)
+        warp_affine_images = fn.warp_affine(flip_images, is_train = is_train, size=(384, 288), rotate_probability = 0.0, half_body_probability = 0.0, rotation_factor = 0.0, scale_factor = 0.0)
+        coco_train_pipeline.set_outputs(warp_affine_images)
 
     coco_train_pipeline.build()
-    COCOIteratorPipeline = ROCALCOCOIterator(coco_train_pipeline)
-
+    COCOIteratorPipeline = ROCALCOCOIterator(coco_train_pipeline, output_width = image_width, output_height = image_height)
+    cnt = 0
     for epoch in range(int(epochs)):
         print("EPOCH:::::", epoch)
         for i, it in enumerate(COCOIteratorPipeline):
@@ -233,6 +215,11 @@ def main(exp_name,
             #     print("Rotation:", it[3]["rotation"][i])
             print("**************ends*******************")
             print("**************", i, "*******************")
+
+            for img in it[0]:
+                print(img.shape)
+                cnt = cnt + 1
+                draw_patches(img, cnt, "cpu")
         COCOIteratorPipeline.reset()
 
 

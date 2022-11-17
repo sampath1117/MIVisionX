@@ -27,7 +27,7 @@ def resize(*inputs, bytes_per_sample_hint=0, image_type=0, interp_type=1, mag_fi
             minibatch_size=32, preserve=False, resize_longer=0, resize_shorter= 0, resize_depth = 0, resize_width = 0, resize_height = 0,  scaling_mode=types.SCALING_MODE_DEFAULT, interpolation_type=types.LINEAR_INTERPOLATION,
             save_attrs=False, seed=1, rocal_tensor_layout=types.NCHW, rocal_tensor_output_type=types.FLOAT, temp_buffer_hint=0, device = None):
     # pybind call arguments
-    kwargs_pybind = {"input_image0": inputs[0], "rocal_tensor_layout" : rocal_tensor_layout, "rocal_tensor_output_type" : rocal_tensor_output_type,  "dest_width:" : resize_width , "dest_height": resize_height, "is_output": False, "scaling_mode": scaling_mode, "max_size": max_size, "resize_shorter": resize_shorter, 
+    kwargs_pybind = {"input_image0": inputs[0], "rocal_tensor_layout" : rocal_tensor_layout, "rocal_tensor_output_type" : rocal_tensor_output_type,  "dest_width:" : resize_width , "dest_height": resize_height, "is_output": False, "scaling_mode": scaling_mode, "max_size": max_size, "resize_shorter": resize_shorter,
                      "resize_longer": resize_longer, "interpolation_type": interpolation_type}
     resized_image = b.Resize(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
     return (resized_image)
@@ -146,3 +146,32 @@ def box_encoder(*inputs, anchors, bytes_per_sample_hint=0, criteria=0.5, means=N
     box_encoder = b.BoxEncoder(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
     Pipeline._current_pipeline._BoxEncoder = True
     return (box_encoder , [])
+
+def flip(*inputs, h_flip=0, v_flip=0, preserve=False, seed=-1, bytes_per_sample_hint=0, rocal_tensor_layout=types.NHWC, rocal_tensor_output_type=types.UINT8, device=None):
+    if isinstance(h_flip, int):
+        if(h_flip == 0):
+            h_flip = b.CreateIntParameter(0)
+        else:
+            h_flip = b.CreateIntParameter(1)
+
+    if isinstance(v_flip, int):
+        if(v_flip == 0):
+            v_flip = b.CreateIntParameter(0)
+        else:
+            v_flip = b.CreateIntParameter(1)
+
+    # pybind call arguments
+    kwargs_pybind = {"input_image0": inputs[0],"rocal_tensor_layout" : rocal_tensor_layout, "rocal_tensor_output_type" : rocal_tensor_output_type,
+                     "is_output": False, "h_flip": h_flip, "v_flip": v_flip}
+
+    flip_image = b.Flip(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
+    return (flip_image)
+
+def warp_affine(*inputs, fill_value=0.0, interp_type = 1, matrix = None, size = None, is_train = False, rotate_probability = 0, half_body_probability = 0, rotation_factor = 0, scale_factor = 0, preserve=False, seed=-1, bytes_per_sample_hint=0, rocal_tensor_layout=types.NHWC, rocal_tensor_output_type=types.UINT8, device=None):
+    # pybind call arguments
+    kwargs_pybind = {"input_image0": inputs[0],"rocal_tensor_layout" : rocal_tensor_layout, "rocal_tensor_output_type" : rocal_tensor_output_type,
+                     "is_output": False, "is_train": is_train, "dest_height": size[0], "dest_width":size[1], "rotate_probability": rotate_probability, "half_body_probability": half_body_probability, "rotation_factor": rotation_factor, "scale_factor": scale_factor,
+                     "x0": None, "x1": None, "y0": None, "y1": None, "o0": None, "o1": None, "interpolation_type": 1}
+
+    warp_affine_image = b.WarpAffine(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
+    return (warp_affine_image)

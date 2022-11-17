@@ -512,6 +512,8 @@ namespace rocal
             py::return_value_policy::reference);
         m.def("COCO_ImageDecoderShard",&rocalJpegCOCOFileSourceSingleShard,"Reads file from the source given and decodes it according to the shard id and number of shards",
             py::return_value_policy::reference);
+        m.def("COCO_ImageDecoder",&rocalJpegCOCOFileSource,"Reads file from the source given and decodes",
+            py::return_value_policy::reference);
         m.def("COCO_ImageDecoderSliceShard",&rocalJpegCOCOFileSourcePartialSingleShard,"Reads file from the source given and decodes it according to the policy",
             py::return_value_policy::reference);
         m.def("Resize",&rocalResize, "Resizes the image ",py::return_value_policy::reference);
@@ -528,6 +530,7 @@ namespace rocal
         m.def("CropMirrorNormalize",&rocalCropMirrorNormalize, py::return_value_policy::reference);
         // m.def("Crop", &rocalCrop, py::return_value_policy::reference);
         m.def("CenterCropFixed", &rocalCropCenterFixed, py::return_value_policy::reference);
-
+        m.def("Flip", &rocalFlip, py::return_value_policy::reference);
+        m.def("WarpAffine", &rocalWarpAffine, py::return_value_policy::reference);
     }
 }

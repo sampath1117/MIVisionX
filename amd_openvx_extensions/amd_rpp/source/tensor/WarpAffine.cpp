@@ -94,7 +94,7 @@ static vx_status VX_CALLBACK refreshWarpAffine(vx_node node, const vx_reference 
         } else if (data->in_tensor_type == vx_type_e::VX_TYPE_UINT8 && data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT32) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_uint8)));
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[2], VX_TENSOR_BUFFER_HOST, &data->pDst, sizeof(vx_float32)));
-        } 
+        }
 #if defined(AMD_FP16_SUPPORT)
         else if (data->in_tensor_type == vx_type_e::VX_TYPE_FLOAT16 && data->out_tensor_type == vx_type_e::VX_TYPE_FLOAT16) {
             STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[0], VX_TENSOR_BUFFER_HOST, &data->pSrc, sizeof(vx_float16)));
@@ -106,7 +106,6 @@ static vx_status VX_CALLBACK refreshWarpAffine(vx_node node, const vx_reference 
 }
 
 static vx_status VX_CALLBACK validateWarpAffine(vx_node node, const vx_reference parameters[], vx_uint32 num, vx_meta_format metas[]) {
-    std::cerr<<"validate\n\n\n";
     vx_status status = VX_SUCCESS;
     vx_enum scalar_type;
     STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[4], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
@@ -153,11 +152,11 @@ static vx_status VX_CALLBACK processWarpAffine(vx_node node, const vx_reference 
         refreshWarpAffine(node, parameters, num, data);
         rpp_status = rppt_warp_affine_gpu((void *)data->pSrc_dev, data->src_desc_ptr, (void *)data->pDst_dev, data->src_desc_ptr, data->alpha, RpptInterpolationType::BILINEAR, data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) 
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
     {
         refreshWarpAffine(node, parameters, num, data);
-        // rpp_status = rppt_brightness_host(data->pSrc, data->src_desc_ptr, data->pDst, data->src_desc_ptr, data->alpha, data->beta, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
+        rpp_status =  rppt_warp_affine_host((void *)data->pSrc, data->src_desc_ptr, data->pDst, data->src_desc_ptr, data->alpha, RpptInterpolationType::BILINEAR, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     return return_status;
