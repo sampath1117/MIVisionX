@@ -39,12 +39,12 @@ void FlipNode::create_node()
     _horizontal.create_array(_graph , VX_TYPE_UINT32, _batch_size);
     _vertical.create_array(_graph , VX_TYPE_UINT32, _batch_size);
 
-    // if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
-    //     _layout = 1;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
-    //     _layout = 2;
-    // else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
-    //     _layout = 3;
+    if(_inputs[0]->info().layout() == RocalTensorlayout::NCHW)
+        _layout = 1;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFHWC)
+        _layout = 2;
+    else if(_inputs[0]->info().layout() == RocalTensorlayout::NFCHW)
+        _layout = 3;
 
     if(_inputs[0]->info().roi_type() == RocalROIType::XYWH)
         _roi_type = 1;
@@ -93,29 +93,22 @@ void FlipNode::update_node(MetaDataBatch* meta_data)
         {
             if (_horizontal_val[ann_index] == 1)
             {
+                // std::cerr<<"updating flip meta data"<<std::endl;
                 float img_width = meta_data->get_img_sizes_batch()[ann_index].w;
-                
+
                 Joint joint0;
                 JointVisibility joint0_visiblity;
                 Joints joints;
                 JointsVisibility joints_visibility;
 
                 joint0 = meta_data->get_joints_data_batch().joints_batch[ann_index][0];
-
-                
                 joint0_visiblity = meta_data->get_joints_data_batch().joints_visibility_batch[ann_index][0];
-
-                
                 joint0[0] = (img_width - joint0[0] - 1) * (joint0_visiblity[0]);
 
-                
                 std::vector<float> center = meta_data->get_joints_data_batch().center_batch[ann_index];
                 center[0] = img_width - center[0] - 1;
-
-                
                 joints.push_back(joint0);
                 joints_visibility.push_back(joint0_visiblity);
-                
                 for (unsigned int joint_index = 1; joint_index < NUMBER_OF_JOINTS; joint_index = joint_index + 2)
                 {
                     //std::cout<<"Flipping keypoints: "<<  joint_index<<" "<< joint_index+1<<std::endl;
@@ -177,7 +170,7 @@ void FlipNode::update_node(MetaDataBatch* meta_data)
             meta_data->get_bb_cords_batch()[i] = bb_coords;
             meta_data->get_bb_labels_batch()[i] = labels_buf;
         }
-    } 
+    }
 
 }
 

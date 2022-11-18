@@ -147,16 +147,17 @@ static vx_status VX_CALLBACK processWarpAffine(vx_node node, const vx_reference 
     vx_status return_status = VX_SUCCESS;
     WarpAffineLocalData *data = NULL;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-#if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
+#if ENABLE_HIP
         refreshWarpAffine(node, parameters, num, data);
-        rpp_status = rppt_warp_affine_gpu((void *)data->pSrc_dev, data->src_desc_ptr, (void *)data->pDst_dev, data->src_desc_ptr, data->alpha, RpptInterpolationType::BILINEAR, data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
+        rpp_status = rppt_warp_affine_gpu((void *)data->pSrc_dev, data->src_desc_ptr, (void *)data->pDst_dev, data->dst_desc_ptr, data->alpha, RpptInterpolationType::BILINEAR, data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
+    }
+    else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
     {
         refreshWarpAffine(node, parameters, num, data);
-        rpp_status =  rppt_warp_affine_host((void *)data->pSrc, data->src_desc_ptr, data->pDst, data->src_desc_ptr, data->alpha, RpptInterpolationType::BILINEAR, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
+        rpp_status =  rppt_warp_affine_host((void *)data->pSrc, data->src_desc_ptr, data->pDst, data->dst_desc_ptr, data->alpha, RpptInterpolationType::BILINEAR, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     return return_status;

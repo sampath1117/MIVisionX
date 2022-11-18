@@ -74,6 +74,7 @@ class ROCALCOCOIterator(object):
         self.lis_lab = []  # Empty list of labels
         self.w = self.output_tensor_list[0].batch_width()
         self.h = self.output_tensor_list[0].batch_height()
+        print("w,h :",self.w,self.h)
         self.bs = self.output_tensor_list[0].batch_size()
         self.color_format = self.output_tensor_list[0].color_format()
 
@@ -83,11 +84,11 @@ class ROCALCOCOIterator(object):
         self.out = torch.empty((self.bs, self.h, self.w, self.color_format,), dtype=torch.uint8, device=torch_gpu_device)
         self.output_tensor_list[0].copy_data(ctypes.c_void_p(self.out.data_ptr()))
 
-        self.joints_data = dict({})
-        self.loader.rocalGetJointsData(self.joints_data)
-
         # Image id of a batch of images
         self.loader.GetImageId(self.image_id)
+
+        self.joints_data = dict({})
+        self.loader.rocalGetJointsData(self.joints_data)
 
         h = int(self.output_height / 4)
         w = int(self.output_width / 4)
@@ -171,6 +172,8 @@ def main(exp_name,
         _rocal_cpu = True
     else:
         _rocal_cpu = False
+
+    # _rocal_cpu = False
     bs = int(batch_size)
     nt = int(num_workers)
     di = device_id
@@ -188,8 +191,9 @@ def main(exp_name,
                                                  annotations_file=annotation_path, random_shuffle=False, seed=seed, num_shards=world_size, shard_id=local_rank)
         h_flip = fn.random.coin_flip(probability=0.9)
         v_flip = fn.random.coin_flip(probability=0.0)
-        flip_images = fn.flip(images_decoded, h_flip = h_flip, v_flip = v_flip)
-        warp_affine_images = fn.warp_affine(flip_images, is_train = is_train, size=(384, 288), rotate_probability = 0.0, half_body_probability = 0.0, rotation_factor = 0.0, scale_factor = 0.0)
+        # if is_train and flip_prob != 0.0:
+        #     images = fn.flip(images_decoded, device="cpu", h_flip = h_flip, v_flip = v_flip)
+        warp_affine_images = fn.warp_affine(images_decoded, device="cpu", is_train = is_train, size=(384, 288), rotate_probability = rotate_prob, half_body_probability = half_body_prob, rotation_factor = rotation_factor, scale_factor = scale_factor)
         coco_train_pipeline.set_outputs(warp_affine_images)
 
     coco_train_pipeline.build()

@@ -17,23 +17,23 @@ def image(*inputs, user_feature_key_map = None, path='', file_root ='', annotati
             'is_output': False,
             "shuffle": random_shuffle,
             "loop": False,
-            "decode_size_policy": types.MAX_SIZE,
+            "decode_size_policy": types.MAX_SIZE_ORIG,
             "max_width": 0,
             "max_height":0}
         decoded_image = b.COCO_ImageDecoderShard(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
-    elif (reader == 'COCOReaderKeyPoints'):
-        kwargs_pybind = {
-            "source_path": file_root,
-            "json_path": annotations_file,
-            "color_format": output_type,
-            "internal_shard_count": num_shards,
-            'is_output': False,
-            "shuffle": random_shuffle,
-            "loop": False,
-            "decode_size_policy": types.MAX_SIZE,
-            "max_width": 0,
-            "max_height":0}
-        decoded_image = b.COCO_ImageDecoder(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
+    # elif (reader == 'COCOReaderKeyPoints'):
+    #     kwargs_pybind = {
+    #         "source_path": file_root,
+    #         "json_path": annotations_file,
+    #         "color_format": output_type,
+    #         "internal_shard_count": num_shards,
+    #         'is_output': False,
+    #         "shuffle": random_shuffle,
+    #         "loop": False,
+    #         "decode_size_policy": types.MAX_SIZE_ORIG,
+    #         "max_width": 0,
+    #         "max_height":0}
+    #     decoded_image = b.COCO_ImageDecoder(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
     else:
         kwargs_pybind = {
             "source_path": file_root,

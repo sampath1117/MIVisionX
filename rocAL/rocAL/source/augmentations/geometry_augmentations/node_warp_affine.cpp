@@ -23,7 +23,6 @@ void WarpAffineNode::create_node() {
     vx_status width_status, height_status;
     _affine.resize(6 * _batch_size);
     _inv_affine.resize(6 * _batch_size);
-
     uint batch_size = _batch_size;
     for (uint i=0; i < batch_size; i++ ) {
          _affine[i*6 + 0] = _x0.renew();
@@ -33,14 +32,6 @@ void WarpAffineNode::create_node() {
          _affine[i*6 + 4] = _o0.renew();
          _affine[i*6 + 5] = _o1.renew();
     }
-    _dst_roi_width = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_UINT32, _batch_size);
-    _dst_roi_height = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_UINT32, _batch_size);
-    std::vector<uint32_t> dst_roi_width(_batch_size, (_outputs[0]->info().max_dims()).at(0));
-    std::vector<uint32_t> dst_roi_height(_batch_size, (_outputs[0]->info().max_dims()).at(1));
-    width_status = vxAddArrayItems(_dst_roi_width, _batch_size, dst_roi_width.data(), sizeof(vx_uint32));
-    height_status = vxAddArrayItems(_dst_roi_height, _batch_size, dst_roi_height.data(), sizeof(vx_uint32));
-    if (width_status != 0 || height_status != 0)
-        THROW(" vxAddArrayItems failed in the rotate (vxExtrppNode_WarpAffinePD) node: " + TOSTR(width_status) + "  " + TOSTR(height_status))
 
     vx_status status;
     _affine_array = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_FLOAT32, _batch_size * 6);
@@ -144,7 +135,6 @@ void WarpAffineNode::update_affine_array() {
             dst_padded[0][2] = dst[0][2];
             dst_padded[1][2] = dst[1][2];
 
-
             //Get the inverse matrix
             get_inverse(dst_padded, inv_dst);
 
@@ -216,17 +206,17 @@ void WarpAffineNode::init(float x0, float x1, float y0, float y1, float o0, floa
     _roi_type = (int)_inputs[0]->info().roi_type();
 }
 
-void WarpAffineNode::init(FloatParam* x0, FloatParam* x1, FloatParam* y0, FloatParam* y1, FloatParam* o0, FloatParam* o1,int interpolation_type) {
-    _x0.set_param(core(x0));
-    _x1.set_param(core(x1));
-    _y0.set_param(core(y0));
-    _y1.set_param(core(y1));
-    _o0.set_param(core(o0));
-    _o1.set_param(core(o1));
-    _interpolation_type=interpolation_type;
-    _layout = (int)_inputs[0]->info().layout();
-    _roi_type = (int)_inputs[0]->info().roi_type();
-}
+// void WarpAffineNode::init(FloatParam* x0, FloatParam* x1, FloatParam* y0, FloatParam* y1, FloatParam* o0, FloatParam* o1,int interpolation_type) {
+//     _x0.set_param(core(x0));
+//     _x1.set_param(core(x1));
+//     _y0.set_param(core(y0));
+//     _y1.set_param(core(y1));
+//     _o0.set_param(core(o0));
+//     _o1.set_param(core(o1));
+//     _interpolation_type=interpolation_type;
+//     _layout = (int)_inputs[0]->info().layout();
+//     _roi_type = (int)_inputs[0]->info().roi_type();
+// }
 
 void WarpAffineNode::init(bool is_train, float rotate_probability, float half_body_probability, float scale_factor, float rotation_factor, FloatParam *x0, FloatParam *x1, FloatParam *y0, FloatParam *y1, FloatParam *o0, FloatParam *o1, int interpolation_type)
 {

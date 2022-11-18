@@ -144,13 +144,13 @@ static vx_status VX_CALLBACK processFlip(vx_node node, const vx_reference *param
 #if ENABLE_HIP
     if (data->device_type == AGO_TARGET_AFFINITY_GPU) {
         refreshFlip(node, parameters, num, data);
-        rpp_status = rppt_flip_gpu((void *)data->pSrc_dev, data->src_desc_ptr, (void *)data->pDst_dev, data->src_desc_ptr, data->alpha, data->beta, data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
+        rpp_status = rppt_flip_gpu((void *)data->pSrc_dev, data->src_desc_ptr, (void *)data->pDst_dev, data->dst_desc_ptr, data->alpha, data->beta, data->hip_roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
-    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU) 
+    } else if (data->device_type == AGO_TARGET_AFFINITY_CPU)
 #endif
     {
         refreshFlip(node, parameters, num, data);
-        rpp_status = rppt_flip_host(data->pSrc, data->src_desc_ptr, data->pDst, data->src_desc_ptr, data->alpha, data->beta, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
+        rpp_status = rppt_flip_host(data->pSrc, data->src_desc_ptr, data->pDst, data->dst_desc_ptr, data->alpha, data->beta, data->roi_tensor_Ptr, data->roiType, data->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     return return_status;
