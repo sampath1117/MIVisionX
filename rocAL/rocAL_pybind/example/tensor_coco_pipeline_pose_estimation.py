@@ -33,7 +33,7 @@ class ROCALCOCOIterator(object):
            Epoch size.
     """
 
-    def __init__(self, pipelines, tensor_layout=types.NCHW, reverse_channels=False, multiplier=None, offset=None, tensor_dtype=types.FLOAT, display=False, output_width = 288, output_height = 384):
+    def __init__(self, pipelines, tensor_layout=types.NCHW, reverse_channels=False, multiplier=None, offset=None, tensor_dtype=types.FLOAT, display=False, rocal_cpu=False, output_width = 288, output_height = 384):
 
         try:
             assert pipelines is not None, "Number of provided pipelines has to be at least 1"
@@ -46,7 +46,10 @@ class ROCALCOCOIterator(object):
         self.offset = offset if offset else [0.0, 0.0, 0.0]
         self.reverse_channels = reverse_channels
         self.tensor_dtype = tensor_dtype
-        self.device = "cpu"
+        if rocal_cpu == True:
+            self.device = "cuda"
+        else:
+            self.device = "cpu"
         self.device_id = self.loader._device_id
         self.display = True
         self.bs = self.loader._batch_size
@@ -74,11 +77,11 @@ class ROCALCOCOIterator(object):
         self.lis_lab = []  # Empty list of labels
         self.w = self.output_tensor_list[0].batch_width()
         self.h = self.output_tensor_list[0].batch_height()
-        print("w,h :",self.w,self.h)
+        # print("w,h :",self.w,self.h)
         self.bs = self.output_tensor_list[0].batch_size()
         self.color_format = self.output_tensor_list[0].color_format()
 
-        torch_gpu_device = torch.device('cpu', self.device_id)
+        torch_gpu_device = torch.device(self.device, self.device_id)
 
         #NHWC default for now
         self.out = torch.empty((self.bs, self.h, self.w, self.color_format,), dtype=torch.uint8, device=torch_gpu_device)
@@ -173,7 +176,7 @@ def main(exp_name,
     else:
         _rocal_cpu = False
 
-    # _rocal_cpu = False
+    _rocal_cpu = True
     bs = int(batch_size)
     nt = int(num_workers)
     di = device_id
@@ -182,19 +185,20 @@ def main(exp_name,
 
     dboxes = []
     gauss_sigma = 3.0
-    is_train = bool(is_train)
+    is_train = False #bool(is_train)
+    #print(rotate_prob,half_body_prob,rotation_factor,scale_factor)
 
     coco_train_pipeline = Pipeline(batch_size=bs, num_threads=nt, device_id=device_id, seed=seed, rocal_cpu=_rocal_cpu)
     with coco_train_pipeline:
         jpegs, bboxes, labels = fn.readers.coco_keypoints(file_root=image_path, annotations_file=annotation_path, random_shuffle=False,shard_id=0, num_shards=world_size,seed=seed, is_box_encoder=False, sigma = gauss_sigma, output_image_width = image_width, output_image_height = image_height)
-        images_decoded = fn.decoders.image(jpegs, device="cpu", output_type=types.RGB, file_root=image_path,
+        images_decoded = fn.decoders.image(jpegs, device=device, output_type=types.RGB, file_root=image_path,
                                                  annotations_file=annotation_path, random_shuffle=False, seed=seed, num_shards=world_size, shard_id=local_rank)
         h_flip = fn.random.coin_flip(probability=0.9)
         v_flip = fn.random.coin_flip(probability=0.0)
         # if is_train and flip_prob != 0.0:
-        #     images = fn.flip(images_decoded, device="cpu", h_flip = h_flip, v_flip = v_flip)
-        warp_affine_images = fn.warp_affine(images_decoded, device="cpu", is_train = is_train, size=(384, 288), rotate_probability = rotate_prob, half_body_probability = half_body_prob, rotation_factor = rotation_factor, scale_factor = scale_factor)
-        coco_train_pipeline.set_outputs(warp_affine_images)
+        # images = fn.flip(images_decoded, device="gpu", h_flip = h_flip, v_flip = v_flip)
+        warp_affine_images = fn.warp_affine(images_decoded, device=device, is_train = is_train, size=(384, 288), rotate_probability = rotate_prob, half_body_probability = half_body_prob, rotation_factor = rotation_factor, scale_factor = scale_factor)
+        coco_train_pipeline.set_outputs(images_decoded)
 
     coco_train_pipeline.build()
     COCOIteratorPipeline = ROCALCOCOIterator(coco_train_pipeline, output_width = image_width, output_height = image_height)
@@ -204,26 +208,32 @@ def main(exp_name,
         for i, it in enumerate(COCOIteratorPipeline):
             print("**************", i, "*******************")
             print("**************starts*******************")
+            print("\nImage ID:", it[3]["imgId"])
+            if it[3]["imgId"] == [425226]:
+                for target in it[1]:
+                    for data in target:
+                        for data2 in data:
+                            print(data2)
             # print("\nTargets:\n", it[1])
             # print("\nTarget Weights:\n", it[2])
-            print("\nImage ID:", it[3]["imgId"])
-            print("\nAnnotation ID:", it[3]["annId"])
-            print("\nImage Path:", it[3]["imgPath"])
-            print("\nCenter:", it[3]["center"])
-            print("\nScale:", it[3]["scale"])
-            print("\nJoints:\n", it[3]["joints"])
-            print("\nJoints Visibility:\n", it[3]["joints_visibility"])
-            print("\nScore:", it[3]["score"])
-            print("Rotation:", it[3]["rotation"])
+            # print("\nImage ID:", it[3]["imgId"])
+            # print("\nAnnotation ID:", it[3]["annId"])
+            # print("\nImage Path:", it[3]["imgPath"])
+            # print("\nCenter:", it[3]["center"])
+            # print("\nScale:", it[3]["scale"])
+            # print("\nJoints:\n", it[3]["joints"])
+            # print("\nJoints Visibility:\n", it[3]["joints_visibility"])
+            # print("\nScore:", it[3]["score"])
+            # print("Rotation:", it[3]["rotation"])
             # for i in range(batch_size):
             #     print("Rotation:", it[3]["rotation"][i])
             print("**************ends*******************")
             print("**************", i, "*******************")
 
-            for img in it[0]:
-                print(img.shape)
-                cnt = cnt + 1
-                draw_patches(img, cnt, "cpu")
+            # for img in it[0]:
+            #     print(img.shape)
+            #     cnt = cnt + 1
+            #     draw_patches(img, cnt, "gpu")
         COCOIteratorPipeline.reset()
 
 

@@ -170,7 +170,7 @@ def flip(*inputs, h_flip=0, v_flip=0, preserve=False, seed=-1, bytes_per_sample_
 def warp_affine(*inputs, fill_value=0.0, interp_type = 1, matrix = None, size = None, is_train = False, rotate_probability = 0, half_body_probability = 0, rotation_factor = 0, scale_factor = 0, preserve=False, seed=-1, bytes_per_sample_hint=0, rocal_tensor_layout=types.NHWC, rocal_tensor_output_type=types.UINT8, device=None):
     # pybind call arguments
     kwargs_pybind = {"input_image0": inputs[0],"rocal_tensor_layout" : rocal_tensor_layout, "rocal_tensor_output_type" : rocal_tensor_output_type,
-                     "is_output": False, "is_train": is_train, "dest_height": size[0], "dest_width":size[1], "rotate_probability": rotate_probability, "half_body_probability": half_body_probability, "rotation_factor": rotation_factor, "scale_factor": scale_factor,
+                     "is_output": False, "is_train": is_train, "dest_height": size[0], "dest_width":size[1], "rotate_probability": rotate_probability, "half_body_probability": half_body_probability, "scale_factor": scale_factor, "rotation_factor": rotation_factor,
                      "x0": None, "x1": None, "y0": None, "y1": None, "o0": None, "o1": None, "interpolation_type": 1}
 
     warp_affine_image = b.WarpAffine(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
