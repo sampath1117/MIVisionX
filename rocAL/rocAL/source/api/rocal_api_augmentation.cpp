@@ -1530,7 +1530,7 @@ ROCAL_API_CALL rocalCropMirrorNormalize(RocalContext p_context, RocalTensor p_in
     {
         if(!input || !context || crop_width == 0 || crop_height == 0)
             THROW("Null values passed as input")
-        int layout=0;
+        int layout=1;
         get_rocal_tensor_layout(rocal_tensor_layout, op_tensorLayout, layout);
         get_rocal_tensor_data_type(rocal_tensor_output_type, op_tensorDataType);
         rocalTensorInfo output_info = input->info();

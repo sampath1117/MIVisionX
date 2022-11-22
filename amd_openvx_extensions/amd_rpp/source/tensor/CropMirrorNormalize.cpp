@@ -97,6 +97,11 @@ static vx_status VX_CALLBACK refreshCropMirrorNormalize(vx_node node, const vx_r
             }
         }
     }
+    for (int i = 0; i < data->nbatchSize* 3 ; i++)
+    {
+       data->mean[i] = - (data->mean[i] / data->std_dev[i]);
+       data->std_dev[i] = 1 / data->std_dev[i];
+    }
     if (data->device_type == AGO_TARGET_AFFINITY_GPU)
     {
 #if ENABLE_HIP
@@ -264,6 +269,7 @@ static vx_status VX_CALLBACK initializeCropMirrorNormalize(vx_node node, const v
         data->dst_desc_ptr->dataType = RpptDataType::F16;
     }
     data->dst_desc_ptr->offsetInBytes = 0;
+    data->layout = 1;
 
     if(data->layout == 0) // NHWC
     {
@@ -293,14 +299,23 @@ static vx_status VX_CALLBACK initializeCropMirrorNormalize(vx_node node, const v
     {
         // source_description_ptr
         data->src_desc_ptr->n = data->in_tensor_dims[0];
-        data->src_desc_ptr->h = data->in_tensor_dims[2];
-        data->src_desc_ptr->w = data->in_tensor_dims[3];
-        data->src_desc_ptr->c = data->in_tensor_dims[1];
+        data->src_desc_ptr->h = data->in_tensor_dims[1];
+        data->src_desc_ptr->w = data->in_tensor_dims[2];
+        data->src_desc_ptr->c = data->in_tensor_dims[3];
         data->src_desc_ptr->strides.nStride = data->src_desc_ptr->c * data->src_desc_ptr->w * data->src_desc_ptr->h;
-        data->src_desc_ptr->strides.cStride = data->src_desc_ptr->w * data->src_desc_ptr->h;
-        data->src_desc_ptr->strides.hStride = data->src_desc_ptr->w;
-        data->src_desc_ptr->strides.wStride = 1;
-        data->src_desc_ptr->layout = RpptLayout::NCHW;
+        data->src_desc_ptr->strides.hStride = data->src_desc_ptr->c * data->src_desc_ptr->w;
+        data->src_desc_ptr->strides.wStride = data->src_desc_ptr->c;
+        data->src_desc_ptr->strides.cStride = 1;
+        data->src_desc_ptr->layout = RpptLayout::NHWC;
+        // data->src_desc_ptr->n = data->in_tensor_dims[0];
+        // data->src_desc_ptr->h = data->in_tensor_dims[2];
+        // data->src_desc_ptr->w = data->in_tensor_dims[3];
+        // data->src_desc_ptr->c = data->in_tensor_dims[1];
+        // data->src_desc_ptr->strides.nStride = data->src_desc_ptr->c * data->src_desc_ptr->w * data->src_desc_ptr->h;
+        // data->src_desc_ptr->strides.cStride = data->src_desc_ptr->w * data->src_desc_ptr->h;
+        // data->src_desc_ptr->strides.hStride = data->src_desc_ptr->w;
+        // data->src_desc_ptr->strides.wStride = 1;
+        // data->src_desc_ptr->layout = RpptLayout::NCHW;
 
         //destination_description_ptr
         data->dst_desc_ptr->n = data->out_tensor_dims[0];
