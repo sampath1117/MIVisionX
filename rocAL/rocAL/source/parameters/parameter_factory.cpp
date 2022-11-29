@@ -116,6 +116,12 @@ ParameterFactory::get_seed()
     return _seed;
 }
 
+std::vector<std::mt19937>
+ParameterFactory::get_rng()
+{
+    return _rand_gen;
+}
+
 void
 ParameterFactory::set_seed(unsigned seed)
 {
@@ -130,6 +136,16 @@ IntParam* ParameterFactory::create_uniform_int_rand_param(int start, int end)
     return ret;
 }
 
+void ParameterFactory::generate_rngs(unsigned seed, unsigned N)
+{
+    std::seed_seq seq{seed};
+    _seeds.resize(N);
+    _rand_gen.resize(N);
+    seq.generate(_seeds.begin(), _seeds.end());
+    for (size_t i = 0; i < N; i++) {
+    _rand_gen[i].seed(_seeds[i]);
+    }
+}
 FloatParam* ParameterFactory::create_uniform_float_rand_param(float start, float end)
 {
     auto gen = new UniformRand<float>(start, end, _seed);

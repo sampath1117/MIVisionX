@@ -1,5 +1,4 @@
-/*
-Copyright (c) 2019 - 2022 Advanced Micro Devices, Inc. All rights reserved.
+/*Copyright (c) 2019 - 2022 Advanced Micro Devices, Inc. All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +44,7 @@ class CropParam
 // V Y directoin
 public:
     CropParam() = delete;
-    CropParam(unsigned int batch_size): batch_size(batch_size), _random(false)
+    CropParam(unsigned int batch_size): batch_size(batch_size), _random(false), _is_center_crop(false)
     {
         x_drift_factor     = default_x_drift_factor();
         y_drift_factor     = default_y_drift_factor();
@@ -58,6 +57,7 @@ public:
         in_height = in_height_;
     }
     void set_random() {_random = true;}
+    void set_center_crop() { _is_center_crop = true; }
     void set_x_drift_factor(Parameter<float>* x_drift);
     void set_y_drift_factor(Parameter<float>* y_drift);
     std::vector<uint32_t> in_width, in_height;
@@ -82,7 +82,7 @@ protected:
     Parameter<float>* default_x_drift_factor();
     Parameter<float>* default_y_drift_factor();
     std::vector<uint32_t> x1_arr_val, y1_arr_val, croph_arr_val, cropw_arr_val, x2_arr_val, y2_arr_val;
-    bool _random;
+    bool _random, _is_center_crop;
     virtual void fill_crop_dims(){};
     void update_crop_array();
 };

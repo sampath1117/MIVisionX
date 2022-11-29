@@ -77,6 +77,7 @@ public:
     void renew_parameters();
     void set_seed(unsigned seed);
     unsigned get_seed();
+    std::vector<std::mt19937>get_rng();
 
     template<typename T>
     Parameter<T>* create_uniform_rand_param(T start, T end){
@@ -103,11 +104,14 @@ public:
     FloatParam* create_custom_float_rand_param(const float *value, const double *frequencies, size_t size);
     IntParam* create_single_value_int_param(int value);
     FloatParam* create_single_value_float_param(float value);
+    void generate_rngs(unsigned seed, unsigned batch_size);
 private:
     long long unsigned _seed;
     std::set<pParamCore> _parameters; //<! Keeps the random generators used to randomized the augmentation parameters
     static ParameterFactory* _instance;
     static std::mutex _mutex;
+    std::vector<size_t> _seeds;
+    std::vector<std::mt19937>_rand_gen;
     ParameterFactory();
 };
 
