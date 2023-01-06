@@ -39,6 +39,7 @@ public:
     bool set_timestamp_mode() override { return false; }
     MetaDataBatch * get_output() override { return _output; }
     const std::map<std::string, std::shared_ptr<MetaData>> & get_map_content() override { return _map_content;}
+    const std::map<int, std::string> & get_map_image_names_content() override { return _map_img_names; }
     COCOMetaDataReader();
     ~COCOMetaDataReader() override { delete _output; }
 private:

@@ -104,7 +104,7 @@ class ROCALCOCOIterator(object):
             for label in labels_array:
                 self.encoded_labels = torch.as_tensor(label, dtype=torch.int64)
                 encodded_labels_tensor.append(self.encoded_labels)
-            #print("\n encodded_labels_tensor : ", encodded_labels_tensor)
+            print("\n encodded_labels_tensor : ", encodded_labels_tensor)
 
             boxes_array = self.loader.rocalGetBoundingBoxCords()
             for box in boxes_array:
@@ -112,7 +112,7 @@ class ROCALCOCOIterator(object):
                 self.encoded_bboxes = self.encoded_bboxes * 800
                 self.encoded_bboxes = self.encoded_bboxes.view(-1, 4)
                 encoded_bboxes_tensor.append(self.encoded_bboxes)
-            #print("\n encoded_bboxes_tensor : ", encoded_bboxes_tensor)
+            print("\n encoded_bboxes_tensor : ", encoded_bboxes_tensor)
 
             matched_idxs = self.loader.rocalGetMatchedIndices()
             self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int64)
@@ -210,7 +210,7 @@ def main():
     device_memory_padding = 211025920 if decoder_device == 'mixed' else 0
     host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
 
-    # Anchors - load default anchors from a text file     
+    # Anchors - load default anchors from a text file
     with open('/media/SSD/training_retinanet/rocAL/MLPerf-mGPU-dev/ObjectDetection/retinanet/pytorch/Default_anchors_retinanet_1.txt', 'r') as f_read:
         anchors = f_read.readlines()
     anchor_list = [float(x.strip())/800 for x in anchors]
@@ -222,11 +222,11 @@ def main():
 
     with coco_train_pipeline:
         jpegs, bboxes, labels = fn.readers.coco(file_root=image_path,
-                                                 annotations_file=annotation_path, 
+                                                 annotations_file=annotation_path,
                                                  random_shuffle=True,
-                                                 shard_id=local_rank, 
+                                                 shard_id=local_rank,
                                                  num_shards=world_size,
-                                                 seed=random_seed, 
+                                                 seed=random_seed,
                                                  is_box_encoder=False)
 
         print("*********************** SHARD ID ************************",local_rank)

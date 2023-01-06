@@ -30,6 +30,19 @@ void BoundingBoxGraph::process(MetaDataBatch *meta_data, bool segmentation)
     }
 }
 
+template<typename T>
+std::vector<float> findItems(std::vector<T> const &v, float target) {
+    std::vector<float> indices;
+    auto it = v.begin();
+    while ((it = std::find_if(it, v.end(), [&] (T const &e) { return e == target; }))
+        != v.end())
+    {
+        indices.push_back(std::distance(v.begin(), it));
+        it++;
+    }
+    return indices;
+}
+
 //update_meta_data is not required since the bbox are normalized in the very beggining -> removed the call in master graph also except for MaskRCNN
 void BoundingBoxGraph::update_meta_data(MetaDataBatch *input_meta_data, decoded_image_info decode_image_info, bool segmentation)
 {
@@ -141,7 +154,7 @@ void BoundingBoxGraph::update_random_bbox_meta_data(MetaDataBatch *input_meta_da
 inline void calculate_ious(std::vector<std::vector<float>> &ious, BoundingBoxCord &box, BoundingBoxCord *anchors, unsigned int num_anchors, int bb_idx)
 {
     float box_area = (box.b - box.t) * (box.r - box.l);
-    for (unsigned int anchor_idx = 0; anchor_idx < num_anchors; anchor_idx++)
+    for (unsigned int anchor_idx = 1; anchor_idx < num_anchors; anchor_idx++)
         ious[bb_idx][anchor_idx] = ssd_BBoxIntersectionOverUnion(box, box_area, anchors[anchor_idx]);
 }
 
@@ -279,21 +292,22 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> *anchors,
 
 void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMetaDataBatch full_batch_meta_data ,float criteria, float high_threshold, float low_threshold, bool allow_low_quality_matches)
 {
-    #pragma omp parallel for
+    //std::cerr << "\n Full batch meta data size : " << full_batch_meta_data->size() << std::endl;
+    //#pragma omp parallel for
     for (int i = 0; i < full_batch_meta_data->size(); i++)
     {
+        //std::cerr << "\n Value of i : " << i << std::endl;
         BoundingBoxCord *bbox_anchors = reinterpret_cast<BoundingBoxCord *>(anchors->data());
         auto bb_count = full_batch_meta_data->get_bb_labels_batch()[i].size();
         BoundingBoxCord bb_coords[bb_count];
         unsigned anchors_size = anchors->size() / 4; // divide the anchors_size by 4 to get the total number of anchors
         memcpy(bb_coords, full_batch_meta_data->get_bb_cords_batch()[i].data(), full_batch_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
         //Calculate Ious
-        //ious size - bboxes count x anchors count        
+        //ious size - bboxes count x anchors count
         std::vector<std::vector<float>> iou_matrix(bb_count, std::vector<float> (anchors_size, 0));
-
         for(uint bb_idx = 0; bb_idx < bb_count; bb_idx++)
-            calculate_ious(iou_matrix, bb_coords[bb_idx], bbox_anchors, anchors_size, bb_idx);        
-            
+            calculate_ious(iou_matrix, bb_coords[bb_idx], bbox_anchors, anchors_size, bb_idx);
+
         std::vector<float> matched_vals;
         Matches matches, all_matches;
         //for each prediction, find gt
@@ -311,10 +325,9 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
         }
 
         all_matches = matches;
-
         for(uint idx = 0; idx < matches.size(); idx++){
             if(matched_vals[idx] < low_threshold) matches[idx] = -1;
-            if((matched_vals[idx] >= low_threshold) && (matched_vals[idx] < high_threshold)) matches[idx] = -2;
+            if((matched_vals[idx] >= low_threshold) & (matched_vals[idx] < high_threshold)) matches[idx] = -2;
         }
 
         if(allow_low_quality_matches) {
@@ -337,8 +350,25 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
                 }
             }
 
-            for(uint pred_idx = 0; pred_idx < preds.size(); pred_idx++)
-                matches[preds[pred_idx]] = all_matches[preds[pred_idx]];
+        /*for(int row = 0; row < iou_matrix.size(); row++) {
+            for(int idx = 0; idx < highest_foreground.size(); idx++) {
+                //auto itr = std::find(iou_matrix[i].begin(), iou_matrix[i].end(), highest_foreground[idx]);
+                //if(itr != iou_matrix[i].end()) {
+                std::vector<float> indices = findItems(iou_matrix[row], highest_foreground[idx]);
+                for (auto &e: indices)
+                {
+                    std::cerr << "\n Element " << highest_foreground[idx] << " found at " << row << " , " << e << std::endl;
+                    gts.push_back(row);
+                    preds.push_back(e);
+                    //break;
+                }
+            }
+        }*/
+
+            std::cerr << "\n Prediction indices to update ..." << std::endl;
+            for(uint pred_idx = 0; pred_idx < preds.size(); pred_idx++){
+                std::cerr << "\t " << preds[pred_idx];
+                matches[preds[pred_idx]] = all_matches[preds[pred_idx]];}
         }
 
         full_batch_meta_data->get_matches_batch()[i] = matches;

@@ -104,5 +104,6 @@ private:
     void incremenet_file_id() { _file_id++; }
     void replicate_last_image_to_fill_last_shard();
     void replicate_last_batch_to_pad_partial_shard();
+    std::map<int, std::string> _map_values;
     TimingDBG _shuffle_time;
 };

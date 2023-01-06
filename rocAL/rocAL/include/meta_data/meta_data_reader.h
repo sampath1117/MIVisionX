@@ -90,6 +90,7 @@ public:
     virtual void release() = 0; // Deletes the loaded information
     virtual MetaDataBatch * get_output()= 0;
     virtual const std::map<std::string, std::shared_ptr<MetaData>> & get_map_content()=0;
+    virtual const std::map<int, std::string> & get_map_image_names_content()=0;
     virtual bool exists(const std::string &image_name) = 0;
     virtual bool set_timestamp_mode() = 0;
 };
