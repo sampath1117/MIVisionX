@@ -273,7 +273,7 @@ def main():
         print("*********************** NUM SHARDS **********************",world_size)
         images_decoded = fn.decoders.image(jpegs, device=decoder_device, output_type = types.RGB, file_root=image_path, annotations_file=annotation_path, random_shuffle=False,shard_id=local_rank, num_shards=world_size)
         res_images = fn.resize(images_decoded, device=rali_device, resize_width=crop, resize_height=crop, rocal_tensor_layout = types.NHWC, rocal_tensor_output_type = types.UINT8)
-        flip_coin = fn.random.coin_flip(probability=0.0)
+        flip_coin = fn.random.coin_flip(probability=0.9)
         images = fn.crop_mirror_normalize(res_images, device="gpu",
                                             rocal_tensor_layout = types.NCHW,
                                             rocal_tensor_output_type = types.FLOAT,
