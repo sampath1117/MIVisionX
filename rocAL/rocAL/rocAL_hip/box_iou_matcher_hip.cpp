@@ -52,21 +52,8 @@ __device__ inline void FindBestMatch(const int N, volatile float *vals, volatile
   }
 }
 
-__device__ void WriteMatchesToOutput(unsigned int anchor_count, float criteria, int *labels_out, const int *labels_in,
-                                    float4 *boxes_out, const float4 *boxes_in, volatile int *best_box_idx, volatile float *best_box_iou)
+__device__ void WriteMatchesToOutput(unsigned int anchor_count, volatile int *best_box_idx, volatile float *best_box_iou)
 {
-    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
-        if (best_box_iou[anchor] > criteria) {
-            int box_idx = best_box_idx[anchor];
-            labels_out[anchor] = labels_in[box_idx];
-            float4 box = boxes_in[box_idx];
-
-            if (!offset)
-              boxes_out[anchor] = ToBoxCenterWH(box);
-            else
-              boxes_out[anchor] = MatchOffsets(ToBoxCenterWH(box), anchors_as_cwh[anchor], means, inv_stds, scale);
-        }
-    }
 }
 
 __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsigned int anchor_count, const float4 *anchors,
@@ -77,7 +64,6 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
 
     for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
       float new_val = CalculateIou(box, anchors[anchor]);
-
       if (new_val >= best_anchor_iou) {
           best_anchor_iou = new_val;
           best_anchor_idx = anchor;
@@ -87,7 +73,6 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
           best_box_idx[anchor] = box_idx;
       }
     }
-
     best_anchor_iou_buf[threadIdx.x] = best_anchor_iou;
     best_anchor_idx_buf[threadIdx.x] = best_anchor_idx;
 }
@@ -95,8 +80,9 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
 
 template <int BLOCK_SIZE>
 __global__ void __attribute__((visibility("default")))
-BoxEncode(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, const float4 *anchors,
-          const float criteria, int *box_idx_buffer, float *box_iou_buffer) {
+BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, const float4 *anchors,
+              const float high_thresold, const float low_thresold, bool allow_low_quality_matches,
+              int *box_idx_buffer, float *box_iou_buffer) {
 
     const int sample_idx = blockIdx.x;
     const auto &sample = samples[sample_idx];
@@ -113,14 +99,12 @@ BoxEncode(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, const fl
         box_idx,
         anchor_cnt,
         anchors,
-        best_anchor_idx_buf,
-        best_anchor_iou_buf,
         best_box_idx,
         best_box_iou);
 
       __syncthreads();
 
-      FindBestMatch(blockDim.x, best_anchor_iou_buf, best_anchor_idx_buf);
+      FindBestMatch(blockDim.x, best_box_iou, best_box_idx);
       __syncthreads();
 
       if (threadIdx.x == 0) {
@@ -133,12 +117,6 @@ BoxEncode(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, const fl
     __syncthreads();
 
     WriteMatchesToOutput(
-    anchor_cnt,
-    criteria,
-    sample.labels_out,
-    sample.labels_in,
-    sample.boxes_out,
-    sample.boxes_in,
     best_box_idx,
     best_box_iou);
 }
@@ -151,21 +129,7 @@ void BoxIoUMatcherGpu::prepare_anchors(const std::vector<float> &anchors) {
     int anchor_count = anchors.size() / 4;
     int anchor_data_size = anchor_count * 4 * sizeof(float);
     auto anchors_data_cpu = reinterpret_cast<const float4 *>(anchors.data());
-
-    std::vector<float4> anchors_as_center_wh(anchor_count);
-    for (unsigned int anchor = 0; anchor < anchor_count; ++anchor)
-      anchors_as_center_wh[anchor] = ToBoxCenterWH(anchors_data_cpu[anchor]);
-
     HIP_ERROR_CHECK_STATUS(hipMemcpy((void *)_anchors_data_dev, anchors.data(), anchor_data_size, hipMemcpyHostToDevice));
-    HIP_ERROR_CHECK_STATUS(hipMemcpy((void *)_anchors_as_center_wh_data_dev, anchors_as_center_wh.data(), anchor_data_size, hipMemcpyHostToDevice));
-}
-
-void BoxIoUMatcherGpu::WriteAnchorsToOutput(float* encoded_boxes) {
-  // Device -> device copy for all the samples
-  for (int i=0; i<_cur_batch_size; i++) {
-    HIP_ERROR_CHECK_STATUS(hipMemcpyDtoDAsync((void *)(encoded_boxes + i*_anchor_count*4), _anchors_as_center_wh_data_dev,
-                                            _anchor_count * 4 * sizeof(float), _stream));
-  }
 }
 
 std::pair<int *, float *> BoxIoUMatcherGpu::ResetBuffers() {
@@ -174,9 +138,9 @@ std::pair<int *, float *> BoxIoUMatcherGpu::ResetBuffers() {
     return std::make_pair(_best_box_idx_dev, _best_box_iou_dev);
 }
 
-void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, float *encoded_boxes_data) {
+void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data) {
 
-    if (_cur_batch_size != full_batch_meta_data->size() || (_cur_batch_size <=0))
+    if (_cur_batch_size != full_batch_meta_data->size() || (_cur_batch_size <= 0))
         THROW("BoxIoUMatcherGpu::Run Invalid input metadata");
     const auto buffers = ResetBuffers();    // reset temp buffers
 
@@ -186,18 +150,18 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, float *encoded_b
         sample->in_box_count = full_batch_meta_data->get_bb_labels_batch()[i].size();
         total_num_boxes += sample->in_box_count;
     }
+
     if (total_num_boxes > MAX_NUM_BOXES_TOTAL)
         THROW("BoxIoUMatcherGpu::Run total_num_boxes exceeds max");
-    float *boxes_in_temp = _boxes_in_dev; int *labels_in_temp = _labels_in_dev;
+
+    float *boxes_in_temp = _boxes_in_dev;
     for (int sample_idx = 0; sample_idx < _cur_batch_size; sample_idx++) {
         auto sample = &_samples_host_buf[sample_idx];
-        //sample->in_box_count = full_batch_meta_data->get_bb_labels_batch()[sample_idx].size();
-        HIP_ERROR_CHECK_STATUS( hipMemcpyHtoDAsync((void *)boxes_in_temp, full_batch_meta_data->get_bb_cords_batch()[sample_idx].data(), sample->in_box_count*sizeof(float)*4, _stream));
-        HIP_ERROR_CHECK_STATUS( hipMemcpyHtoDAsync((void *)labels_in_temp, full_batch_meta_data->get_bb_labels_batch()[sample_idx].data(), sample->in_box_count*sizeof(int), _stream));
+        HIP_ERROR_CHECK_STATUS(hipMemcpyHtoDAsync((void *)boxes_in_temp, full_batch_meta_data->get_bb_cords_batch()[sample_idx].data(), sample->in_box_count * sizeof(float) * 4, _stream));
+
         sample->boxes_in = reinterpret_cast<const float4 *>(boxes_in_temp);
-        sample->boxes_out = reinterpret_cast<float4 *>(encoded_boxes_data + sample_idx*_anchor_count*4);
-        boxes_in_temp += sample->in_box_count*4;
-        _output_shape.push_back(std::vector<size_t>(1,_anchor_count));
+        boxes_in_temp += (sample->in_box_count * 4);
+        _output_shape.push_back(std::vector<size_t>(1, _anchor_count));
     }
 
     // if there is no mapped memory, do explicit copy from host to device
@@ -205,12 +169,14 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, float *encoded_b
         HIP_ERROR_CHECK_STATUS(hipMemcpyHtoD(_samples_dev_buf, _samples_host_buf, _cur_batch_size*sizeof(BoxIoUMatcherSampleDesc)));
     HIP_ERROR_CHECK_STATUS(hipStreamSynchronize(_stream));
 
-    // call the kernel for box encoding
-    hipLaunchKernelGGL(BoxEncode<BlockSize>, dim3(_cur_batch_size), dim3(BlockSize), 0, _stream,
+    // call the kernel for box iou matching
+    hipLaunchKernelGGL(BoxIoUMatcher<BlockSize>, dim3(_cur_batch_size), dim3(BlockSize), 0, _stream,
                        _samples_dev_buf,
                        _anchor_count,
                        _anchors_data_dev,
-                       _criteria,
+                       _high_threshold,
+                       _low_threshold,
+                       _allow_low_quality_matches,
                        buffers.first,
                        buffers.second);
 }
