@@ -84,6 +84,16 @@ __device__ void getLowQualityPreds(const float4 &box, unsigned int anchor_count,
     }
 }
 
+__device__ void WriteMatchesToOutput(unsigned int anchor_count, float high_threshold, float low_threshold, volatile int *best_box_idx, volatile float *best_box_iou) {
+
+    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x)
+    {
+        if (best_box_iou[anchor] < low_threshold)
+            best_box_idx[anchor] = -1;
+        else if(best_box_iou[anchor] >= low_threshold && best_box_iou[anchor] < high_threshold)
+            best_box_idx[anchor] = -2;
+    }
+}
 
 template <int BLOCK_SIZE>
 __global__ void __attribute__((visibility("default")))
@@ -201,4 +211,14 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
                        buffers.second,
                        _all_matches_dev,
                        _low_quality_preds_dev);
+
+   hipMemcpyDtoH(buffers.first, _best_box_idx.data(),  _cur_batch_size * _anchor_cnt);
+   for(int i = 0; i < bs; i++)
+   {
+      std::cerr<<"Pritning for image: "<<i<<std::endll;
+      for(int j = 0; j < _anchor_cnt; j++)
+      {
+        std::cerr"Matched indices: "<<_best_box_idx[i * _anchor_cnt + j];
+      }
+   }
 }
