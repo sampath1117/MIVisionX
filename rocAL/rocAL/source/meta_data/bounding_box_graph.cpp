@@ -289,12 +289,12 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
         memcpy(bb_coords, full_batch_meta_data->get_bb_cords_batch()[i].data(), full_batch_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
 
         //Calculate Ious
-        //ious size - bboxes count x anchors count        
+        //ious size - bboxes count x anchors count
         std::vector<std::vector<float>> iou_matrix(bb_count, std::vector<float> (anchors_size, 0));
 
         for(uint bb_idx = 0; bb_idx < bb_count; bb_idx++)
-            calculate_ious(iou_matrix, bb_coords[bb_idx], bbox_anchors, anchors_size, bb_idx);        
-            
+            calculate_ious(iou_matrix, bb_coords[bb_idx], bbox_anchors, anchors_size, bb_idx);
+
         std::vector<float> matched_vals;
         Matches matches, all_matches;
         //matches.resize(anchors_size);
@@ -319,31 +319,31 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
             if((matched_vals[idx] >= low_threshold) && (matched_vals[idx] < high_threshold)) matches[idx] = -2;
         }
 
-        if(allow_low_quality_matches) {
-            std::vector<float> highest_foreground;
-            std::vector<uint>  gts, preds;
-            //for each gt, find max prediction - for each row f
-            for(uint index = 0; index < iou_matrix.size(); index++) {
-                float max_row = *std::max_element(iou_matrix[index].begin(), iou_matrix[index].end());
-                int max_row_index = std::max_element(iou_matrix[index].begin(), iou_matrix[index].end()) - iou_matrix[index].begin();
-                highest_foreground.push_back(max_row);
-            }
-            for(uint row = 0; row < iou_matrix.size(); row++) {
-                for(uint col = 0; col < iou_matrix[row].size(); col++) {
-                    // if the element is found
-                    for(uint idx = 0; idx < highest_foreground.size(); idx++) {
-                        if(fabs(iou_matrix[row][col] - highest_foreground[idx]) < 1e-6)
-                        {
-                            gts.push_back(row);
-                            preds.push_back(col);
-                        }
-                    }
-                }
-            }
+        // if(allow_low_quality_matches) {
+        //     std::vector<float> highest_foreground;
+        //     std::vector<uint>  gts, preds;
+        //     //for each gt, find max prediction - for each row f
+        //     for(uint index = 0; index < iou_matrix.size(); index++) {
+        //         float max_row = *std::max_element(iou_matrix[index].begin(), iou_matrix[index].end());
+        //         int max_row_index = std::max_element(iou_matrix[index].begin(), iou_matrix[index].end()) - iou_matrix[index].begin();
+        //         highest_foreground.push_back(max_row);
+        //     }
+        //     for(uint row = 0; row < iou_matrix.size(); row++) {
+        //         for(uint col = 0; col < iou_matrix[row].size(); col++) {
+        //             // if the element is found
+        //             for(uint idx = 0; idx < highest_foreground.size(); idx++) {
+        //                 if(fabs(iou_matrix[row][col] - highest_foreground[idx]) < 1e-6)
+        //                 {
+        //                     gts.push_back(row);
+        //                     preds.push_back(col);
+        //                 }
+        //             }
+        //         }
+        //     }
 
-            for(uint pred_idx = 0; pred_idx < preds.size(); pred_idx++)
-                matches[preds[pred_idx]] = all_matches[preds[pred_idx]];
-        }
+        //     for(uint pred_idx = 0; pred_idx < preds.size(); pred_idx++)
+        //         matches[preds[pred_idx]] = all_matches[preds[pred_idx]];
+        // }
 
         full_batch_meta_data->get_matches_batch()[i] = matches;
         full_batch_meta_data->get_metadata_dimensions_batch().matches_dims()[i][0] = anchors_size;

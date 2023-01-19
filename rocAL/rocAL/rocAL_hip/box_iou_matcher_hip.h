@@ -72,8 +72,8 @@ protected:
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_boxes_in_dev, MAX_NUM_BOXES_TOTAL * sizeof(float) * 4));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_idx_dev, _best_box_idx.size() * sizeof(float)));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_iou_dev, _best_box_iou.size() * sizeof(float)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc((void **)&_low_quality_preds_dev, _anchor_count * cur_batch_size * sizeof(int)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc((void **)&_all_matches_dev, _anchor_count * cur_batch_size * sizeof(int)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_low_quality_preds_dev, _anchor_count * cur_batch_size * sizeof(int)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_all_matches_dev, _anchor_count * cur_batch_size * sizeof(int)));
     }
 
     void UnInitialize() {
@@ -100,11 +100,12 @@ private:
 
     int _anchor_count;
     float *_boxes_in_dev;
-    std::vector<float> _best_box_idx;
+    std::vector<int> _best_box_idx;
     std::vector<float> _best_box_iou;
     int *_best_box_idx_dev;
     float *_best_box_iou_dev;
-    int * _low_quality_preds_dev, _all_matches_dev;
+    int * _low_quality_preds_dev;
+    int * _all_matches_dev;
     std::vector<BoxIoUMatcherSampleDesc *> _samples;
     BoxIoUMatcherSampleDesc *_samples_host_buf, *_samples_dev_buf;
     float4 *_anchors_data_dev;

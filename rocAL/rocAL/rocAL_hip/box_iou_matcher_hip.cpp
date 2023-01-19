@@ -52,6 +52,18 @@ __device__ inline void FindBestMatch(const int N, volatile float *vals, volatile
   }
 }
 
+__device__ void getLowQualityPreds(const float4 &box, unsigned int anchor_count, const float4 *anchors, int *low_quality_preds, float max_iou)
+{
+    float best_anchor_iou = -1.0f;
+    int best_anchor_idx = -1;
+    float max_val = 0;
+    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
+      float new_val = CalculateIou(box, anchors[anchor]);
+      if(fabs(new_val - max_val) < 1e-6)
+        low_quality_preds[anchor] = anchor;
+    }
+}
+
 __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsigned int anchor_count, const float4 *anchors,
                                     volatile int *best_anchor_idx_buf, volatile float *best_anchor_iou_buf,
                                     volatile int *best_box_idx, volatile float *best_box_iou) {
@@ -71,17 +83,6 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
     }
     best_anchor_iou_buf[threadIdx.x] = best_anchor_iou;
     best_anchor_idx_buf[threadIdx.x] = best_anchor_idx;
-}
-
-__device__ void getLowQualityPreds(const float4 &box, unsigned int anchor_count, const float4 *anchors, int *low_quality_preds, float max_iou)
-{
-    float best_anchor_iou = -1.0f;
-    int best_anchor_idx = -1;
-    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
-      float new_val = CalculateIou(box, anchors[anchor]);
-      if(fabs(new_val - max_val) < 1e-6)
-        low_quality_preds[anchor] = anchor;
-    }
 }
 
 __device__ void WriteMatchesToOutput(unsigned int anchor_count, float high_threshold, float low_threshold, volatile int *best_box_idx, volatile float *best_box_iou) {
@@ -109,7 +110,7 @@ BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, cons
 
     volatile int *best_box_idx = box_idx_buffer + sample_idx * anchor_cnt;
     volatile float *best_box_iou = box_iou_buffer + sample_idx * anchor_cnt;
-    int *all_matches_buf = all_matches + sample_idx * anchor * anchor_cnt;
+    // int *all_matches_buf = all_matches + sample_idx *  * anchor_cnt;
 
     for (int box_idx = 0; box_idx < sample.in_box_count; box_idx++)
     {
@@ -212,13 +213,24 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
                        _all_matches_dev,
                        _low_quality_preds_dev);
 
-   hipMemcpyDtoH(buffers.first, _best_box_idx.data(),  _cur_batch_size * _anchor_cnt);
-   for(int i = 0; i < bs; i++)
-   {
-      std::cerr<<"Pritning for image: "<<i<<std::endll;
-      for(int j = 0; j < _anchor_cnt; j++)
+    bool debug_print = true;
+    if(debug_print)
+    {
+      HIP_ERROR_CHECK_STATUS(hipStreamSynchronize(_stream));
+      hipDeviceSynchronize();
+
+      hipMemcpy((void *)(_best_box_idx.data()), _best_box_idx_dev, _cur_batch_size * _anchor_count * sizeof(int), hipMemcpyDeviceToHost);
+      HIP_ERROR_CHECK_STATUS(hipStreamSynchronize(_stream));
+      hipDeviceSynchronize();
+
+      for(int i = 0; i < _cur_batch_size; i++)
       {
-        std::cerr"Matched indices: "<<_best_box_idx[i * _anchor_cnt + j];
+        std::cerr<<"Printing for image: "<<i<<std::endl;
+        for(int j = 0; j < _anchor_count; j++)
+        {
+          if (_best_box_idx[i * _anchor_count + j] != -1)
+            std::cerr<<"Matched indices: "<<_best_box_idx[i * _anchor_count + j]<<std::endl;
+        }
       }
-   }
+    }
 }

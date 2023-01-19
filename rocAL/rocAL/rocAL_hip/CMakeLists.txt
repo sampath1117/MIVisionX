@@ -24,6 +24,7 @@ project(rocAL_hip CXX)
 list(APPEND rocAL_HIP_SOURCES
     rocal_hip_kernels.cpp
     box_encoder_hip.cpp
+    box_iou_matcher_hip.cpp
 )
 
 set_source_files_properties(${rocAL_HIP_SOURCES} PROPERTIES HIP_SOURCE_PROPERTY_FORMAT 1)

@@ -117,7 +117,9 @@ class ROCALCOCOIterator(object):
             matched_idxs = self.loader.rocalGetMatchedIndices()
             self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int64)
             matched_idxs_tensor = self.matched_idxs.view(-1, 120087)
-            #print("\n Matched_idxs : ", matched_idxs_tensor)
+            # for matched_index in matched_idxs:
+            #     if(matched_index != -1):
+            #         print("Matched_idxs : ", matched_index)
 
         # Image sizes and Image id of a batch
         self.loader.GetImgSizes(self.img_size)
@@ -211,7 +213,7 @@ def main():
     host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
 
     # Anchors - load default anchors from a text file
-    with open('/media/SSD/training_retinanet/rocAL/MLPerf-mGPU-dev/ObjectDetection/retinanet/pytorch/Default_anchors_retinanet_1.txt', 'r') as f_read:
+    with open('/media/sampath/Default_anchors_retinanet_1.txt', 'r') as f_read:
         anchors = f_read.readlines()
     anchor_list = [float(x.strip())/800 for x in anchors]
     f_read.close()
@@ -223,7 +225,7 @@ def main():
     with coco_train_pipeline:
         jpegs, bboxes, labels = fn.readers.coco(file_root=image_path,
                                                  annotations_file=annotation_path,
-                                                 random_shuffle=True,
+                                                 random_shuffle=False,
                                                  shard_id=local_rank,
                                                  num_shards=world_size,
                                                  seed=random_seed,
@@ -233,20 +235,20 @@ def main():
         print("*********************** NUM SHARDS **********************",world_size)
         images_decoded = fn.decoders.image(jpegs, device=decoder_device, output_type = types.RGB, file_root=image_path, annotations_file=annotation_path, random_shuffle=False,shard_id=local_rank, num_shards=world_size)
         #res_images = fn.resize(images_decoded, device=rali_device, resize_width=crop, resize_height=crop, rocal_tensor_layout = types.NHWC, rocal_tensor_output_type = types.UINT8)
-        flip_coin = fn.random.coin_flip(probability=0.5)
-        images = fn.resize_mirror_normalize(images_decoded, device="gpu",
-                                            image_type=types.RGB,
-                                            resize_width=crop, resize_height=crop,
-                                            mirror=flip_coin,
-                                            rocal_tensor_layout = types.NCHW,
-                                            rocal_tensor_output_type = types.FLOAT,
-                                            mean=[0.485*255,0.456*255 ,0.406*255 ],
-                                            std=[0.229*255 ,0.224*255 ,0.225*255 ])
+        # flip_coin = fn.random.coin_flip(probability=0.5)
+        # images = fn.resize_mirror_normalize(images_decoded, device="gpu",
+        #                                     image_type=types.RGB,
+        #                                     resize_width=crop, resize_height=crop,
+        #                                     mirror=flip_coin,
+        #                                     rocal_tensor_layout = types.NCHW,
+        #                                     rocal_tensor_output_type = types.FLOAT,
+        #                                     mean=[0.485*255,0.456*255 ,0.406*255 ],
+        #                                     std=[0.229*255 ,0.224*255 ,0.225*255 ])
         Matched_idxs  = fn.box_iou_matcher(anchors=anchor_list, criteria=0.5,
                                      high_threshold=0.5, low_threshold=0.4,
                                      allow_low_quality_matches=True)
 
-        coco_train_pipeline.set_outputs(images)
+        coco_train_pipeline.set_outputs(images_decoded)
     coco_train_pipeline.build()
     COCOIteratorPipeline = ROCALCOCOIterator(coco_train_pipeline)
     cnt = 0
