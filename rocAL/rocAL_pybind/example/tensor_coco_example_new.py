@@ -13,6 +13,7 @@ import amd.rocal.types as types
 import sys
 import cv2
 import os
+import math
 from math import sqrt
 import ctypes
 
@@ -47,13 +48,10 @@ class ROCALCOCOIterator(object):
         self.num_anchors = num_anchors
         self.display = True
 
-        #Image id of a batch of images
-        self.image_id = np.zeros(self.bs, dtype="int32")
-        # Count of labels/ bboxes in a batch
-        self.bboxes_label_count = np.zeros(self.bs, dtype="int32")
+        #Number of batch size handled by each GPU
+        self.len = math.ceil(self.loader.getRemainingImages()/self.bs)
         # Image sizes of a batch
         self.img_size = np.zeros((self.bs * 3), dtype="int32")
-        #print("INIT exit")
 
     def next(self):
         return self.__next__()
@@ -73,7 +71,7 @@ class ROCALCOCOIterator(object):
         self.w = self.output_tensor_list[0].batch_width()
         self.h = self.output_tensor_list[0].batch_height()
         self.bs = self.output_tensor_list[0].batch_size()
-        print("\n self.bs: ", self.bs)
+        #print("\n self.bs: ", self.bs)
         self.color_format = self.output_tensor_list[0].color_format()
 
         torch_gpu_device = torch.device('cuda', self.device_id)
@@ -94,48 +92,38 @@ class ROCALCOCOIterator(object):
             #print("\n Self.encoded_labels : ", self.encoded_labels)
             #print("\n Self.encoded_boxes : ", self.encoded_bboxes)
         else:
-            #NHWC default for now
-            self.out = torch.empty((self.bs, self.color_format, self.h, self.w), dtype=torch.float32)
-            #self.out = torch.empty((self.bs, self.color_format, self.h, self.w,), dtype=torch.float32)
+            #NCHW default for now
+            #self.out = torch.empty((self.bs, self.color_format, self.h, self.w), dtype=torch.float32)
+            self.out = torch.empty((self.bs, self.color_format, self.h, self.w,), dtype=torch.float32)
             self.output_tensor_list[0].copy_data(ctypes.c_void_p(self.out.data_ptr()))
-            print("\nImages : ", self.out)
+            #print("\nImages : ", self.out)
 
             labels_array = self.loader.rocalGetBoundingBoxLabel()
-            #print("\n labels array : ", labels_array)
-            #print("\n labels-arry len : ", len(labels_array) )
-
             encodded_labels_tensor = []
             encoded_bboxes_tensor = []
             for label in labels_array:
-                self.encoded_labels = torch.as_tensor(label, dtype=torch.int32)
-                #print("\n self.encoded_labels : ", self.encoded_labels)
+                self.encoded_labels = torch.as_tensor(label, dtype=torch.int64)
                 encodded_labels_tensor.append(self.encoded_labels)
             #print("\n encodded_labels_tensor : ", encodded_labels_tensor)
 
             boxes_array = self.loader.rocalGetBoundingBoxCords()
-            #print("\n boxes array : ", boxes_array)
-            #print("\n boxes-arry len : ", len(boxes_array) )
             for box in boxes_array:
-                self.encoded_bboxes = torch.as_tensor(box, dtype=torch.float32)
+                self.encoded_bboxes = torch.as_tensor(box, dtype=torch.float16)
                 self.encoded_bboxes = self.encoded_bboxes * 800
-                #print("\n self.encoded_bboxes : ", self.encoded_bboxes)
                 self.encoded_bboxes = self.encoded_bboxes.view(-1, 4)
                 encoded_bboxes_tensor.append(self.encoded_bboxes)
             #print("\n encoded_bboxes_tensor : ", encoded_bboxes_tensor)
 
-            #boxes_array = self.loader.rocalGetBoundingBoxCords()
             matched_idxs = self.loader.rocalGetMatchedIndices()
-            self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int32)
+            self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int64)
             matched_idxs_tensor = self.matched_idxs.view(-1, 120087)
-            #print("\n Matched_idxs : ", self.matched_idxs)
+            #print("\n Matched_idxs : ", matched_idxs_tensor)
 
-        # Image id of a batch of images
-        #self.loader.GetImageId(self.image_id)
-        # Image sizes of a batch
+        # Image sizes and Image id of a batch
         self.loader.GetImgSizes(self.img_size)
-        #image_id_tensor = torch.tensor(self.image_id, device=torch_gpu_device)
-        image_size_tensor = torch.tensor(self.img_size, device=torch_gpu_device).view(-1, self.bs, 3)
-        #print("\n Image size tensor :", image_size_tensor)
+        image_size_tensor = torch.tensor(self.img_size).view(self.bs, 3)
+
+        '''
         for i in range(self.bs):
             index_list = []
             actual_bboxes = []
@@ -151,17 +139,15 @@ class ROCALCOCOIterator(object):
             img = self.out
             draw_patches(img[i], image_size_tensor[0][i][2].item(),
                             actual_bboxes, self.device)
+        '''
 
         targets = { 'boxes' : encoded_bboxes_tensor,
                     'labels' : encodded_labels_tensor,
-                    #'images_id' : image_id_tensor,
-                    'original_image_size' : image_size_tensor,
+                    'image_id' : image_size_tensor[:, 2:3].cuda(),
+                    'original_image_size' : image_size_tensor[:, 0:2].cuda(),
                     'matched_idxs' : matched_idxs_tensor
         }
-
-        print("\n targets  :", targets)
-
-        return self.out, targets
+        return (self.out).to(torch.float16), targets
         #return (self.out), encoded_bboxes_tensor, encodded_labels_tensor, image_id_tensor, image_size_tensor
 
     def reset(self):
@@ -224,76 +210,39 @@ def main():
     device_memory_padding = 211025920 if decoder_device == 'mixed' else 0
     host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
 
-    # Anchors
-    def coco_anchors():  # Should be Tensor of floats in ltrb format - input - Mx4 where M="No of anchor boxes"
-        fig_size = 300
-        feat_size = [38, 19, 10, 5, 3, 1]
-        steps = [8, 16, 32, 64, 100, 300]
+    # Anchors - load default anchors from a text file
+    with open('/media/SSD/training_retinanet/rocAL/MLPerf-mGPU-dev/ObjectDetection/retinanet/pytorch/Default_anchors_retinanet_1.txt', 'r') as f_read:
+        anchors = f_read.readlines()
+    anchor_list = [float(x.strip())/800 for x in anchors]
+    f_read.close()
 
-        # use the scales here: https://github.com/amdegroot/ssd.pytorch/blob/master/data/config.py
-        scales = [21, 45, 99, 153, 207, 261, 315]
-        aspect_ratios = [[2], [2, 3], [2, 3], [2, 3], [2], [2]]
-        default_boxes = []
-        fk = fig_size/np.array(steps)
-        # size of feature and number of feature
-        for idx, sfeat in enumerate(feat_size):
-
-            sk1 = scales[idx]/fig_size
-            sk2 = scales[idx+1]/fig_size
-            sk3 = sqrt(sk1*sk2)
-            all_sizes = [(sk1, sk1), (sk3, sk3)]
-
-            for alpha in aspect_ratios[idx]:
-                w, h = sk1*sqrt(alpha), sk1/sqrt(alpha)
-                all_sizes.append((w, h))
-                all_sizes.append((h, w))
-            for w, h in all_sizes:
-                for i, j in itertools.product(range(sfeat), repeat=2):
-                    cx, cy = (j+0.5)/fk[idx], (i+0.5)/fk[idx]
-                    default_boxes.append((cx, cy, w, h))
-        dboxes = torch.tensor(default_boxes, dtype=torch.float)
-        dboxes.clamp_(min=0, max=1)
-        # For IoU calculation
-        dboxes_ltrb = dboxes.clone()
-        dboxes_ltrb[:, 0] = dboxes[:, 0] - 0.5 * dboxes[:, 2]
-        dboxes_ltrb[:, 1] = dboxes[:, 1] - 0.5 * dboxes[:, 3]
-        dboxes_ltrb[:, 2] = dboxes[:, 0] + 0.5 * dboxes[:, 2]
-        dboxes_ltrb[:, 3] = dboxes[:, 1] + 0.5 * dboxes[:, 3]
-
-        return dboxes_ltrb
-    default_boxes = coco_anchors().numpy().flatten().tolist()
     print("*********************************************************************")
 
     coco_train_pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=device_id,seed=random_seed, rocal_cpu=_rali_cpu)
 
     with coco_train_pipeline:
-        jpegs, bboxes, labels = fn.readers.coco(file_root=image_path, annotations_file=annotation_path, random_shuffle=True,shard_id=local_rank, num_shards=world_size,seed=random_seed, is_box_encoder=False)
+        jpegs, bboxes, labels = fn.readers.coco(file_root=image_path,
+                                                 annotations_file=annotation_path,
+                                                 random_shuffle=True,
+                                                 shard_id=local_rank,
+                                                 num_shards=world_size,
+                                                 seed=random_seed,
+                                                 is_box_encoder=False)
 
         print("*********************** SHARD ID ************************",local_rank)
         print("*********************** NUM SHARDS **********************",world_size)
         images_decoded = fn.decoders.image(jpegs, device=decoder_device, output_type = types.RGB, file_root=image_path, annotations_file=annotation_path, random_shuffle=False,shard_id=local_rank, num_shards=world_size)
-        res_images = fn.resize(images_decoded, device=rali_device, resize_width=crop, resize_height=crop, rocal_tensor_layout = types.NHWC, rocal_tensor_output_type = types.UINT8)
-        flip_coin = fn.random.coin_flip(probability=0.9)
-        images = fn.crop_mirror_normalize(res_images, device="gpu",
+        #res_images = fn.resize(images_decoded, device=rali_device, resize_width=crop, resize_height=crop, rocal_tensor_layout = types.NHWC, rocal_tensor_output_type = types.UINT8)
+        flip_coin = fn.random.coin_flip(probability=0.5)
+        images = fn.resize_mirror_normalize(images_decoded, device="gpu",
+                                            image_type=types.RGB,
+                                            resize_width=crop, resize_height=crop,
+                                            mirror=flip_coin,
                                             rocal_tensor_layout = types.NCHW,
                                             rocal_tensor_output_type = types.FLOAT,
-                                            crop=(crop, crop),
-                                            mirror=flip_coin,
-                                            image_type=types.RGB,
                                             mean=[0.485*255,0.456*255 ,0.406*255 ],
                                             std=[0.229*255 ,0.224*255 ,0.225*255 ])
-
-        # images = fn.resize_mirror_normalize(res_images, device="gpu",
-        #                                     image_type=types.RGB,
-        #                                     resize_width=crop, resize_height=crop,
-        #                                     mirror=flip_coin,
-        #                                     rocal_tensor_layout = types.NHWC,
-        #                                     rocal_tensor_output_type = types.FLOAT,
-        #                                     mean=[0,0,0],
-        #                                     std=[1,1,1])
-        #                                     #mean=[0.485*255,0.456*255 ,0.406*255 ],
-        #                                     #std=[0.229*255 ,0.224*255 ,0.225*255 ])
-        Matched_idxs  = fn.box_iou_matcher(anchors=default_boxes, criteria=0.5,
+        Matched_idxs  = fn.box_iou_matcher(anchors=anchor_list, criteria=0.5,
                                      high_threshold=0.5, low_threshold=0.4,
                                      allow_low_quality_matches=True)
 
@@ -312,11 +261,6 @@ def main():
         COCOIteratorPipeline.reset()
     print("*********************************************************************")
     exit(0)
-
-
-
-    exit(0)
-
 
     import timeit
     start = timeit.default_timer() #Timer starts
