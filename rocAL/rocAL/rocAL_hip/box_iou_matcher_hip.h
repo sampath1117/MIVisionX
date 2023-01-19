@@ -45,7 +45,7 @@ public:
          Initialize(batch_size);
          prepare_anchors(_anchors);
     }
-    void Run(pMetaDataBatch full_batch_meta_data);
+    void Run(pMetaDataBatch full_batch_meta_data, int *matched_indices);
 
     virtual ~BoxIoUMatcherGpu() { UnInitialize();};
 
@@ -67,13 +67,13 @@ protected:
         if(err != hipSuccess || !_samples_dev_buf)
             THROW("hipMalloc failed for BoxIoUMatcherSampleDesc" + TOSTR(err));
 
-        // allocate _anchors_data_dev and _anchors_as_center_wh_data for device
-        err = hipMalloc((void **)&_anchors_data_dev, _anchor_count * 4 * sizeof(float));
-        if(err != hipSuccess || !_anchors_data_dev)
-            THROW("hipMalloc failed for BoxIoUMatcherGPU" + TOSTR(err));
-
+        // allocate device buffers
+        HIP_ERROR_CHECK_STATUS(hipMalloc((void **)&_anchors_data_dev, _anchor_count * 4 * sizeof(float)));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_boxes_in_dev, MAX_NUM_BOXES_TOTAL * sizeof(float) * 4));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_idx_dev, _best_box_idx.size() * sizeof(float)));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_iou_dev, _best_box_iou.size() * sizeof(float)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc((void **)&_low_quality_preds_dev, _anchor_count * cur_batch_size * sizeof(int)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc((void **)&_all_matches_dev, _anchor_count * cur_batch_size * sizeof(int)));
     }
 
     void UnInitialize() {
@@ -82,6 +82,9 @@ protected:
         if (_anchors_data_dev) HIP_ERROR_CHECK_STATUS(hipFree(_anchors_data_dev));
         if (_boxes_in_dev) HIP_ERROR_CHECK_STATUS(hipFree(_boxes_in_dev));
         if (_best_box_iou_dev) HIP_ERROR_CHECK_STATUS(hipFree(_best_box_iou_dev));
+        if (_best_box_idx_dev) HIP_ERROR_CHECK_STATUS(hipFree(_best_box_idx_dev));
+        if (_low_quality_preds_dev) HIP_ERROR_CHECK_STATUS(hipFree(_low_quality_preds_dev));
+        if (_all_matches_dev) HIP_ERROR_CHECK_STATUS(hipFree(_all_matches_dev));
     }
 
 private:
@@ -97,10 +100,11 @@ private:
 
     int _anchor_count;
     float *_boxes_in_dev;
-    std::vector<int>  _best_box_idx;
+    std::vector<float> _best_box_idx;
     std::vector<float> _best_box_iou;
     int *_best_box_idx_dev;
     float *_best_box_iou_dev;
+    int * _low_quality_preds_dev, _all_matches_dev;
     std::vector<BoxIoUMatcherSampleDesc *> _samples;
     BoxIoUMatcherSampleDesc *_samples_host_buf, *_samples_dev_buf;
     float4 *_anchors_data_dev;

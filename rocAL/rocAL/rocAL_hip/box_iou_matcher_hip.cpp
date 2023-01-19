@@ -52,10 +52,6 @@ __device__ inline void FindBestMatch(const int N, volatile float *vals, volatile
   }
 }
 
-__device__ void WriteMatchesToOutput(unsigned int anchor_count, volatile int *best_box_idx, volatile float *best_box_iou)
-{
-}
-
 __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsigned int anchor_count, const float4 *anchors,
                                     volatile int *best_anchor_idx_buf, volatile float *best_anchor_iou_buf,
                                     volatile int *best_box_idx, volatile float *best_box_iou) {
@@ -77,13 +73,24 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
     best_anchor_idx_buf[threadIdx.x] = best_anchor_idx;
 }
 
+__device__ void getLowQualityPreds(const float4 &box, unsigned int anchor_count, const float4 *anchors, int *low_quality_preds, float max_iou)
+{
+    float best_anchor_iou = -1.0f;
+    int best_anchor_idx = -1;
+    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
+      float new_val = CalculateIou(box, anchors[anchor]);
+      if(fabs(new_val - max_val) < 1e-6)
+        low_quality_preds[anchor] = anchor;
+    }
+}
+
 
 template <int BLOCK_SIZE>
 __global__ void __attribute__((visibility("default")))
 BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, const float4 *anchors,
               const float high_thresold, const float low_thresold, bool allow_low_quality_matches,
-              int *box_idx_buffer, float *box_iou_buffer) {
-
+              int *box_idx_buffer, float *box_iou_buffer, int *all_matches, int *low_quality_preds)
+{
     const int sample_idx = blockIdx.x;
     const auto &sample = samples[sample_idx];
 
@@ -92,33 +99,45 @@ BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, cons
 
     volatile int *best_box_idx = box_idx_buffer + sample_idx * anchor_cnt;
     volatile float *best_box_iou = box_iou_buffer + sample_idx * anchor_cnt;
+    int *all_matches_buf = all_matches + sample_idx * anchor * anchor_cnt;
 
-    for (int box_idx = 0; box_idx < sample.in_box_count; ++box_idx) {
+    for (int box_idx = 0; box_idx < sample.in_box_count; box_idx++)
+    {
       MatchBoxWithAnchors(
         sample.boxes_in[box_idx],
         box_idx,
         anchor_cnt,
         anchors,
+        best_anchor_idx_buf,
+        best_anchor_iou_buf,
         best_box_idx,
         best_box_iou);
 
       __syncthreads();
 
-      FindBestMatch(blockDim.x, best_box_iou, best_box_idx);
-      __syncthreads();
+      // FindBestMatch(blockDim.x, best_anchor_iou_buf, best_anchor_idx_buf);
+      // __syncthreads();
 
-      if (threadIdx.x == 0) {
-        int idx = best_anchor_idx_buf[0];
-        best_box_idx[idx] = box_idx;
-        best_box_iou[idx] = 2.f;
-      }
-      __syncthreads();
+      // if (threadIdx.x == 0) {
+      //   int idx = best_anchor_idx_buf[0];
+      //   float iou = best_anchor_iou_buf[0];
+      //   all_matches[idx] = box_idx;
+      // }
+      // __syncthreads();
+
+      // if(allow_low_quality_matches)
+      //   getLowQualityPreds(box, anchor_count, anchors, low_quality_preds, best_anchor_idx_buf[0]);
+      // __syncthreads();
     }
+
     __syncthreads();
 
     WriteMatchesToOutput(
-    best_box_idx,
-    best_box_iou);
+      anchor_cnt,
+      high_thresold,
+      low_thresold,
+      best_box_idx,
+      best_box_iou);
 }
 
 void BoxIoUMatcherGpu::prepare_anchors(const std::vector<float> &anchors) {
@@ -138,12 +157,13 @@ std::pair<int *, float *> BoxIoUMatcherGpu::ResetBuffers() {
     return std::make_pair(_best_box_idx_dev, _best_box_iou_dev);
 }
 
-void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data) {
+void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_indices) {
 
     if (_cur_batch_size != full_batch_meta_data->size() || (_cur_batch_size <= 0))
         THROW("BoxIoUMatcherGpu::Run Invalid input metadata");
-    const auto buffers = ResetBuffers();    // reset temp buffers
 
+    // _best_box_idx_dev = matched_indices;
+    const auto buffers = ResetBuffers();    // reset temp buffers
     int total_num_boxes = 0;
     for (int i = 0; i < _cur_batch_size; i++) {
         auto sample = &_samples_host_buf[i];
@@ -178,5 +198,7 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data) {
                        _low_threshold,
                        _allow_low_quality_matches,
                        buffers.first,
-                       buffers.second);
+                       buffers.second,
+                       _all_matches_dev,
+                       _low_quality_preds_dev);
 }
