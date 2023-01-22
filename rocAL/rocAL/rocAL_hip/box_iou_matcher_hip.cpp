@@ -21,6 +21,8 @@ THE SOFTWARE.
 */
 
 #include "box_iou_matcher_hip.h"
+#include <fstream>
+#include <iostream>
 
 __device__ __forceinline__ float CalculateIou(const float4 &b1, const float4 &b2) {
     float l = fmaxf(b1.x, b2.x);
@@ -175,7 +177,6 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
     if (_cur_batch_size != full_batch_meta_data->size() || (_cur_batch_size <= 0))
         THROW("BoxIoUMatcherGpu::Run Invalid input metadata");
 
-    // _best_box_idx_dev = matched_indices;
     const auto buffers = ResetBuffers();    // reset temp buffers
     int total_num_boxes = 0;
     for (int i = 0; i < _cur_batch_size; i++) {
@@ -209,7 +210,7 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
                        _anchors_data_dev,
                        _high_threshold,
                        _low_threshold,
-                       true,
+                       _allow_low_quality_matches,
                        buffers.first,
                        buffers.second,
                        _anchor_iou_dev,
@@ -227,12 +228,15 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
 
       for(int i = 0; i < _cur_batch_size; i++)
       {
-        // std::cerr<<"Printing for image: "<<i<<std::endl;
+        std::string file_name = std::to_string(i) + "_gpu.txt";
+        std::ofstream cur_file;
+        cur_file.open(file_name);
         for(int j = 0; j < _anchor_count; j++)
         {
-          if (_best_box_idx[i * _anchor_count + j] != -1)
-            std::cerr<<"Matched indices: "<<_best_box_idx[i * _anchor_count + j]<<std::endl;
+            cur_file<<(int)_best_box_idx[i * _anchor_count + j];
+            cur_file<<"\n";
         }
+        cur_file.close();
       }
     }
 }

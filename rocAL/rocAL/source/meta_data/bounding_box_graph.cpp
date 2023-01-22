@@ -344,8 +344,20 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
             for(uint pred_idx = 0; pred_idx < preds.size(); pred_idx++)
                 matches[preds[pred_idx]] = all_matches[preds[pred_idx]];
         }
-
         full_batch_meta_data->get_matches_batch()[i] = matches;
         full_batch_meta_data->get_metadata_dimensions_batch().matches_dims()[i][0] = anchors_size;
+    }
+
+    for (int i = 0; i < full_batch_meta_data->size(); i++)
+    {
+        std::string file_name = std::to_string(i) + "_cpu.txt";
+        std::ofstream cur_file;
+        cur_file.open(file_name);
+        for(int k = 0; k < 120087; k++)
+        {
+            cur_file<<(int)full_batch_meta_data->get_matches_batch()[i][k];
+            cur_file<<"\n";
+        }
+        cur_file.close();
     }
 }
