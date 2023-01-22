@@ -117,9 +117,10 @@ class ROCALCOCOIterator(object):
             matched_idxs = self.loader.rocalGetMatchedIndices()
             self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int64)
             matched_idxs_tensor = self.matched_idxs.view(-1, 120087)
-            # for matched_index in matched_idxs:
-            #     if(matched_index != -1):
-            #         print("Matched_idxs : ", matched_index)
+            # if self.device == "cpu":
+            #     for matched_index in matched_idxs:
+            #         if(matched_index != -1):
+            #             print("Matched indices:",matched_index)
 
         # Image sizes and Image id of a batch
         self.loader.GetImgSizes(self.img_size)
@@ -255,7 +256,8 @@ def main():
     for epoch in range(1):
         print("+++++++++++++++++++++++++++++EPOCH+++++++++++++++++++++++++++++++++++++",epoch)
         for i , it in enumerate(COCOIteratorPipeline):
-            print("************************************** i *************************************",i)
+            temp =1
+            # print("************************************** i *************************************",i)
             # for img in it[0]:
             #     print(img.shape)
             #     cnt = cnt + 1
