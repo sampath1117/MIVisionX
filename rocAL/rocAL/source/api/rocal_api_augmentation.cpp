@@ -262,7 +262,7 @@ rocalCrop(RocalContext p_context,
 
 //resizemirrornormalize
 RocalTensor
-ROCAL_API_CALL rocalResizeMirrorNormalize(RocalContext p_context, 
+ROCAL_API_CALL rocalResizeMirrorNormalize(RocalContext p_context,
                                           RocalTensor p_input,
                                           RocalTensorLayout rocal_tensor_layout,
                                           RocalTensorOutputType rocal_tensor_output_type,
@@ -524,18 +524,18 @@ ROCAL_API_CALL rocalCropMirrorNormalize(RocalContext p_context, RocalTensor p_in
         output_info.set_tensor_layout(op_tensorLayout);
         output_info.set_data_type(op_tensorDataType);
         std::vector<size_t> out_dims = output_info.dims();
-        if(op_tensorLayout == RocalTensorlayout::NHWC)
-        {
-            out_dims[1] = crop_height;
-            out_dims[2] = crop_width;
-            out_dims[3] = 3;
-        }
-        else if(op_tensorLayout == RocalTensorlayout::NCHW)
-        {
-            out_dims[1] = 3;
-            out_dims[2] = crop_height;
-            out_dims[3] = crop_width;
-        }
+        // if(op_tensorLayout == RocalTensorlayout::NHWC)
+        // {
+        //     out_dims[1] = crop_height;
+        //     out_dims[2] = crop_width;
+        //     out_dims[3] = 3;
+        // }
+        // else if(op_tensorLayout == RocalTensorlayout::NCHW)
+        // {
+        //     out_dims[1] = 3;
+        //     out_dims[2] = crop_height;
+        //     out_dims[3] = crop_width;
+        // }
         output_info.set_dims(out_dims);
         output = context->master_graph->create_tensor(output_info, is_output);
         output->reset_tensor_roi();
