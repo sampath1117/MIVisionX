@@ -92,7 +92,7 @@ std::pair<void*, void*> RingBuffer::get_box_encode_write_buffers()
 
 void* RingBuffer::get_box_iou_matcher_read_buffers()
 {
-    block_if_full();
+    block_if_empty();
     if((_mem_type == RocalMemType::OCL) || (_mem_type == RocalMemType::HIP))
         return _dev_matched_indices_buffer[_read_ptr];
     return _host_meta_data_buffers[_read_ptr][2];
@@ -460,7 +460,7 @@ void RingBuffer::set_meta_data(ImageNameBatch names, pMetaDataBatch meta_data, b
     else
     {
         _last_image_meta_data = std::move(std::make_pair(std::move(names), meta_data));
-        if(!_box_encoder_gpu)
+        if(!_box_encoder_gpu && !_box_iou_matcher_gpu)
         {
             auto actual_buffer_size = meta_data->get_buffer_size(is_segmentation, is_box_iou_matcher);
             for(unsigned i = 0; i < _meta_data_sub_buffer_count; i++)

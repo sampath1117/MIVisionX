@@ -281,11 +281,12 @@ MasterGraph::build()
     // allocate_output_tensor();
 #if ENABLE_HIP
     _ring_buffer.initHip(_mem_type, _device.resources(), _internal_tensor_list.data_size(), _internal_tensor_list.size());
-    if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(_mem_type, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
-    else if (_is_box_iou_matcher) _ring_buffer.initBoxIoUMatcherMetaData(_mem_type, _user_batch_size*_num_anchors*sizeof(int));
+    // if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(_mem_type, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
+    std::cerr<<"num anchors: "<<_num_anchors<<std::endl;
+    _ring_buffer.initBoxIoUMatcherMetaData(_mem_type, _user_batch_size*_num_anchors*sizeof(int));
 #else
     _ring_buffer.init(_mem_type, _device.resources(), _internal_tensor_list.data_size(), _internal_tensor_list.size()); // TODO - Tensorlist change here
-    if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(_mem_type, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
+    if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(RocalMemType::HIP, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
 #endif
     // _output_tensor_list = _internal_tensor_list;
     create_single_graph();
@@ -786,9 +787,12 @@ void MasterGraph::output_routine()
             if(_is_box_iou_matcher)
             {
                 //TODO - to add call for hip kernel.
-                int *matched_indices = (int *)_ring_buffer.get_box_iou_matcher_write_buffers();
                 if(_mem_type == RocalMemType::HIP){
-                    _box_iou_matcher_gpu->Run(full_batch_meta_data, matched_indices);
+                     std::cerr<<"calling box iou HIP kernel"<<std::endl;
+                    #if ENABLE_HIP
+                        int *matched_indices = (int *)_ring_buffer.get_box_iou_matcher_write_buffers();
+                        _box_iou_matcher_gpu->Run(full_batch_meta_data, matched_indices);
+                    #endif
                 }
                 else
                 {
@@ -809,6 +813,7 @@ void MasterGraph::output_routine()
         _ring_buffer.release_all_blocked_calls();
     }
     _process_time.end();
+    std::cerr<<"completing output routine"<<std::endl;
 }
 
 void MasterGraph::start_processing()
@@ -1396,7 +1401,9 @@ rocalTensorList * MasterGraph::matches_meta_data()
 {
     if(_ring_buffer.level() == 0)
         THROW("No meta data has been loaded")
-    auto meta_data_buffers = (unsigned char *)_ring_buffer.get_meta_read_buffers()[2]; // Get labels buffer from ring buffer
+
+    std::cerr<<"coming to matches_meta_data function: "<<std::endl;
+    auto meta_data_buffers = (unsigned char *)_ring_buffer.get_box_iou_matcher_read_buffers(); // Get labels buffer from ring buffer
     auto matches_tensor_dims = _ring_buffer.get_meta_data_info().matches_dims();
     for(unsigned i = 0; i < _matches_tensor_list.size(); i++)
     {
@@ -1404,6 +1411,7 @@ rocalTensorList * MasterGraph::matches_meta_data()
         _matches_tensor_list[i]->set_mem_handle((void *)meta_data_buffers);
         meta_data_buffers += _matches_tensor_list[i]->info().data_size();
     }
+    std::cerr<<"completed processing matches meta data"<<std::endl;
     return &_matches_tensor_list;
 }
 

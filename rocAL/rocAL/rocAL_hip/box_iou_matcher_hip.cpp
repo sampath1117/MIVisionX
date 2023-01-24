@@ -177,6 +177,8 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
     if (_cur_batch_size != full_batch_meta_data->size() || (_cur_batch_size <= 0))
         THROW("BoxIoUMatcherGpu::Run Invalid input metadata");
 
+    _best_box_idx_dev = matched_indices;
+
     const auto buffers = ResetBuffers();    // reset temp buffers
     int total_num_boxes = 0;
     for (int i = 0; i < _cur_batch_size; i++) {
@@ -196,6 +198,7 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
         sample->boxes_in = reinterpret_cast<const float4 *>(boxes_in_temp);
         boxes_in_temp += (sample->in_box_count * 4);
         _output_shape.push_back(std::vector<size_t>(1, _anchor_count));
+        full_batch_meta_data->get_metadata_dimensions_batch().matches_dims()[sample_idx][0] = _anchor_count;
     }
 
     // if there is no mapped memory, do explicit copy from host to device
@@ -216,9 +219,10 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
                        _anchor_iou_dev,
                        _low_quality_preds_dev);
 
-    bool debug_print = true;
+    bool debug_print = false;
     if(debug_print)
     {
+      std::cerr<<"processed kernel"<<std::endl;
       HIP_ERROR_CHECK_STATUS(hipStreamSynchronize(_stream));
       hipDeviceSynchronize();
 

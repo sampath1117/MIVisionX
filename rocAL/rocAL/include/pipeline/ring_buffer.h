@@ -110,4 +110,5 @@ private:
     std::mutex  _names_buff_lock;
     const size_t MEM_ALIGNMENT = 256;
     bool _box_encoder_gpu = false;
+    bool _box_iou_matcher_gpu = false;
 };
