@@ -282,6 +282,7 @@ MasterGraph::build()
 #if ENABLE_HIP
     _ring_buffer.initHip(_mem_type, _device.resources(), _internal_tensor_list.data_size(), _internal_tensor_list.size());
     if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(_mem_type, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
+    else if (_is_box_iou_matcher) _ring_buffer.initBoxIoUMatcherMetaData(_mem_type, _user_batch_size*_num_anchors*sizeof(int));
 #else
     _ring_buffer.init(_mem_type, _device.resources(), _internal_tensor_list.data_size(), _internal_tensor_list.size()); // TODO - Tensorlist change here
     if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(_mem_type, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
@@ -785,7 +786,7 @@ void MasterGraph::output_routine()
             if(_is_box_iou_matcher)
             {
                 //TODO - to add call for hip kernel.
-                int *matched_indices;
+                int *matched_indices = (int *)_ring_buffer.get_box_iou_matcher_write_buffers();
                 if(_mem_type == RocalMemType::HIP){
                     _box_iou_matcher_gpu->Run(full_batch_meta_data, matched_indices);
                 }
