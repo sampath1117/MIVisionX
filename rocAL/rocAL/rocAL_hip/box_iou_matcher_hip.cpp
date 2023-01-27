@@ -219,28 +219,5 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
                        _anchor_iou_dev,
                        _low_quality_preds_dev);
 
-    bool debug_print = false;
-    if(debug_print)
-    {
-      std::cerr<<"processed kernel"<<std::endl;
-      HIP_ERROR_CHECK_STATUS(hipStreamSynchronize(_stream));
-      hipDeviceSynchronize();
-
-      hipMemcpy((void *)(_best_box_idx.data()), _best_box_idx_dev, _cur_batch_size * _anchor_count * sizeof(int), hipMemcpyDeviceToHost);
-      HIP_ERROR_CHECK_STATUS(hipStreamSynchronize(_stream));
-      hipDeviceSynchronize();
-
-      for(int i = 0; i < _cur_batch_size; i++)
-      {
-        std::string file_name = std::to_string(i) + "_gpu.txt";
-        std::ofstream cur_file;
-        cur_file.open(file_name);
-        for(int j = 0; j < _anchor_count; j++)
-        {
-            cur_file<<(int)_best_box_idx[i * _anchor_count + j];
-            cur_file<<"\n";
-        }
-        cur_file.close();
-      }
-    }
+    
 }

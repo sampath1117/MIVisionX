@@ -41,7 +41,7 @@ class ROCALCOCOIterator(object):
         self.reverse_channels = reverse_channels
         self.tensor_dtype = tensor_dtype
         print("\nself.tensor_dtype : ", self.tensor_dtype)
-        self.device = "gpu"
+        self.device = device
         print("self.device", self.device)
         self.device_id = self.loader._device_id
         self.bs = self.loader._batch_size
@@ -81,12 +81,12 @@ class ROCALCOCOIterator(object):
             #NHWC default for now
             self.out = torch.empty((self.bs, self.color_format, self.h, self.w), dtype=torch.uint8, device=torch_gpu_device)
             self.output_tensor_list[0].copy_data(ctypes.c_void_p(self.out.data_ptr()))
-            print("\nImages : ", self.out)
+            # print("\nImages : ", self.out)
 
             matched_idxs = self.loader.rocalGetMatchedIndices()
-            # self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int64)
-            # self.matched_idxs = self.matched_idxs.view(-1, 120087)
-            matched_idxs_tensor = [] # matched_idxs.cpu()
+            self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int64)
+            self.matched_idxs = self.matched_idxs.view(-1, 120087)
+            matched_idxs_tensor = self.matched_idxs.cpu()
 
             # labels_array = self.loader.rocalGetBoundingBoxLabel()
             encodded_labels_tensor = []
@@ -213,7 +213,6 @@ def main():
         _rali_cpu = True
     else:
         _rali_cpu = False
-    _rali_cpu = False
     batch_size = int(sys.argv[4])
     num_threads = 1
     device_id = 0
@@ -229,14 +228,14 @@ def main():
     host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
 
     # Anchors - load default anchors from a text file
-    with open('/media/sampath/Default_anchors_retinanet_1.txt', 'r') as f_read:
+    with open('/media/sampath/tensor_debug/sampath_MIVisionX/Default_anchors_retinanet_1.txt', 'r') as f_read:
         anchors = f_read.readlines()
     anchor_list = [float(x.strip())/800 for x in anchors]
     f_read.close()
 
     print("*********************************************************************")
 
-    coco_train_pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=device_id,seed=random_seed, rocal_cpu=False)
+    coco_train_pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=device_id,seed=random_seed, rocal_cpu=_rali_cpu)
 
     with coco_train_pipeline:
         jpegs, bboxes, labels = fn.readers.coco(file_root=image_path,
@@ -266,13 +265,22 @@ def main():
 
         coco_train_pipeline.set_outputs(images_decoded)
     coco_train_pipeline.build()
-    COCOIteratorPipeline = ROCALCOCOIterator(coco_train_pipeline)
+    COCOIteratorPipeline = ROCALCOCOIterator(coco_train_pipeline, device=device)
     cnt = 0
     for epoch in range(1):
         print("+++++++++++++++++++++++++++++EPOCH+++++++++++++++++++++++++++++++++++++",epoch)
         for i , it in enumerate(COCOIteratorPipeline):
-            temp =1
-            # print("************************************** i *************************************",i)
+            print("************************************** i *************************************",i)
+            targets = it[1]
+            temp_cnt = 0
+            for matches in targets["matched_idxs"]:
+                file_name = device + "/matches_" + device + "_" + str(i * batch_size + temp_cnt)+".txt"
+                with open(file_name, "w") as f:
+                    for val in matches.detach().numpy():
+                        f.write(str(val))
+                        f.write("\n")
+                temp_cnt = temp_cnt + 1
+            # print("matched indices: ", targets["matched_idxs"])
             # for img in it[0]:
             #     print(img.shape)
             #     cnt = cnt + 1

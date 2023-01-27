@@ -788,7 +788,6 @@ void MasterGraph::output_routine()
             {
                 //TODO - to add call for hip kernel.
                 if(_mem_type == RocalMemType::HIP){
-                     std::cerr<<"calling box iou HIP kernel"<<std::endl;
                     #if ENABLE_HIP
                         int *matched_indices = (int *)_ring_buffer.get_box_iou_matcher_write_buffers();
                         _box_iou_matcher_gpu->Run(full_batch_meta_data, matched_indices);
@@ -813,7 +812,6 @@ void MasterGraph::output_routine()
         _ring_buffer.release_all_blocked_calls();
     }
     _process_time.end();
-    std::cerr<<"completing output routine"<<std::endl;
 }
 
 void MasterGraph::start_processing()
@@ -1281,7 +1279,10 @@ void MasterGraph::box_iou_matcher(std::vector<float> &anchors, float criteria, f
     std::cerr << "\n num anchors : " << _num_anchors << std::endl;
 
 #if ENABLE_HIP
+if(_mem_type == RocalMemType::HIP){
     _box_iou_matcher_gpu = new BoxIoUMatcherGpu(_user_batch_size, anchors, high_threshold, low_threshold, allow_low_quality_matches, _device.resources().hip_stream, _device.resources().dev_prop.canMapHostMemory);
+    return;
+}
 #endif
     _anchors = anchors;
     _high_threshold = high_threshold;
@@ -1402,7 +1403,6 @@ rocalTensorList * MasterGraph::matches_meta_data()
     if(_ring_buffer.level() == 0)
         THROW("No meta data has been loaded")
 
-    std::cerr<<"coming to matches_meta_data function: "<<std::endl;
     auto meta_data_buffers = (unsigned char *)_ring_buffer.get_box_iou_matcher_read_buffers(); // Get labels buffer from ring buffer
     auto matches_tensor_dims = _ring_buffer.get_meta_data_info().matches_dims();
     for(unsigned i = 0; i < _matches_tensor_list.size(); i++)
@@ -1411,7 +1411,6 @@ rocalTensorList * MasterGraph::matches_meta_data()
         _matches_tensor_list[i]->set_mem_handle((void *)meta_data_buffers);
         meta_data_buffers += _matches_tensor_list[i]->info().data_size();
     }
-    std::cerr<<"completed processing matches meta data"<<std::endl;
     return &_matches_tensor_list;
 }
 
