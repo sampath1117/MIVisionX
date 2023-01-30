@@ -243,6 +243,7 @@ ROCAL_API_CALL rocalGetImageId(RocalContext p_context,  int* buf)
     {
         std::string str_id = meta_data.first[i].erase(0, meta_data.first[i].find_first_not_of('0'));
         //std::string str_id = meta_data.first[i];
+        std::cerr<<"image id: "<<str_id<<std::endl;
         buf[i] = stoi(str_id);
     }
 }

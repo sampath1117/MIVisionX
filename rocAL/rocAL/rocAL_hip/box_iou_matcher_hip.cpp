@@ -62,7 +62,7 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
 
     for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
       float new_val = CalculateIou(box, anchors[anchor]);
-      anchor_iou_list[anchor] = new_val;
+      // anchor_iou_list[anchor] = new_val;
       if (new_val >= best_anchor_iou) {
           best_anchor_iou = new_val;
           best_anchor_idx = anchor;
@@ -74,6 +74,13 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
     }
     best_anchor_iou_buf[threadIdx.x] = best_anchor_iou;
     best_anchor_idx_buf[threadIdx.x] = best_anchor_idx;
+}
+
+__device__ void MatchBoxTest(const float4 &box, unsigned int anchor_count, const float4 *anchors,
+                             volatile float *anchor_iou_list) {
+    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor++) {
+      anchor_iou_list[anchor] = CalculateIou(box, anchors[anchor]);
+    }
 }
 
 __device__ void WriteMatchesToOutput(unsigned int anchor_count, float high_threshold, float low_threshold, volatile int *best_box_idx, volatile float *best_box_iou, volatile int *low_quality_preds, bool allow_low_quality_matches) {
@@ -94,7 +101,7 @@ template <int BLOCK_SIZE>
 __global__ void __attribute__((visibility("default")))
 BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, const float4 *anchors,
               const float high_thresold, const float low_thresold, bool allow_low_quality_matches,
-              int *box_idx_buffer, float *box_iou_buffer, float *anchor_iou_buffer, int *low_quality_preds_buffer)
+              int *box_idx_buffer, float *box_iou_buffer, float *anchor_iou_buffer, int *low_quality_preds_buffer, float *max_anchor_iou_buf)
 {
     const int sample_idx = blockIdx.x;
     const auto &sample = samples[sample_idx];
@@ -106,6 +113,7 @@ BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, cons
     volatile float *best_box_iou = box_iou_buffer + sample_idx * anchor_cnt;
     volatile float *anchor_iou_list = anchor_iou_buffer + sample_idx * anchor_cnt;
     volatile int *low_quality_preds = low_quality_preds_buffer + sample_idx * anchor_cnt;
+    volatile float *max_row_iou = max_anchor_iou_buf + sample_idx * MAX_NUM_BOXES_TOTAL;
 
     for (int box_idx = 0; box_idx < sample.in_box_count; box_idx++)
     {
@@ -127,20 +135,39 @@ BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, cons
         FindBestMatch(blockDim.x, best_anchor_iou_buf, best_anchor_idx_buf);
         __syncthreads();
 
-        float max_anchor_iou;
         if (threadIdx.x == 0)
-        {
-          max_anchor_iou = best_anchor_iou_buf[0];
-          for (int anchor = 0; anchor < anchor_cnt; anchor++)
-          {
-              if(fabs(max_anchor_iou - anchor_iou_list[anchor]) < 1e-6)
-                low_quality_preds[anchor] = anchor;
-          }
-        }
+          max_row_iou[box_idx] = best_anchor_iou_buf[0];
+
         __syncthreads();
       }
     }
     __syncthreads();
+
+    if (allow_low_quality_matches)
+    {
+      if(threadIdx.x == 0)
+      {
+        for (int box_idx = 0; box_idx < sample.in_box_count; box_idx++)
+        {
+          MatchBoxTest(
+            sample.boxes_in[box_idx],
+            anchor_cnt,
+            anchors,
+            anchor_iou_list);
+
+          for(int anchor = 0; anchor < anchor_cnt; anchor++)
+          {
+            for(int row = 0; row < sample.in_box_count; row++)
+            {
+                if(fabs(max_row_iou[row] -  anchor_iou_list[anchor]) < 1e-6)
+                  low_quality_preds[anchor] = anchor;
+            }
+          }
+        }
+      }
+      __syncthreads();
+
+    }
 
     WriteMatchesToOutput(
       anchor_cnt,
@@ -217,7 +244,6 @@ void BoxIoUMatcherGpu::Run(pMetaDataBatch full_batch_meta_data, int *matched_ind
                        buffers.first,
                        buffers.second,
                        _anchor_iou_dev,
-                       _low_quality_preds_dev);
-
-    
+                       _low_quality_preds_dev,
+                       _best_anchor_iou_dev);
 }

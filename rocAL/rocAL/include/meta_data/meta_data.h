@@ -372,16 +372,21 @@ struct BoundingBoxBatch: public MetaDataBatch
         }
         else if(is_box_iou_matcher)
         {
+            bool gpu_matcher = true;
             int *matches_buffer = (int *)buffer[2];
             auto matches_dims = _metadata_dimensions.matches_dims();
             for(unsigned i = 0; i < _bb_label_ids.size(); i++)
             {
                 mempcpy(labels_buffer, _bb_label_ids[i].data(), bb_labels_dims[i][0] * sizeof(int));
                 memcpy(bbox_buffer, _bb_cords[i].data(), bb_coords_dims[i][0] * sizeof(BoundingBoxCord));
-                memcpy(matches_buffer, _matches[i].data(), matches_dims[i][0] * sizeof(int));
+                
                 labels_buffer += bb_labels_dims[i][0];
                 bbox_buffer += (bb_coords_dims[i][0] * 4);
-                matches_buffer += matches_dims[i][0];
+                if(!gpu_matcher)
+                {
+                    memcpy(matches_buffer, _matches[i].data(), matches_dims[i][0] * sizeof(int));
+                    matches_buffer += matches_dims[i][0];
+                }
             }
         }
         else

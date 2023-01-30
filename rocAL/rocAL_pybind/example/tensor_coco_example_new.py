@@ -88,22 +88,23 @@ class ROCALCOCOIterator(object):
             self.matched_idxs = self.matched_idxs.view(-1, 120087)
             matched_idxs_tensor = self.matched_idxs.cpu()
 
-            # labels_array = self.loader.rocalGetBoundingBoxLabel()
+            labels_array = self.loader.rocalGetBoundingBoxLabel()
             encodded_labels_tensor = []
             encoded_bboxes_tensor = []
-            # for label in labels_array:
-            #     self.encoded_labels = torch.as_tensor(label, dtype=torch.int64)
-            #     encodded_labels_tensor.append(self.encoded_labels)
+            for label in labels_array:
+                self.encoded_labels = torch.as_tensor(label, dtype=torch.int64)
+                encodded_labels_tensor.append(self.encoded_labels)
+            #print("\n encodded_labels_tensor : ", encodded_labels_tensor)
 
-            # 1D labels & bboxes array
-            # labels_array, boxes_array = self.loader.getEncodedBoxesAndLables(self.bs, int(self.num_anchors))
-            # self.encoded_bboxes = torch.as_tensor(boxes_array, dtype=torch.float32, device=torch_gpu_device)
-            # self.encoded_bboxes = self.encoded_bboxes.view(self.bs, self.num_anchors, 4)
-            # self.encoded_labels = torch.as_tensor(labels_array, dtype=torch.int32, device=torch_gpu_device)
-            # encoded_bboxes_tensor = self.encoded_bboxes.cpu()
-            # encodded_labels_tensor = self.encoded_labels.cpu()
-            #print("\n Self.encoded_labels : ", self.encoded_labels)
-            #print("\n Self.encoded_boxes : ", self.encoded_bboxes)
+            boxes_array = self.loader.rocalGetBoundingBoxCords()
+            for box in boxes_array:
+                self.encoded_bboxes = torch.as_tensor(box, dtype=torch.float16)
+                self.encoded_bboxes = self.encoded_bboxes * 800
+                self.encoded_bboxes = self.encoded_bboxes.view(-1, 4)
+                encoded_bboxes_tensor.append(self.encoded_bboxes)
+
+            # self.image_names = self.loader.
+
         else:
             #NCHW default for now
             #self.out = torch.empty((self.bs, self.color_format, self.h, self.w), dtype=torch.float32)
