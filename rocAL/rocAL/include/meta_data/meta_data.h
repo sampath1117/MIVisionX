@@ -210,7 +210,7 @@ struct MetaDataBatch
     virtual void resize(int batch_size) = 0;
     virtual int size() = 0;
     virtual int mask_size() = 0;
-    virtual void copy_data(std::vector<void*> buffer, bool is_segmentation, bool is_box_iou_matcher) = 0;
+    virtual void copy_data(std::vector<void*> buffer, bool is_segmentation, bool is_box_iou_matcher, bool is_box_iou_matcher_gpu) = 0;
     virtual std::vector<size_t>& get_buffer_size(bool is_segmentation, bool is_box_iou_matcher) = 0;
     virtual MetaDataBatch&  operator += (MetaDataBatch& other) = 0;
     MetaDataBatch* concatenate(MetaDataBatch* other)
@@ -286,7 +286,7 @@ struct LabelBatch : public MetaDataBatch
         _label_id = std::move(labels);
     }
     LabelBatch() = default;
-    void copy_data(std::vector<void*> buffer, bool is_segmentation, bool is_box_iou_matcher) override
+    void copy_data(std::vector<void*> buffer, bool is_segmentation, bool is_box_iou_matcher, bool is_box_iou_matcher_gpu) override
     {
         if(buffer.size() < 1)
             THROW("The buffers are insufficient") // TODO -change
@@ -347,7 +347,7 @@ struct BoundingBoxBatch: public MetaDataBatch
     {
         return std::make_shared<BoundingBoxBatch>(*this);
     }
-    void copy_data(std::vector<void*> buffer, bool is_segmentation, bool is_box_iou_matcher) override
+    void copy_data(std::vector<void*> buffer, bool is_segmentation, bool is_box_iou_matcher, bool is_box_iou_matcher_gpu) override
     {
         uint buffer_size = (is_segmentation || is_box_iou_matcher) ? 3 : 2;
         if(buffer.size() < buffer_size)
@@ -372,7 +372,6 @@ struct BoundingBoxBatch: public MetaDataBatch
         }
         else if(is_box_iou_matcher)
         {
-            bool gpu_matcher = true;
             int *matches_buffer = (int *)buffer[2];
             auto matches_dims = _metadata_dimensions.matches_dims();
             for(unsigned i = 0; i < _bb_label_ids.size(); i++)
@@ -382,7 +381,7 @@ struct BoundingBoxBatch: public MetaDataBatch
                 
                 labels_buffer += bb_labels_dims[i][0];
                 bbox_buffer += (bb_coords_dims[i][0] * 4);
-                if(!gpu_matcher)
+                if(!is_box_iou_matcher_gpu)
                 {
                     memcpy(matches_buffer, _matches[i].data(), matches_dims[i][0] * sizeof(int));
                     matches_buffer += matches_dims[i][0];

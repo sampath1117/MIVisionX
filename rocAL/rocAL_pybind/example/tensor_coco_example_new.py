@@ -229,7 +229,7 @@ def main():
     host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
 
     # Anchors - load default anchors from a text file
-    with open('/media/sampath/tensor_debug/sampath_MIVisionX/Default_anchors_retinanet_1.txt', 'r') as f_read:
+    with open('/media/sampath/Default_anchors_retinanet_1.txt', 'r') as f_read:
         anchors = f_read.readlines()
     anchor_list = [float(x.strip())/800 for x in anchors]
     f_read.close()
@@ -268,6 +268,7 @@ def main():
     coco_train_pipeline.build()
     COCOIteratorPipeline = ROCALCOCOIterator(coco_train_pipeline, device=device)
     cnt = 0
+    anchor_dump_path = "/media/sampath/"
     for epoch in range(1):
         print("+++++++++++++++++++++++++++++EPOCH+++++++++++++++++++++++++++++++++++++",epoch)
         for i , it in enumerate(COCOIteratorPipeline):
@@ -275,7 +276,7 @@ def main():
             targets = it[1]
             temp_cnt = 0
             for matches in targets["matched_idxs"]:
-                file_name = device + "/matches_" + device + "_" + str(i * batch_size + temp_cnt)+".txt"
+                file_name = anchor_dump_path + device + "/matches_" + device + "_" + str(i * batch_size + temp_cnt)+".txt"
                 with open(file_name, "w") as f:
                     for val in matches.detach().numpy():
                         f.write(str(val))
