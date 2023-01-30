@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 import random
 import itertools
+import timeit
 
 import torch
 import numpy as np
@@ -228,6 +229,8 @@ def main():
     device_memory_padding = 211025920 if decoder_device == 'mixed' else 0
     host_memory_padding = 140544512 if decoder_device == 'mixed' else 0
 
+    start = timeit.default_timer() #Timer starts
+
     # Anchors - load default anchors from a text file
     with open('/media/sampath/Default_anchors_retinanet_1.txt', 'r') as f_read:
         anchors = f_read.readlines()
@@ -276,11 +279,12 @@ def main():
             targets = it[1]
             temp_cnt = 0
             for matches in targets["matched_idxs"]:
-                file_name = anchor_dump_path + device + "/matches_" + device + "_" + str(i * batch_size + temp_cnt)+".txt"
-                with open(file_name, "w") as f:
-                    for val in matches.detach().numpy():
-                        f.write(str(val))
-                        f.write("\n")
+                if temp_cnt < 128:
+                    file_name = anchor_dump_path + device + "/matches_" + device + "_" + str(i * batch_size + temp_cnt)+".txt"
+                    with open(file_name, "w") as f:
+                        for val in matches.detach().numpy():
+                            f.write(str(val))
+                            f.write("\n")
                 temp_cnt = temp_cnt + 1
             # print("matched indices: ", targets["matched_idxs"])
             # for img in it[0]:
@@ -289,15 +293,11 @@ def main():
             #     draw_patches(img, cnt, "cpu")
         COCOIteratorPipeline.reset()
     print("*********************************************************************")
-    exit(0)
-
-    import timeit
-    start = timeit.default_timer() #Timer starts
-
-
+    
 
     stop = timeit.default_timer() #Timer Stops
     print('\n Time: ', stop - start)
+    exit(0)
 
 if __name__ == '__main__':
     main()
