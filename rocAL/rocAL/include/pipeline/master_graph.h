@@ -188,7 +188,7 @@ private:
     std::vector<std::vector<uint32_t>> _resize_height;
     // box encoder variables
     bool _is_box_encoder = false; //bool variable to set the box encoder
-    bool _is_box_iou_matcher = true; // bool variable to set the box iou matcher
+    bool _is_box_iou_matcher = false; // bool variable to set the box iou matcher
     std::vector<float> _anchors; // Anchors to be used for encoding, as the array of floats is in the ltrb format of size 8732x4
     size_t _num_anchors;       // number of bbox anchors
     float _criteria = 0.5; // Threshold IoU for matching bounding boxes with anchors. The value needs to be between 0 and 1.
