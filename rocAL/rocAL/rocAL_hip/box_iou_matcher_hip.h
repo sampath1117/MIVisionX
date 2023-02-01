@@ -28,8 +28,7 @@ THE SOFTWARE.
 #include "meta_data.h"
 
 // assume total number of boxes per batch for device memory allocation
-#define MAX_NUM_BOXES_TOTAL     4096
-#define MAX_OBJECTS_PER_IMAGE   50
+#define MAX_NUM_BOXES_PER_BATCH     23296 // for SSD Retinanet Max bboxes possible per images is 768, Batchsize used is 32 so 768 x 32 = 23296
 #define HIP_ERROR_CHECK_STATUS(call) { hipError_t err = (call); if(err != hipSuccess){ THROW("ERROR: Hip call failed with status " + TOSTR(err))}}
 
 struct BoxIoUMatcherSampleDesc {
@@ -70,13 +69,11 @@ protected:
 
         // allocate device buffers
         HIP_ERROR_CHECK_STATUS(hipMalloc((void **)&_anchors_data_dev, _anchor_count * 4 * sizeof(float)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc(&_boxes_in_dev, MAX_NUM_BOXES_TOTAL * sizeof(float) * 4));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_boxes_in_dev, MAX_NUM_BOXES_PER_BATCH * sizeof(float) * 4));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_idx_dev, _best_box_idx.size() * sizeof(float)));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_iou_dev, _best_box_iou.size() * sizeof(float)));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_low_quality_preds_dev, _anchor_count * cur_batch_size * sizeof(int)));
-        // HIP_ERROR_CHECK_STATUS(hipMalloc(&_anchor_iou_dev, _anchor_count * cur_batch_size * sizeof(float)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc(&_iou_matrix_dev, MAX_OBJECTS_PER_IMAGE * _anchor_count * cur_batch_size * sizeof(float)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_anchor_iou_dev, MAX_OBJECTS_PER_IMAGE * cur_batch_size * sizeof(float)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_anchor_iou_dev, _anchor_count * cur_batch_size * sizeof(float)));
     }
 
     void UnInitialize() {
@@ -87,9 +84,7 @@ protected:
         if (_best_box_iou_dev) HIP_ERROR_CHECK_STATUS(hipFree(_best_box_iou_dev));
         if (_best_box_idx_dev) HIP_ERROR_CHECK_STATUS(hipFree(_best_box_idx_dev));
         if (_low_quality_preds_dev) HIP_ERROR_CHECK_STATUS(hipFree(_low_quality_preds_dev));
-        // if (_anchor_iou_dev) HIP_ERROR_CHECK_STATUS(hipFree(_anchor_iou_dev));
-        if (_iou_matrix_dev) HIP_ERROR_CHECK_STATUS(hipFree(_iou_matrix_dev));
-        if (_best_anchor_iou_dev) HIP_ERROR_CHECK_STATUS(hipFree(_best_anchor_iou_dev));
+        if (_anchor_iou_dev) HIP_ERROR_CHECK_STATUS(hipFree(_anchor_iou_dev));
     }
 
 private:
@@ -111,8 +106,6 @@ private:
     float *_best_box_iou_dev;
     int * _low_quality_preds_dev;
     float *_anchor_iou_dev;
-    float *_best_anchor_iou_dev;
-    float *_iou_matrix_dev;
     std::vector<BoxIoUMatcherSampleDesc *> _samples;
     BoxIoUMatcherSampleDesc *_samples_host_buf, *_samples_dev_buf;
     float4 *_anchors_data_dev;
