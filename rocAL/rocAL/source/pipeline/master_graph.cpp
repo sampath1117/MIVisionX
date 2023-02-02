@@ -317,7 +317,7 @@ rocalTensor * MasterGraph::create_tensor(const rocalTensorInfo &info, bool is_ou
 
         _internal_tensor_list.push_back(new_tensor);
 
-        auto * output = new rocalTensor(info);
+        auto * output = new rocalTensor(info); 
         if (output->create_from_handle(_context) != 0)
             THROW("Cannot create the tensor from handle")
 
@@ -634,7 +634,7 @@ void MasterGraph::output_routine()
 {
     INFO("Output routine started with "+TOSTR(_remaining_count) + " to load");
     size_t batch_ratio = _is_sequence_reader_output ? _sequence_batch_ratio : _user_to_internal_batch_ratio;
-    if(!_is_sequence_reader_output)
+    if(!_is_sequence_reader_output) 
     {
 #if !ENABLE_HIP
     if(processing_on_device_ocl() && batch_ratio != 1)
@@ -781,18 +781,14 @@ void MasterGraph::output_routine()
 #endif
                     _meta_data_graph->update_box_encoder_meta_data(&_anchors, full_batch_meta_data, _criteria, _offset, _scale, _means, _stds);
             }
-            // std::cerr << "\n Value of _is_box_iou_matcher :" << _is_box_iou_matcher;
             if(_is_box_iou_matcher)
             {
                 //TODO - to add call for hip kernel.
-                // std::cerr << "\n Call to updatebox_iou_matcher in master graph :" << std::endl;
                 _meta_data_graph->update_box_iou_matcher(&_anchors, full_batch_meta_data, _criteria, _high_threshold, _low_threshold, _allow_low_quality_matches);
             }
             _bencode_time.end();
-            // std::cerr << "\n Comes before ring buffer set meta data";
             _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data, _is_segmentation, _is_box_iou_matcher);
             _ring_buffer.push();
-            // std::cerr << "\n Comes after ring buffer set meta data";
             // full_batch_meta_data->clear();
         }
         _process_time.end();
@@ -899,8 +895,8 @@ std::vector<rocalTensorList *> MasterGraph::create_cifar10_label_reader(const ch
         _labels_tensor_list.push_back(tensor);
     }
     _metadata_output_tensor_list.emplace_back(&_labels_tensor_list);
-
-
+    
+    
     _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
     if (_augmented_meta_data)
         THROW("Metadata can only have a single output")
@@ -950,13 +946,12 @@ std::vector<rocalTensorList *> MasterGraph::create_video_label_reader(const char
     return _metadata_output_tensor_list;
 }
 
-std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, bool mask, MetaDataReaderType reader_type, MetaDataType label_type, bool is_box_encoder, bool is_box_iou_matcher)
+std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const char *source_path, bool is_output, bool mask, MetaDataReaderType reader_type, MetaDataType label_type, bool is_box_encoder)
 {
     if(_meta_data_reader)
         THROW("A metadata reader has already been created")
     if(mask)
         _is_segmentation = true;
-    is_box_iou_matcher = true;
     MetaDataConfig config(label_type, reader_type, source_path, std::map<std::string, std::string>(), std::string(), mask);
     _meta_data_graph = create_meta_data_graph(config);
     _meta_data_reader = create_meta_data_reader(config);
@@ -984,7 +979,8 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
     default_bbox_info.set_tensor_layout(RocalTensorlayout::NONE);
     _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info
     rocalTensorInfo default_mask_info, default_matches_info;
-    if(is_box_iou_matcher)
+    //check if box coder - then add matched idxs meta data
+    if(_is_box_iou_matcher)
     {
         num_of_dims = 1;
         dims.resize(num_of_dims);
@@ -1007,7 +1003,7 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
                                             RocalTensorDataType::FP32);
         default_mask_info.set_metadata();
         default_mask_info.set_tensor_layout(RocalTensorlayout::NONE);
-        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info
+        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info  
     }
 
 
@@ -1028,6 +1024,7 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
             _matches_tensor_list.push_back(new rocalTensor(matches_info));
         }
     }
+    //std::cerr <<"\n Before init metadata in coco reader : " << _meta_data_buffer_size.size(); 
     _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
     if(is_output)
     {
@@ -1266,10 +1263,9 @@ void MasterGraph::box_encoder(std::vector<float> &anchors, float criteria, const
 void MasterGraph::box_iou_matcher(std::vector<float> &anchors, float criteria, float high_threshold, float low_threshold, bool allow_low_quality_matches)
 {
     _is_box_iou_matcher = true;
-    std::cerr << "\n Box variable is set here..";
     _num_anchors = anchors.size() / 4;
     std::cerr << "\n num anchors : " << _num_anchors << std::endl;
-
+ 
 #if ENABLE_HIP
     //do nothing for now - have to add gpu kernels
 #endif
