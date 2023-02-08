@@ -45,6 +45,7 @@ Reader::Status COCOFileSourceReader::initialize(ReaderConfig desc)
     _batch_count = desc.get_batch_size();
     _loop = desc.loop();
     _shuffle = desc.shuffle();
+    // std::cerr << "\n Shuffle check : " << _shuffle;
     _meta_data_reader = desc.meta_data_reader();
 
     if(_json_path == "")
@@ -235,27 +236,25 @@ Reader::Status COCOFileSourceReader::open_folder()
     if ((_src_dir = opendir(_folder_path.c_str())) == nullptr)
         THROW("FileReader ShardID [" + TOSTR(_shard_id) + "] ERROR: Failed opening the directory at " + _folder_path);
 
-    while ((_entity = readdir(_src_dir)) != nullptr)
-    {
-        if (_entity->d_type != DT_REG)
-            continue;
-        if(!_meta_data_reader || _meta_data_reader->exists(_entity->d_name)) {
-            if (get_file_shard_id() != _shard_id)
-            {
-                _file_count_all_shards++;
-                incremenet_file_id();
-                continue;
-            }
-            _in_batch_read_count++;
-            _in_batch_read_count = (_in_batch_read_count % _batch_count == 0) ? 0 : _in_batch_read_count;
-            std::string file_path = _folder_path;
-            file_path.append("/");
-            file_path.append(_entity->d_name);
-            _last_file_name = file_path;
-            _file_names.push_back(file_path);
+    _map_values = _meta_data_reader->get_map_image_names_content();
+        // std::cerr << "\n Map image contents : " ;
+    for (auto &elem : _map_values) {
+        if (get_file_shard_id() != _shard_id)
+        {
             _file_count_all_shards++;
             incremenet_file_id();
+            continue;
         }
+        _in_batch_read_count++;
+        _in_batch_read_count = (_in_batch_read_count % _batch_count == 0) ? 0 : _in_batch_read_count;
+        std::string file_path = _folder_path;
+        file_path.append("/");
+        //file_path.append(_entity->d_name);
+        file_path.append(elem.second);
+        _last_file_name = file_path;
+        _file_names.push_back(file_path);
+        _file_count_all_shards++;
+        incremenet_file_id();
     }
     if (_file_names.empty())
         WRN("FileReader ShardID [" + TOSTR(_shard_id) + "] Did not load any file from " + _folder_path)

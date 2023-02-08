@@ -89,7 +89,7 @@ struct MetaData
     std::vector<size_t> get_matches_dims()
     {
         _matches_dims = {_match.size()};
-        return _matches_dims; 
+        return _matches_dims;
     }
 protected:
     BoundingBoxCords _bb_cords = {}; // For bb use
@@ -134,7 +134,7 @@ struct BoundingBox : public MetaData
         _bb_label_ids = std::move(bb_label_ids);
         _img_size = std::move(img_size);
         _match = std::move(match);
-    }  
+    }
     BoundingBox(BoundingBoxCords bb_cords,BoundingBoxLabels bb_label_ids ,ImgSize img_size)
     {
         _bb_cords =std::move(bb_cords);
@@ -160,8 +160,8 @@ struct BoundingBox : public MetaData
     void set_bb_labels(BoundingBoxLabels bb_label_ids) { _bb_label_ids = std::move(bb_label_ids); }
     void set_img_sizes(ImgSize img_size) { _img_size =std::move(img_size); }
     void set_matches(Matches matches) { _match = std::move(matches); }
-    void set_mask_cords(MaskCords mask_cords) 
-    { 
+    void set_mask_cords(MaskCords mask_cords)
+    {
         _mask_cords = std::move(mask_cords);
         _mask_coords_count = mask_cords.size();
     }
@@ -228,7 +228,7 @@ struct MetaDataBatch
     std::vector<MaskCords>& get_mask_cords_batch() { return _mask_cords; }
     std::vector<std::vector<int>>& get_mask_polygons_count_batch() { return _polygon_counts; }
     std::vector<std::vector<std::vector<int>>>& get_mask_vertices_count_batch() { return _vertices_counts; }
-    void reset_objects_count() { 
+    void reset_objects_count() {
         _total_objects_count = 0;
         _total_mask_coords_count = 0;
     }
@@ -368,10 +368,11 @@ struct BoundingBoxBatch: public MetaDataBatch
                 labels_buffer += bb_labels_dims[i][0];
                 bbox_buffer += (bb_coords_dims[i][0] * 4);
                 mask_buffer += mask_coords_dims[i][0];
-            }            
+            }
         }
         else if(is_box_iou_matcher)
         {
+            // std::cerr << "\n Comes inside is_box cond of copy_data" ;
             int *matches_buffer = (int *)buffer[2];
             auto matches_dims = _metadata_dimensions.matches_dims();
             for(unsigned i = 0; i < _bb_label_ids.size(); i++)
@@ -387,6 +388,7 @@ struct BoundingBoxBatch: public MetaDataBatch
                     matches_buffer += matches_dims[i][0];
                 }
             }
+            // std::cerr << "\n Comes after is_box cond of copy_data" ;
         }
         else
         {
@@ -404,7 +406,7 @@ struct BoundingBoxBatch: public MetaDataBatch
         _buffer_size.emplace_back(_total_objects_count * sizeof(int));
         _buffer_size.emplace_back(_total_objects_count * 4 * sizeof(float));
         if(is_box_iou_matcher)
-            _buffer_size.emplace_back(ANCHOR_SIZE * sizeof(int));
+            _buffer_size.emplace_back(_bb_cords.size() * ANCHOR_SIZE * sizeof(int));
         if(is_segmentation)
             _buffer_size.emplace_back(_total_mask_coords_count * sizeof(float));
         return _buffer_size;

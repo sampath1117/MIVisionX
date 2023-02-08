@@ -44,6 +44,7 @@ public :
     void print_map_contents();
     bool set_timestamp_mode() override { return false; }
     const std::map<std::string, std::shared_ptr<MetaData>> & get_map_content() override { return _map_content;}
+    const std::map<int, std::string> & get_map_image_names_content() override { return _map_img_names; }
     MetaDataBatch * get_output() override { return _output; }
     MXNetMetaDataReader();
     ~MXNetMetaDataReader() override { delete _output; }
@@ -58,6 +59,7 @@ private:
     ImageRecordIOHeader _hdr;
     const uint32_t _kMagic = 0xced7230a;
     std::map<std::string, std::shared_ptr<MetaData>> _map_content;
+    std::map<int, std::string> _map_img_names;
     std::string _path;
     DIR *_src_dir;
     struct dirent *_entity;

@@ -38,6 +38,7 @@ public :
     void print_map_contents();
     bool set_timestamp_mode() override { return false; }
     const std::map<std::string, std::shared_ptr<MetaData>> & get_map_content() override { return _map_content;}
+    const std::map<int, std::string> & get_map_image_names_content() override { return _map_img_names; }
     MetaDataBatch * get_output() override { return _output; }
     LabelReaderFolders();
     ~LabelReaderFolders() override { delete _output; }
@@ -48,6 +49,7 @@ private:
     std::map<std::string, std::shared_ptr<MetaData>> _map_content;
     std::map<std::string, std::shared_ptr<MetaData>>::iterator _itr;
     std::string _path;
+    std::map<int, std::string> _map_img_names;
     LabelBatch* _output;
     DIR *_src_dir, *_sub_dir;
     struct dirent *_entity;

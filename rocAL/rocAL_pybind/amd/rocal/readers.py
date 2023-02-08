@@ -26,7 +26,3 @@ def coco(*inputs,file_root='', annotations_file='', bytes_per_sample_hint=0, dum
     b.setSeed(seed)
     meta_data = b.COCOReader(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
     return (meta_data, labels, bboxes)
-
-
-
-
