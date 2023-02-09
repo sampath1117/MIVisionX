@@ -41,33 +41,28 @@ __device__ __forceinline__ float CalculateIou(const float4 &b1, const float4 &b2
 __device__ inline void FindBestMatch(const int N, volatile float *vals, volatile int *idx) {
   for (unsigned int stride = blockDim.x / 2; stride > 0; stride >>= 1) {
     if (threadIdx.x < stride) {
-      if (vals[threadIdx.x] <= vals[threadIdx.x + stride]) {
-        if (vals[threadIdx.x] == vals[threadIdx.x + stride]) {
-          idx[threadIdx.x] = max(idx[threadIdx.x], idx[threadIdx.x + stride]);
-        } else {
+      if (vals[threadIdx.x] < vals[threadIdx.x + stride]) {
           vals[threadIdx.x] = vals[threadIdx.x + stride];
-          idx[threadIdx.x] = idx[threadIdx.x + stride];
         }
       }
     }
     __syncthreads();
   }
-}
 
 __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsigned int anchor_count, const float4 *anchors,
                                     volatile float *anchor_iou_list, volatile int *best_anchor_idx_buf, volatile float *best_anchor_iou_buf,
                                     volatile int *best_box_idx, volatile float *best_box_iou) {
-    float best_anchor_iou = -1.0f;
+    float best_anchor_iou = -100.0f;
     int best_anchor_idx = -1;
 
     for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
       float new_val = CalculateIou(box, anchors[anchor]);
       anchor_iou_list[anchor] = new_val;
-      if (new_val >= best_anchor_iou) {
+      if ((new_val > best_anchor_iou)){
           best_anchor_iou = new_val;
           best_anchor_idx = anchor;
       }
-      if (new_val >= best_box_iou[anchor]) {
+      if ((new_val > best_box_iou[anchor])){
           best_box_iou[anchor] = new_val;
           best_box_idx[anchor] = box_idx;
       }
@@ -84,7 +79,7 @@ __device__ void WriteMatchesToOutput(unsigned int anchor_count, float high_thres
         {
           if (best_box_iou[anchor] < low_threshold)
               best_box_idx[anchor] = -1;
-          else if(best_box_iou[anchor] >= low_threshold && best_box_iou[anchor] < high_threshold)
+          else if(((best_box_iou[anchor] > low_threshold) || (fabs(best_box_iou[anchor] - low_threshold) < 1e-6)) && best_box_iou[anchor] < high_threshold)
               best_box_idx[anchor] = -2;
         }
     }

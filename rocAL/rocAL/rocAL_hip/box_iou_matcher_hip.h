@@ -53,8 +53,9 @@ protected:
     void Initialize(int cur_batch_size) {
         _cur_batch_size = cur_batch_size;
         _anchor_count = _anchors.size() / 4;
-        _best_box_idx.resize(cur_batch_size * _anchor_count);
-        _best_box_iou.resize(cur_batch_size * _anchor_count);
+        size_t buff_size = cur_batch_size * _anchor_count;
+        // _best_box_idx.resize(cur_batch_size * _anchor_count);
+        // _best_box_iou.resize(cur_batch_size * _anchor_count);
 
         hipError_t err = hipHostMalloc((void **)&_samples_host_buf, cur_batch_size * sizeof(BoxIoUMatcherSampleDesc), hipHostMallocDefault/*hipHostMallocMapped|hipHostMallocWriteCombined*/);
         if(err != hipSuccess || !_samples_host_buf)
@@ -70,10 +71,10 @@ protected:
         // allocate device buffers
         HIP_ERROR_CHECK_STATUS(hipMalloc((void **)&_anchors_data_dev, _anchor_count * 4 * sizeof(float)));
         HIP_ERROR_CHECK_STATUS(hipMalloc(&_boxes_in_dev, MAX_NUM_BOXES_PER_BATCH * sizeof(float) * 4));
-        HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_idx_dev, _best_box_idx.size() * sizeof(float)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_iou_dev, _best_box_iou.size() * sizeof(float)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc(&_low_quality_preds_dev, _anchor_count * cur_batch_size * sizeof(int)));
-        HIP_ERROR_CHECK_STATUS(hipMalloc(&_anchor_iou_dev, _anchor_count * cur_batch_size * sizeof(float)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_idx_dev, buff_size * sizeof(int)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_best_box_iou_dev, buff_size * sizeof(float)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_low_quality_preds_dev, buff_size * sizeof(int)));
+        HIP_ERROR_CHECK_STATUS(hipMalloc(&_anchor_iou_dev, buff_size * sizeof(float)));
     }
 
     void UnInitialize() {
