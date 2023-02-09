@@ -58,11 +58,11 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
     for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
       float new_val = CalculateIou(box, anchors[anchor]);
       anchor_iou_list[anchor] = new_val;
-      if ((new_val > best_anchor_iou)){
+      if ((new_val > best_anchor_iou)){ //|| (fabs(new_val - best_anchor_iou) < 1e-6)) {
           best_anchor_iou = new_val;
           best_anchor_idx = anchor;
       }
-      if ((new_val > best_box_iou[anchor])){
+      if ((new_val > best_box_iou[anchor])){ //|| (fabs(new_val - best_box_iou[anchor]) < 1e-6)) {
           best_box_iou[anchor] = new_val;
           best_box_idx[anchor] = box_idx;
       }
@@ -122,18 +122,15 @@ BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, cons
         FindBestMatch(blockDim.x, best_anchor_iou_buf, best_anchor_idx_buf);
         __syncthreads();
 
-        float max_anchor_iou;
-        if (threadIdx.x == 0)
+        float max_anchor_iou = best_anchor_iou_buf[0];
+        for (int anchor = threadIdx.x; anchor < anchor_cnt; anchor += blockDim.x)
         {
-          max_anchor_iou = best_anchor_iou_buf[0];
-          for (int anchor = 0; anchor < anchor_cnt; anchor++)
-          {
-              if(fabs(max_anchor_iou - anchor_iou_list[anchor]) < 1e-6)
-                low_quality_preds[anchor] = anchor;
-          }
+            if(fabs(max_anchor_iou - anchor_iou_list[anchor]) < 1e-6)
+              low_quality_preds[anchor] = anchor;
         }
         __syncthreads();
       }
+      __syncthreads();
     }
     __syncthreads();
 
