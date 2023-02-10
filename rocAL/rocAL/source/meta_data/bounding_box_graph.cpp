@@ -314,7 +314,7 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
 
         for(uint idx = 0; idx < matches.size(); idx++){
             if(matched_vals[idx] < low_threshold) matches[idx] = -1;
-            if((matched_vals[idx] >= low_threshold) && (matched_vals[idx] < high_threshold)) matches[idx] = -2;
+            if(((matched_vals[idx] > low_threshold) || fabs(matched_vals[idx] - low_threshold) < 1e-6) && (matched_vals[idx] < high_threshold)) matches[idx] = -2;
         }
 
         if(allow_low_quality_matches) {

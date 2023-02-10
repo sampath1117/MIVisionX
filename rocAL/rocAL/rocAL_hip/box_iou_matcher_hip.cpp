@@ -25,17 +25,14 @@ THE SOFTWARE.
 #include <iostream>
 
 __device__ __forceinline__ float CalculateIou(const float4 &b1, const float4 &b2) {
-    float l = fmaxf(b1.x, b2.x);
-    float t = fmaxf(b1.y, b2.y);
-    float r = fminf(b1.z, b2.z);
-    float b = fminf(b1.w, b2.w);
-    float first = fmaxf(r - l, 0.0f);
-    float second = fmaxf(b - t, 0.0f);
-    volatile float intersection = first * second;
+    volatile float l = fmaxf(b1.x, b2.x);
+    volatile float t = fmaxf(b1.y, b2.y);
+    volatile float r = fminf(b1.z, b2.z);
+    volatile float b = fminf(b1.w, b2.w);
+    volatile float intersection = fmaxf(r - l, 0.0f) * fmaxf(b - t, 0.0f);
     volatile float area1 = (b1.w - b1.y) * (b1.z - b1.x);
     volatile float area2 = (b2.w - b2.y) * (b2.z - b2.x);
-
-    return intersection / (area1 + area2 - intersection);
+    return (float) intersection / (area1 + area2 - intersection);
 }
 
 __device__ inline void FindBestMatch(const int N, volatile float *vals, volatile int *idx) {
@@ -52,17 +49,17 @@ __device__ inline void FindBestMatch(const int N, volatile float *vals, volatile
 __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsigned int anchor_count, const float4 *anchors,
                                     volatile float *anchor_iou_list, volatile int *best_anchor_idx_buf, volatile float *best_anchor_iou_buf,
                                     volatile int *best_box_idx, volatile float *best_box_iou) {
-    float best_anchor_iou = -100.0f;
+    volatile float best_anchor_iou = -100.0f;
     int best_anchor_idx = -1;
 
     for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x) {
-      float new_val = CalculateIou(box, anchors[anchor]);
+      volatile float new_val = CalculateIou(box, anchors[anchor]);
       anchor_iou_list[anchor] = new_val;
-      if ((new_val > best_anchor_iou)){ //|| (fabs(new_val - best_anchor_iou) < 1e-6)) {
+      if (new_val > best_anchor_iou){
           best_anchor_iou = new_val;
           best_anchor_idx = anchor;
       }
-      if ((new_val > best_box_iou[anchor])){ //|| (fabs(new_val - best_box_iou[anchor]) < 1e-6)) {
+      if (new_val > best_box_iou[anchor]) {
           best_box_iou[anchor] = new_val;
           best_box_idx[anchor] = box_idx;
       }
@@ -79,7 +76,7 @@ __device__ void WriteMatchesToOutput(unsigned int anchor_count, float high_thres
         {
           if (best_box_iou[anchor] < low_threshold)
               best_box_idx[anchor] = -1;
-          else if(((best_box_iou[anchor] > low_threshold) || (fabs(best_box_iou[anchor] - low_threshold) < 1e-6)) && best_box_iou[anchor] < high_threshold)
+          if(((best_box_iou[anchor] > low_threshold) || (fabs(best_box_iou[anchor] - low_threshold) < 1e-6)) && best_box_iou[anchor] < high_threshold)
               best_box_idx[anchor] = -2;
         }
     }

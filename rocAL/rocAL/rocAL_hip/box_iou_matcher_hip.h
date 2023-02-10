@@ -54,8 +54,6 @@ protected:
         _cur_batch_size = cur_batch_size;
         _anchor_count = _anchors.size() / 4;
         size_t buff_size = cur_batch_size * _anchor_count;
-        // _best_box_idx.resize(cur_batch_size * _anchor_count);
-        // _best_box_iou.resize(cur_batch_size * _anchor_count);
 
         hipError_t err = hipHostMalloc((void **)&_samples_host_buf, cur_batch_size * sizeof(BoxIoUMatcherSampleDesc), hipHostMallocDefault/*hipHostMallocMapped|hipHostMallocWriteCombined*/);
         if(err != hipSuccess || !_samples_host_buf)
