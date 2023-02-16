@@ -27,6 +27,9 @@ void ResizeMirrorNormalizeMetaNode::initialize()
     _mirror_val.resize(_batch_size);
     _src_height_val.resize(_batch_size);
     _src_width_val.resize(_batch_size);
+    _dst_height_val.resize(_batch_size);
+    _dst_width_val.resize(_batch_size);
+    _src_roi_val.resize(_batch_size * 4);
 }
 void ResizeMirrorNormalizeMetaNode::update_parameters(MetaDataBatch *input_meta_data, bool segmentation)
 {
@@ -36,10 +39,16 @@ void ResizeMirrorNormalizeMetaNode::update_parameters(MetaDataBatch *input_meta_
         _batch_size = input_meta_data->size();
     }
     _mirror = _node->return_mirror();
+    _src_roi = _node->get_src_roi();
+    _dst_width = _node->get_dst_width();
+    _dst_height = _node->get_dst_height();
 
     vxCopyArrayRange((vx_array)_mirror, 0, _batch_size, sizeof(uint), _mirror_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_dst_width, 0, _batch_size, sizeof(uint), _dst_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_dst_height, 0, _batch_size, sizeof(uint), _dst_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_src_roi, 0, _batch_size * 4, sizeof(uint), _src_roi_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
 
-    for (int i = 0; i < _batch_size; i++)
+    for (int i = 0, roi_idx = 0; i < _batch_size; i++, roi_idx += 4)
     {
         auto bb_count = input_meta_data->get_bb_labels_batch()[i].size();
         BoundingBoxCords coords_buf;
@@ -50,6 +59,8 @@ void ResizeMirrorNormalizeMetaNode::update_parameters(MetaDataBatch *input_meta_
         memcpy((void *)coords_buf.data(), input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
         BoundingBoxCords bb_coords;
         BoundingBoxLabels bb_labels;
+        float dst_to_src_width_ratio = _dst_width_val[i] / static_cast<float>(_src_roi_val.at(roi_idx + 2));
+        float dst_to_src_height_ratio = _dst_height_val[i] / static_cast<float>(_src_roi_val.at(roi_idx + 3));
         for (uint j = 0; j < bb_count; j++)
         {            
             /*if(_mirror_val[i] == 1)
@@ -59,13 +70,20 @@ void ResizeMirrorNormalizeMetaNode::update_parameters(MetaDataBatch *input_meta_
                 coords_buf[j].r = 1 - coords_buf[j].l - one_by_width_coeff;
                 coords_buf[j].l = l; 
             }*/
+            // Updating for flip
             if (_mirror_val[i] == 1)
             {
 
-                float l = 1 - coords_buf[j].r;
-                coords_buf[j].r = 1 - coords_buf[j].l;
+                float l = _src_roi_val.at(roi_idx + 2) - coords_buf[j].r;
+                coords_buf[j].r = _src_roi_val.at(roi_idx + 2) - coords_buf[j].l;
                 coords_buf[j].l = l;
             }
+            // Updating for Resize
+            coords_buf[j].l *= dst_to_src_width_ratio;
+            coords_buf[j].t *= dst_to_src_height_ratio;
+            coords_buf[j].r *= dst_to_src_width_ratio;
+            coords_buf[j].b *= dst_to_src_height_ratio;
+            
             bb_coords.push_back(coords_buf[j]);
             bb_labels.push_back(labels_buf[j]);
         }

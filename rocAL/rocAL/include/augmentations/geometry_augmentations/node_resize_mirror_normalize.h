@@ -14,12 +14,14 @@ public:
               std::vector<unsigned> max_size, RocalResizeInterpolationType interpolation_type,std::vector<float>& mean,  std::vector<float>& std_dev, IntParam *mirror, int layout);
     vx_array return_mirror(){ return _mirror.default_array();  }
 
-    unsigned int get_dst_width() { return _outputs[0]->info().max_dims()[0]; }
-    unsigned int get_dst_height() { return _outputs[0]->info().max_dims()[1]; }
-    //vx_array get_src_width() { return _src_roi_width; }
-    //vx_array get_src_height() { return _src_roi_height; }
-    //std::vector<RocalROI> get_src_roi() { return *_inputs[0]->info().get_roi(); }
-    //std::vector<RocalROI> get_dst_roi() { return *_outputs[0]->info().get_roi(); }
+    // unsigned int get_dst_width() { return _outputs[0]->info().max_dims()[0]; }
+    // unsigned int get_dst_height() { return _outputs[0]->info().max_dims()[1]; }
+    vx_array get_src_roi() { return _src_tensor_roi; }
+    // vx_array get_src_height() { return _src_roi_height; }
+    vx_array get_dst_width() { return _dst_roi_width; }
+    vx_array get_dst_height() { return _dst_roi_height; }
+    // std::vector<RocalROI> get_src_roi() { return *_inputs[0]->info().get_roi(); }
+    // std::vector<RocalROI> get_dst_roi() { return *_outputs[0]->info().get_roi(); }
     void adjust_out_roi_size();
 
 protected:

@@ -42,6 +42,28 @@ void BoundingBoxGraph::update_meta_data(MetaDataBatch *input_meta_data, decoded_
         float _dst_to_src_width_ratio = roi_width[i] / float(original_width[i]);
         float _dst_to_src_height_ratio = roi_height[i] / float(original_height[i]);
         unsigned bb_count = input_meta_data->get_bb_labels_batch()[i].size();
+        std::vector<float> coords_buf(bb_count * 4);
+        memcpy(coords_buf.data(), input_meta_data->get_bb_cords_batch()[i].data(), input_meta_data->get_bb_cords_batch()[i].size() * sizeof(BoundingBoxCord));
+        BoundingBoxCords bb_coords;
+        BoundingBoxCord temp_box;
+        temp_box.l = temp_box.t = temp_box.r = temp_box.b = 0;
+        int m = 0;
+        for (uint j = 0; j < bb_count; j++)
+        {
+            BoundingBoxCord box;
+            box.l = (coords_buf[m++] * _dst_to_src_width_ratio);
+            box.t = (coords_buf[m++] * _dst_to_src_height_ratio);
+            box.r = (coords_buf[m++] * _dst_to_src_width_ratio);
+            box.b = (coords_buf[m++] * _dst_to_src_height_ratio);
+            bb_coords.push_back(box);
+        }
+        if (bb_coords.size() == 0)
+        {
+            bb_coords.push_back(temp_box);
+            // bb_labels.push_back(0);
+        }
+        input_meta_data->get_bb_cords_batch()[i] = bb_coords;
+
         float mask_data[MAX_BUFFER];
         int poly_size = 0;
         if (segmentation)
@@ -279,7 +301,7 @@ void BoundingBoxGraph::update_box_encoder_meta_data(std::vector<float> *anchors,
 
 void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMetaDataBatch full_batch_meta_data ,float criteria, float high_threshold, float low_threshold, bool allow_low_quality_matches)
 {
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int i = 0; i < full_batch_meta_data->size(); i++)
     {
         BoundingBoxCord *bbox_anchors = reinterpret_cast<BoundingBoxCord *>(anchors->data());
@@ -309,12 +331,23 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
             matches.push_back(max_col_index);
             matched_vals.push_back(max_col);
         }
+        
+        // std::cerr<<"printing the iou matrix\n";
 
+        // for(int xx=0;xx<iou_matrix.size();xx++)
+        // {
+        //     for(int cols=0;cols<iou_matrix[0].size();cols++)
+        //     {
+        //         iou<<iou_matrix[xx][cols]<<"\n";
+        //         fprintf(fp,"%.16f\n",iou_matrix[xx][cols]);
+        //     }
+        // }
+        
         all_matches = matches;
 
         for(uint idx = 0; idx < matches.size(); idx++){
-            if(matched_vals[idx] < low_threshold) matches[idx] = -1;
-            if((matched_vals[idx] >= low_threshold) && (matched_vals[idx] < high_threshold)) matches[idx] = -2;
+            if(matched_vals[idx] < 0.4) matches[idx] = -1;
+            else if (matched_vals[idx] < 0.5) matches[idx] = -2;
         }
 
         if(allow_low_quality_matches) {
@@ -329,11 +362,9 @@ void BoundingBoxGraph::update_box_iou_matcher(std::vector<float> *anchors, pMeta
                 for(uint col = 0; col < iou_matrix[row].size(); col++) {
                     // if the element is found
                     //for(uint idx = 0; idx < highest_foreground.size(); idx++) {
-                        if(fabs(iou_matrix[row][col] - highest_foreground[row]) < 1e-6)
-                        {
+                        if(iou_matrix[row][col] == highest_foreground[row]) {
                             preds.push_back(col);
                         }
-                    //}
                 }
             }
 

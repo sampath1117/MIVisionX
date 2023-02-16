@@ -369,10 +369,11 @@ void COCOMetaDataReader::read_all(const std::string &path)
                 }
                 else if (!_mask)
                 {
-                    box.l = bbox[0] / image_size.w;
-                    box.t = bbox[1] / image_size.h;
-                    box.r = (bbox[0] + bbox[2]) / image_size.w;
-                    box.b = (bbox[1] + bbox[3]) / image_size.h;
+                    // Change to Absolute coordinates
+                    box.l = bbox[0];
+                    box.t = bbox[1];
+                    box.r = (bbox[0] + bbox[2]);
+                    box.b = (bbox[1] + bbox[3]);
                     bb_coords.push_back(box);
                     bb_labels.push_back(label);
                     add(itr->second, bb_coords, bb_labels, image_size);
