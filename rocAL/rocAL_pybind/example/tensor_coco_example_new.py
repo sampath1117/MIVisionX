@@ -227,7 +227,8 @@ def main():
                                                  shard_id=local_rank, 
                                                  num_shards=world_size,
                                                  seed=random_seed, 
-                                                 is_box_encoder=False)
+                                                 is_box_encoder=False,
+                                                 is_box_iou_matcher=True)
 
         print("*********************** SHARD ID ************************",local_rank)
         print("*********************** NUM SHARDS **********************",world_size)

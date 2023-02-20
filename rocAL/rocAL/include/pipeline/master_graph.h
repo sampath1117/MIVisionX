@@ -78,7 +78,7 @@ public:
     rocalTensorList * get_output_tensors();
     std::vector<rocalTensorList *> create_label_reader(const char *source_path, MetaDataReaderType reader_type);
     std::vector<rocalTensorList *> create_video_label_reader(const char *source_path, MetaDataReaderType reader_type, unsigned sequence_length, unsigned frame_step, unsigned frame_stride, bool file_list_frame_num = true);
-    std::vector<rocalTensorList *> create_coco_meta_data_reader(const char *source_path, bool is_output, bool mask, MetaDataReaderType reader_type, MetaDataType label_type, bool is_box_encoder = false);
+    std::vector<rocalTensorList *> create_coco_meta_data_reader(const char *source_path, bool is_output, bool mask, MetaDataReaderType reader_type, MetaDataType label_type, bool is_box_encoder = false, bool is_box_iou_matcher = false);
     std::vector<rocalTensorList *> create_tf_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type,  MetaDataType label_type, const std::map<std::string, std::string> feature_key_map);
     std::vector<rocalTensorList *> create_caffe_lmdb_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type,  MetaDataType label_type);
     std::vector<rocalTensorList *> create_caffe2_lmdb_record_meta_data_reader(const char *source_path, MetaDataReaderType reader_type,  MetaDataType label_type);
@@ -188,7 +188,7 @@ private:
     std::vector<std::vector<uint32_t>> _resize_height;
     // box encoder variables
     bool _is_box_encoder = false; //bool variable to set the box encoder
-    bool _is_box_iou_matcher = true; // bool variable to set the box iou matcher
+    bool _is_box_iou_matcher = false; // bool variable to set the box iou matcher
     std::vector<float> _anchors; // Anchors to be used for encoding, as the array of floats is in the ltrb format of size 8732x4
     size_t _num_anchors;       // number of bbox anchors
     float _criteria = 0.5; // Threshold IoU for matching bounding boxes with anchors. The value needs to be between 0 and 1.
