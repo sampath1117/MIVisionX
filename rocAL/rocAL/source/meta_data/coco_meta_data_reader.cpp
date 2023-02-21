@@ -331,7 +331,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                                 parser.EnterArray();
                                 while (parser.NextArrayValue())
                                 {
-                                    
+
                                     mask.push_back(parser.GetDouble());
                                     vertex_count += 1;
                                 }
@@ -344,7 +344,7 @@ void COCOMetaDataReader::read_all(const std::string &path)
                         parser.SkipValue();
                     }
                 }
-                
+
                 auto itr = _map_img_names.find(id);
                 auto it = _map_img_sizes.find(itr->second);
                 ImgSize image_size = it->second; //Normalizing the co-ordinates & convert to "ltrb" format

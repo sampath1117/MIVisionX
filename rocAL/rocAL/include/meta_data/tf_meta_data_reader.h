@@ -20,6 +20,7 @@ public :
     bool set_timestamp_mode() override { return false; }
     MetaDataBatch * get_output() override { return _output; }
     const std::map<std::string, std::shared_ptr<MetaData>> & get_map_content() override{ return _map_content;}
+    const std::map<int, std::string> & get_map_image_names_content() override { return _map_img_names; }
     TFMetaDataReader();
     ~TFMetaDataReader() override { delete _output; }
 private:
@@ -33,6 +34,7 @@ private:
     void incremenet_file_id() { _file_id++; }
     std::map<std::string, std::shared_ptr<MetaData>> _map_content;
     std::map<std::string, std::shared_ptr<MetaData>>::iterator _itr;
+    std::map<int, std::string> _map_img_names;
     std::string _path;
     std::map<std::string, std::string> _feature_key_map;
     LabelBatch* _output;

@@ -112,7 +112,7 @@ class ROCALCOCOIterator(object):
             for label in labels_array:
                 self.encoded_labels = torch.as_tensor(label, dtype=torch.int64)
                 encodded_labels_tensor.append(self.encoded_labels)
-            #print("\n encodded_labels_tensor : ", encodded_labels_tensor)
+            print("\n encodded_labels_tensor : ", encodded_labels_tensor)
 
             boxes_array = self.loader.rocalGetBoundingBoxCords()
             for box in boxes_array:
@@ -120,7 +120,7 @@ class ROCALCOCOIterator(object):
                 self.encoded_bboxes = self.encoded_bboxes * 800
                 self.encoded_bboxes = self.encoded_bboxes.view(-1, 4)
                 encoded_bboxes_tensor.append(self.encoded_bboxes)
-            #print("\n encoded_bboxes_tensor : ", encoded_bboxes_tensor)
+            print("\n encoded_bboxes_tensor : ", encoded_bboxes_tensor)
 
             matched_idxs = self.loader.rocalGetMatchedIndices()
             self.matched_idxs = torch.as_tensor(matched_idxs, dtype=torch.int64)
