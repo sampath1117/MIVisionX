@@ -51,6 +51,7 @@ public:
     void init(RocalMemType mem_type, DeviceResources dev, std::vector<size_t> sub_buffer_size, unsigned sub_buffer_count);
 #endif
     void initBoxEncoderMetaData(RocalMemType mem_type, size_t encoded_bbox_size, size_t encoded_labels_size);
+    void initBoxIoUMatcherMetaData(RocalMemType mem_type, size_t matched_indices_size);
     void init_metadata(RocalMemType mem_type, std::vector<size_t> sub_buffer_size, unsigned sub_buffer_count);
     void release_gpu_res();
     std::vector<void*> get_read_buffers();
@@ -58,6 +59,8 @@ public:
     std::vector<void*> get_write_buffers();
     std::pair<void*, void*> get_box_encode_write_buffers();
     std::pair<void*, void*> get_box_encode_read_buffers();
+    void* get_box_iou_matcher_read_buffers();
+    void* get_box_iou_matcher_write_buffers();
     MetaDataNamePair& get_meta_data();
     MetaDataDimensionsBatch& get_meta_data_info();
     std::vector<void*> get_meta_read_buffers();
@@ -93,6 +96,7 @@ private:
     std::vector<std::vector<void*>> _host_meta_data_buffers;
     std::vector<void *> _dev_bbox_buffer;
     std::vector<void *> _dev_labels_buffer;
+    std::vector<void *> _dev_matched_indices_buffer;
     bool _dont_block = false;
     RocalMemType _mem_type;
 #if ENABLE_HIP
@@ -106,4 +110,5 @@ private:
     std::mutex  _names_buff_lock;
     const size_t MEM_ALIGNMENT = 256;
     bool _box_encoder_gpu = false;
+    bool _box_iou_matcher_gpu = false;
 };

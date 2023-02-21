@@ -29,7 +29,8 @@ RingBuffer::RingBuffer(unsigned buffer_depth):
         _dev_sub_buffer(buffer_depth),
         _host_sub_buffers(buffer_depth),
         _dev_bbox_buffer(buffer_depth),
-        _dev_labels_buffer(buffer_depth)
+        _dev_labels_buffer(buffer_depth),
+        _dev_matched_indices_buffer(buffer_depth)
 {
     reset();
 }
@@ -87,6 +88,22 @@ std::pair<void*, void*> RingBuffer::get_box_encode_write_buffers()
     if((_mem_type == RocalMemType::OCL) || (_mem_type == RocalMemType::HIP))
         return std::make_pair(_dev_bbox_buffer[_write_ptr], _dev_labels_buffer[_write_ptr]);
     return std::make_pair(_host_meta_data_buffers[_write_ptr][1], _host_meta_data_buffers[_write_ptr][0]);
+}
+
+void* RingBuffer::get_box_iou_matcher_read_buffers()
+{
+    block_if_empty();
+    if((_mem_type == RocalMemType::OCL) || (_mem_type == RocalMemType::HIP))
+        return _dev_matched_indices_buffer[_read_ptr];
+    return _host_meta_data_buffers[_read_ptr][2];
+}
+
+void* RingBuffer::get_box_iou_matcher_write_buffers()
+{
+    block_if_full();
+    if((_mem_type == RocalMemType::OCL) || (_mem_type == RocalMemType::HIP))
+        return _dev_matched_indices_buffer[_write_ptr];
+    return _host_meta_data_buffers[_write_ptr][2];
 }
 
 std::vector<void*> RingBuffer::get_meta_read_buffers()
@@ -281,6 +298,28 @@ void RingBuffer::initBoxEncoderMetaData(RocalMemType mem_type, size_t encoded_bb
 #endif
 }
 
+void RingBuffer::initBoxIoUMatcherMetaData(RocalMemType mem_type, size_t matched_indices_size)
+{
+#if ENABLE_HIP
+    if(_mem_type == RocalMemType::HIP)
+    {
+        _box_iou_matcher_gpu = true;
+        if(_devhip.hip_stream == nullptr || _devhip.device_id == -1 )
+            THROW("initBoxIoUMatcherMetaData::Error Hip Device is not initialzed");
+        hipError_t err;
+        for(size_t buffIdx = 0; buffIdx < BUFF_DEPTH; buffIdx++)
+        {
+            err =  hipMalloc(&_dev_matched_indices_buffer[buffIdx], matched_indices_size);
+            if(err != hipSuccess)
+            {
+                _dev_matched_indices_buffer.clear();
+                THROW("hipMalloc of size " + TOSTR(matched_indices_size) +" failed " + TOSTR(err));
+            }
+        }
+    }
+#endif
+}
+
 void RingBuffer::init_metadata(RocalMemType mem_type, std::vector<size_t> sub_buffer_size, unsigned sub_buffer_count)
 {
     if(BUFF_DEPTH < 2)
@@ -429,7 +468,7 @@ void RingBuffer::set_meta_data(ImageNameBatch names, pMetaDataBatch meta_data, b
                 if(actual_buffer_size[i] > _meta_data_sub_buffer_size[_write_ptr][i])
                     rellocate_meta_data_buffer(_host_meta_data_buffers[_write_ptr][i], actual_buffer_size[i], i);
             }
-            meta_data->copy_data(_host_meta_data_buffers[_write_ptr], is_segmentation, is_box_iou_matcher);
+            meta_data->copy_data(_host_meta_data_buffers[_write_ptr], is_segmentation, is_box_iou_matcher, _box_iou_matcher_gpu);
         }
     }
 }

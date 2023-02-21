@@ -113,6 +113,7 @@ MasterGraph::MasterGraph(size_t batch_size, RocalAffinity affinity, int gpu_id, 
         _out_data_type(output_tensor_data_type),
 #if ENABLE_HIP
         _box_encoder_gpu(nullptr),
+        _box_iou_matcher_gpu(nullptr),
 #endif
         _rb_block_if_empty_time("Ring Buffer Block IF Empty Time"),
         _rb_block_if_full_time("Ring Buffer Block IF Full Time")
@@ -281,6 +282,7 @@ MasterGraph::build()
 #if ENABLE_HIP
     _ring_buffer.initHip(_mem_type, _device.resources(), _internal_tensor_list.data_size(), _internal_tensor_list.size());
     if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(_mem_type, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
+    else if(_is_box_iou_matcher) _ring_buffer.initBoxIoUMatcherMetaData(_mem_type, _user_batch_size*_num_anchors*sizeof(int));
 #else
     _ring_buffer.init(_mem_type, _device.resources(), _internal_tensor_list.data_size(), _internal_tensor_list.size()); // TODO - Tensorlist change here
     if (_is_box_encoder) _ring_buffer.initBoxEncoderMetaData(_mem_type, _user_batch_size*_num_anchors*4*sizeof(float), _user_batch_size*_num_anchors*sizeof(int));
@@ -317,7 +319,7 @@ rocalTensor * MasterGraph::create_tensor(const rocalTensorInfo &info, bool is_ou
 
         _internal_tensor_list.push_back(new_tensor);
 
-        auto * output = new rocalTensor(info); 
+        auto * output = new rocalTensor(info);
         if (output->create_from_handle(_context) != 0)
             THROW("Cannot create the tensor from handle")
 
@@ -634,7 +636,7 @@ void MasterGraph::output_routine()
 {
     INFO("Output routine started with "+TOSTR(_remaining_count) + " to load");
     size_t batch_ratio = _is_sequence_reader_output ? _sequence_batch_ratio : _user_to_internal_batch_ratio;
-    if(!_is_sequence_reader_output) 
+    if(!_is_sequence_reader_output)
     {
 #if !ENABLE_HIP
     if(processing_on_device_ocl() && batch_ratio != 1)
@@ -784,7 +786,16 @@ void MasterGraph::output_routine()
             if(_is_box_iou_matcher)
             {
                 //TODO - to add call for hip kernel.
-                _meta_data_graph->update_box_iou_matcher(&_anchors, full_batch_meta_data, _criteria, _high_threshold, _low_threshold, _allow_low_quality_matches);
+                if(_mem_type == RocalMemType::HIP){
+                    #if ENABLE_HIP
+                        int *matched_indices = (int *)_ring_buffer.get_box_iou_matcher_write_buffers();
+                        _box_iou_matcher_gpu->Run(full_batch_meta_data, matched_indices);
+                    #endif
+                }
+                else
+                {
+                   _meta_data_graph->update_box_iou_matcher(&_anchors, full_batch_meta_data, _criteria, _high_threshold, _low_threshold, _allow_low_quality_matches);
+                }
             }
             _bencode_time.end();
             _ring_buffer.set_meta_data(full_batch_image_names, full_batch_meta_data, _is_segmentation, _is_box_iou_matcher);
@@ -895,8 +906,8 @@ std::vector<rocalTensorList *> MasterGraph::create_cifar10_label_reader(const ch
         _labels_tensor_list.push_back(tensor);
     }
     _metadata_output_tensor_list.emplace_back(&_labels_tensor_list);
-    
-    
+
+
     _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
     if (_augmented_meta_data)
         THROW("Metadata can only have a single output")
@@ -1004,7 +1015,7 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
                                             RocalTensorDataType::FP32);
         default_mask_info.set_metadata();
         default_mask_info.set_tensor_layout(RocalTensorlayout::NONE);
-        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info  
+        _meta_data_buffer_size.emplace_back(dims.at(0) * dims.at(1)  * _user_batch_size * sizeof(vx_float32)); // TODO - replace with data size from info
     }
 
 
@@ -1025,7 +1036,7 @@ std::vector<rocalTensorList *> MasterGraph::create_coco_meta_data_reader(const c
             _matches_tensor_list.push_back(new rocalTensor(matches_info));
         }
     }
-    //std::cerr <<"\n Before init metadata in coco reader : " << _meta_data_buffer_size.size(); 
+    //std::cerr <<"\n Before init metadata in coco reader : " << _meta_data_buffer_size.size();
     _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
     if(is_output)
     {
@@ -1266,9 +1277,11 @@ void MasterGraph::box_iou_matcher(std::vector<float> &anchors, float criteria, f
     if (!_is_box_iou_matcher)
         THROW("Box IOU matcher variable not set cannot return matched idx")
     _num_anchors = anchors.size() / 4;
- 
 #if ENABLE_HIP
-    //do nothing for now - have to add gpu kernels
+if(_mem_type == RocalMemType::HIP){
+    _box_iou_matcher_gpu = new BoxIoUMatcherGpu(_user_batch_size, anchors, high_threshold, low_threshold, _device.resources().hip_stream, _device.resources().dev_prop.canMapHostMemory, allow_low_quality_matches);
+    return;
+}
 #endif
     _anchors = anchors;
     _high_threshold = high_threshold;
@@ -1388,7 +1401,7 @@ rocalTensorList * MasterGraph::matches_meta_data()
 {
     if(_ring_buffer.level() == 0)
         THROW("No meta data has been loaded")
-    auto meta_data_buffers = (unsigned char *)_ring_buffer.get_meta_read_buffers()[2]; // Get labels buffer from ring buffer
+    auto meta_data_buffers = (unsigned char *)_ring_buffer.get_box_iou_matcher_read_buffers(); // Get labels buffer from ring buffer
     auto matches_tensor_dims = _ring_buffer.get_meta_data_info().matches_dims();
     for(unsigned i = 0; i < _matches_tensor_list.size(); i++)
     {
