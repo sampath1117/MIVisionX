@@ -46,6 +46,20 @@ __device__ inline void FindBestMatch(const int N, volatile float *vals, volatile
     __syncthreads();
   }
 
+__device__ void WriteMatchesToOutput(unsigned int anchor_count, float high_threshold, float low_threshold, volatile int *best_box_idx, volatile float *best_box_iou, volatile int *low_quality_preds, bool allow_low_quality_matches) {
+
+    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x)
+    {
+        if(!(allow_low_quality_matches && low_quality_preds[anchor] != -1))
+        {
+          if (best_box_iou[anchor] < 0.4)
+              best_box_idx[anchor] = -1;
+          else if(best_box_iou[anchor] < 0.5)
+              best_box_idx[anchor] = -2;
+        }
+    }
+}
+
 __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsigned int anchor_count, const float4 *anchors,
                                     volatile float *anchor_iou_list, volatile int *best_anchor_idx_buf, volatile float *best_anchor_iou_buf,
                                     volatile int *best_box_idx, volatile float *best_box_iou) {
@@ -66,20 +80,6 @@ __device__ void MatchBoxWithAnchors(const float4 &box, const int box_idx, unsign
     }
     best_anchor_iou_buf[threadIdx.x] = best_anchor_iou;
     best_anchor_idx_buf[threadIdx.x] = best_anchor_idx;
-}
-
-__device__ void WriteMatchesToOutput(unsigned int anchor_count, float high_threshold, float low_threshold, volatile int *best_box_idx, volatile float *best_box_iou, volatile int *low_quality_preds, bool allow_low_quality_matches) {
-
-    for (unsigned int anchor = threadIdx.x; anchor < anchor_count; anchor += blockDim.x)
-    {
-        if(!(allow_low_quality_matches && low_quality_preds[anchor] != -1))
-        {
-          if (best_box_iou[anchor] < low_threshold)
-              best_box_idx[anchor] = -1;
-          if(((best_box_iou[anchor] > low_threshold) || (fabs(best_box_iou[anchor] - low_threshold) < 1e-6)) && best_box_iou[anchor] < high_threshold)
-              best_box_idx[anchor] = -2;
-        }
-    }
 }
 
 template <int BLOCK_SIZE>
@@ -122,7 +122,7 @@ BoxIoUMatcher(const BoxIoUMatcherSampleDesc *samples, const int anchor_cnt, cons
         float max_anchor_iou = best_anchor_iou_buf[0];
         for (int anchor = threadIdx.x; anchor < anchor_cnt; anchor += blockDim.x)
         {
-            if(fabs(max_anchor_iou - anchor_iou_list[anchor]) < 1e-6)
+            if(anchor_iou_list[anchor] == max_anchor_iou)
               low_quality_preds[anchor] = anchor;
         }
         __syncthreads();
