@@ -37,8 +37,11 @@ SndFileDecoder::SndFileDecoder(){};
 
 AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window)
 {
+    // Allocate temporary memory for input
+    float *srcPtrTemp = (float *)malloc(_sfinfo.frames);
+
     int readcount = 0;
-    readcount = sf_readf_float(_sf_ptr, buffer, _sfinfo.frames);
+    readcount = sf_readf_float(_sf_ptr, srcPtrTemp, _sfinfo.frames);
     if(readcount != _sfinfo.frames)
     {
         printf("Not able to decode all frames. Only decoded %d frames\n", readcount);
@@ -46,8 +49,8 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
 		AudioDecoder::Status status = Status::CONTENT_DECODE_FAILED;
 		return status;
     }
-    float *srcPtrTemp = buffer;
-    float *dstPtrTemp = (float *)malloc(_sfinfo.frames * 0.95);
+
+    float *dstPtrTemp = buffer;
     uint srcLength = _sfinfo.frames;
     float outRate = 16000 * 0.95f;
     float inRate = 16000;
@@ -97,6 +100,9 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
             dstPtrTemp[outPos] = f;
         }
     }
+
+    // free temporary allocated memory
+    free(srcPtrTemp);
 
     AudioDecoder::Status status = Status::OK;
     return status;
