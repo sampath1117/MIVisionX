@@ -25,9 +25,17 @@ THE SOFTWARE.
 #include <commons.h>
 #include "sndfile_decoder.h"
 
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
 SndFileDecoder::SndFileDecoder(){};
 
-AudioDecoder::Status SndFileDecoder::decode(float* buffer)
+AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window)
 {
     int readcount = 0;
     readcount = sf_readf_float(_sf_ptr, buffer, _sfinfo.frames);
@@ -38,6 +46,58 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer)
 		AudioDecoder::Status status = Status::CONTENT_DECODE_FAILED;
 		return status;
     }
+    float *srcPtrTemp = buffer;
+    float *dstPtrTemp = (float *)malloc(_sfinfo.frames * 0.95);
+    uint srcLength = _sfinfo.frames;
+    float outRate = 16000 * 0.95f;
+    float inRate = 16000;
+    int64_t outEnd = std::ceil(srcLength * outRate / inRate);
+    int64_t inPos = 0;
+    int64_t block = 1 << 8;
+    double scale = (double)inRate / outRate;
+    float fscale = scale;
+    int64_t outBegin = 0;
+
+    for (int64_t outBlock = outBegin; outBlock < outEnd; outBlock += block) {
+        int64_t blockEnd = std::min(outBlock + block, outEnd);
+        double inBlockRaw = outBlock * scale;
+        int64_t inBlockRounded = std::floor(inBlockRaw);
+        float inPos = inBlockRaw - inBlockRounded;
+        const float * __restrict__ inBlockPtr = srcPtrTemp + inBlockRounded;
+
+        for (int64_t outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale) {
+            int i0, i1;
+            std::tie(i0, i1) = window.input_range(inPos);
+            if (i0 + inBlockRounded < 0)
+                i0 = -inBlockRounded;
+            if (i1 + inBlockRounded > srcLength)
+                i1 = srcLength - inBlockRounded;
+            float f = 0.0f;
+            int i = i0;
+
+            __m128 f4 = _mm_setzero_ps();
+            __m128 x4 = _mm_setr_ps(i - inPos, i + 1 - inPos, i + 2 - inPos, i + 3 - inPos);
+            for (; i + 3 < i1; i += 4) {
+                __m128 w4 = window(x4);
+
+                f4 = _mm_add_ps(f4, _mm_mul_ps(_mm_loadu_ps(inBlockPtr + i), w4));
+                x4 = _mm_add_ps(x4, _mm_set1_ps(4));
+            }
+
+            f4 = _mm_add_ps(f4, _mm_shuffle_ps(f4, f4, _MM_SHUFFLE(1, 0, 3, 2)));
+            f4 = _mm_add_ps(f4, _mm_shuffle_ps(f4, f4, _MM_SHUFFLE(0, 1, 0, 1)));
+            f = _mm_cvtss_f32(f4);
+
+            float x = i - inPos;
+            for (; i < i1; i++, x++) {
+                float w = window(x);
+                f += inBlockPtr[i] * w;
+            }
+
+            dstPtrTemp[outPos] = f;
+        }
+    }
+
     AudioDecoder::Status status = Status::OK;
     return status;
 }

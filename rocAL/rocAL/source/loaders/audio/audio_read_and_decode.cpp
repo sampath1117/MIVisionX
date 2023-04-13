@@ -27,6 +27,14 @@ THE SOFTWARE.
 #include "audio_decoder_factory.h"
 #include "audio_read_and_decode.h"
 
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
 // std::tuple<Decoder::ColorFormat, unsigned >
 // interpret_color_format(RocalColorFormat color_format )
 // {
@@ -118,6 +126,37 @@ AudioReadAndDecode::last_batch_padded_size()
     return _reader->last_batch_padded_size();
 }
 
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
+#include "audio_decoder.h"
+
+inline void windowed_sinc(ResamplingWindow &window,
+        int coeffs, int lobes, std::function<double(double)> envelope = Hann) {
+    float scale = 2.0f * lobes / (coeffs - 1);
+    float scale_envelope = 2.0f / coeffs;
+    window.coeffs = coeffs;
+    window.lobes = lobes;
+    window.lookup.clear();
+    window.lookup.resize(coeffs + 5);
+    window.lookup_size = window.lookup.size();
+    window.pxLookupMax = _mm_set1_epi32(window.lookup_size - 2);
+    int center = (coeffs - 1) * 0.5f;
+    for (int i = 0; i < coeffs; i++) {
+        float x = (i - center) * scale;
+        float y = (i - center) * scale_envelope;
+        float w = sinc(x) * envelope(y);
+        window.lookup[i + 1] = w;
+    }
+    window.center = center + 1;
+    window.scale = 1 / scale;
+}
+
 LoaderModuleStatus
 AudioReadAndDecode::load(float* buff,
                          std::vector<std::string>& names,
@@ -146,6 +185,13 @@ AudioReadAndDecode::load(float* buff,
     // Decode with the channels and size equal to a single audio
     // File read is done serially since I/O parallelization does not work very well.
     _file_load_time.start();// Debug timing
+
+    float quality = 50.0f;
+    ResamplingWindow window;
+    int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
+    int lookupSize = lobes * 64 + 1;
+    windowed_sinc(window, lookupSize, lobes);
+
     while ((file_counter != _batch_size) && _reader->count_items() > 0) {
 
         size_t fsize = _reader->open();
@@ -192,7 +238,7 @@ AudioReadAndDecode::load(float* buff,
             _original_samples[i] = original_samples;
             _original_sample_rates[i] = original_sample_rates;
 
-            if (_decoder[i]->decode(_decompressed_buff_ptrs[i]) != AudioDecoder::Status::OK) {
+            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window) != AudioDecoder::Status::OK) {
                 THROW("Decoder failed for file: " + _audio_names[i].c_str())
             }
             _decoder[i]->release();
