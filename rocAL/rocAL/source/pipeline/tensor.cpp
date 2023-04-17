@@ -32,6 +32,7 @@ THE SOFTWARE.
 
 #include "commons.h"
 #include "tensor.h"
+#include <omp.h>
 
 #if _WIN32
 #include <intrin.h>
@@ -376,21 +377,32 @@ unsigned rocalTensor::copy_data(void *user_buffer) {
     {
         // copy from host to host
         // memcpy(user_buffer, _mem_handle, _info.data_size());
+
         float *input_f32 = (float *)_mem_handle;
         float *output_f32 = (float *)user_buffer;
+        int batchSize = (int)_info.batch_size();
         int totalLength = _info.data_size() / sizeof(float);
-        int alignedLength = (totalLength / 8) * 8;
+        int nStride = totalLength / batchSize;
+        int alignedLength = (nStride / 8) * 8;
         int vectorLoopCount = 0;
-        for(; vectorLoopCount < alignedLength; vectorLoopCount += 8)
+
+#pragma omp parallel for num_threads(8)
+        for(int batchCount = 0; batchCount < batchSize; batchCount++)
         {
-            __m256 pInput = _mm256_loadu_ps(input_f32);
-            _mm256_storeu_ps(output_f32, pInput);
-            input_f32 += 8;
-            output_f32 += 8;
+            float *input_temp = input_f32 + batchCount * nStride;
+            float *output_temp = output_f32 + batchCount * nStride;
+            for(; vectorLoopCount < alignedLength; vectorLoopCount += 8)
+            {
+                __m256 pInput = _mm256_loadu_ps(input_temp);
+                _mm256_storeu_ps(output_temp, pInput);
+                input_temp += 8;
+                output_temp += 8;
+            }
+            for(; vectorLoopCount < nStride; vectorLoopCount++)
+                *output_temp++ = *input_temp++;
         }
-        for(; vectorLoopCount < totalLength; vectorLoopCount++)
-            *output_f32++ = *input_f32++;
     }
+
     return 0;
 }
 
