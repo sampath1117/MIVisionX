@@ -33,6 +33,14 @@ THE SOFTWARE.
 #include "commons.h"
 #include "tensor.h"
 
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
 vx_enum vx_mem_type(RocalMemType mem) {
     switch (mem) {
         case RocalMemType::OCL:
@@ -367,7 +375,21 @@ unsigned rocalTensor::copy_data(void *user_buffer) {
 #endif
     {
         // copy from host to host
-        memcpy(user_buffer, _mem_handle, _info.data_size());
+        // memcpy(user_buffer, _mem_handle, _info.data_size());
+        float *input_f32 = (float *)_mem_handle;
+        float *output_f32 = (float *)user_buffer;
+        int totalLength = _info.data_size() / sizeof(float);
+        int alignedLength = (totalLength / 8) * 8;
+        int vectorLoopCount = 0;
+        for(; vectorLoopCount < alignedLength; vectorLoopCount += 8)
+        {
+            __m256 pInput = _mm256_loadu_ps(input_f32);
+            _mm256_storeu_ps(output_f32, pInput);
+            input_f32 += 8;
+            output_f32 += 8;
+        }
+        for(; vectorLoopCount < totalLength; vectorLoopCount++)
+            *output_f32++ = *input_f32++;
     }
     return 0;
 }
