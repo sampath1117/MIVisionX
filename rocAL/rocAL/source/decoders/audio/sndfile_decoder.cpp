@@ -38,10 +38,11 @@ SndFileDecoder::SndFileDecoder(){};
 AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window)
 {
     // Allocate temporary memory for input
-    float *srcPtrTemp = (float *)malloc(_sfinfo.frames);
+    float *srcPtrTemp = (float *)malloc(_sfinfo.frames * sizeof(float));
 
     int readcount = 0;
     readcount = sf_readf_float(_sf_ptr, srcPtrTemp, _sfinfo.frames);
+    // std::cerr<<"completed sf_readf_float"<<std::endl;
     if(readcount != _sfinfo.frames)
     {
         printf("Not able to decode all frames. Only decoded %d frames\n", readcount);

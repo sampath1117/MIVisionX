@@ -235,7 +235,7 @@ AudioReadAndDecode::load(float* buff,
                 THROW("Unable to fetch decode info for file: " + _audio_names[i].c_str())
             }
             _original_channels[i] = original_channels;
-            _original_samples[i] = original_samples;
+            _original_samples[i] = original_samples * 0.95;
             _original_sample_rates[i] = original_sample_rates;
 
             if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window) != AudioDecoder::Status::OK) {
