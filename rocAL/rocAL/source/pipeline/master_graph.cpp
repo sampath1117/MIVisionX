@@ -372,6 +372,7 @@ void MasterGraph::release()
     stop_processing();
     _nodes.clear();
     _root_nodes.clear();
+    _meta_data_nodes.clear();
     _tensor_map.clear();
     _ring_buffer.release_gpu_res();
     _loader_module->shut_down();
@@ -381,6 +382,9 @@ void MasterGraph::release()
     _output_tensor_list.release();
     for(auto& tensor: _internal_tensors)
         delete tensor;
+    
+    for(auto tensor_list: _metadata_output_tensor_list)
+        tensor_list->release();
     deallocate_output_tensor();
 
 
@@ -895,8 +899,7 @@ std::vector<rocalTensorList *> MasterGraph::create_mxnet_label_reader(const char
     for(unsigned i = 0; i < _user_batch_size; i++)
     {
         auto info = default_labels_info;
-        auto tensor = new rocalTensor(info);
-        _labels_tensor_list.push_back(tensor);
+        _labels_tensor_list.push_back(new rocalTensor(info));
     }
     _metadata_output_tensor_list.emplace_back(&_labels_tensor_list);
     _ring_buffer.init_metadata(RocalMemType::HOST, _meta_data_buffer_size, _meta_data_buffer_size.size());
