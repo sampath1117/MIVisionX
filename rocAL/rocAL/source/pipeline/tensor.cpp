@@ -33,6 +33,20 @@ THE SOFTWARE.
 #include "commons.h"
 #include "tensor.h"
 
+#include <omp.h>
+
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
+
+__m128 xmm_p0 = _mm_set1_ps(0.0f);
+__m128 xmm_p3 = _mm_set1_ps(3.0f);
+
 vx_enum vx_mem_type(RocalMemType mem) {
     switch (mem) {
         case RocalMemType::OCL:
@@ -372,21 +386,239 @@ unsigned rocalTensor::copy_data(void *user_buffer) {
     return 0;
 }
 
+void compute_diff_square_sum(float &output, float *input, int64_t inputStride, int64_t numElements, float mean)
+{
+    const int64_t stride = 1;
+    if (numElements > 32)
+    {
+        int64_t currElements = numElements >> 1;
+        float tmp1 = 0, tmp2 = 0;
+
+        // reduce first half and accumulate
+        compute_diff_square_sum(tmp1, input, stride, currElements, mean);
+
+        // reduce second half and accumulate
+        compute_diff_square_sum(tmp2, input + currElements * stride, stride, numElements - currElements, mean);
+
+        tmp1 += tmp2;
+        output += tmp1;
+    }
+    else
+    {
+        // reduce to a temporary
+        float tmp = 0;
+        for (int64_t i = 0; i < numElements; i++)
+        {
+            float curr = (input[i * stride] - mean);
+            auto curnew = curr * curr;
+            tmp += curnew;
+        }
+
+        // accumulate in target value
+        output += tmp;
+    }
+}
+
+void compute_sum(float &output, float *input, int64_t inputStride, int64_t numElements)
+{
+    const int64_t stride = 1;
+    if (numElements > 32)
+    {
+        int64_t currElements = numElements >> 1;
+        float tmp1 = 0, tmp2 = 0;
+
+        // reduce first half and accumulate
+        compute_sum(tmp1, input, stride, currElements);
+
+        // reduce second half and accumulate
+        compute_sum(tmp2, input + currElements * stride, stride, numElements - currElements);
+
+        tmp1 += tmp2;
+        output += tmp1;
+    }
+    else
+    {
+        // reduce to a temporary
+        float tmp = 0;
+        for (int64_t i = 0; i < numElements; i++)
+            tmp += input[i * stride];
+
+        // accumulate in target value
+        output += tmp;
+    }
+}
+
+float rpp_rsqrt(float x)
+{
+    // Use SSE intrinsic and one Newton-Raphson refinement step
+    // - faster and less hacky than the hack below.
+    __m128 X = _mm_set_ss(x);
+    __m128 tmp = _mm_rsqrt_ss(X);
+    float y = _mm_cvtss_f32(tmp);
+    return y * (1.5f - x * 0.5f * y * y);
+}
+
+static void rpp_rsqrt_sse(float *input, int64_t numElements, float eps, float rdiv, float mul)
+{
+    int64_t i = 0;
+    __m128 rdivx4 = _mm_set1_ps(rdiv);
+    __m128 mulx4 = _mm_set1_ps(mul * 0.5f);
+    if (eps) // epsilon is present - no need for masking, but we need to add it
+    {
+        __m128 epsx4 = _mm_set1_ps(eps);
+        for (; i + 4 <= numElements; i += 4)
+        {
+            __m128 x = _mm_loadu_ps(&input[i]);
+            x = _mm_mul_ps(x, rdivx4);
+            x = _mm_add_ps(x, epsx4);
+            __m128 y = _mm_rsqrt_ps(x);
+            __m128 y2 = _mm_mul_ps(y, y);
+            __m128 xy2 = _mm_mul_ps(x, y2);
+            __m128 three_minus_xy2 = _mm_sub_ps(xmm_p3, xy2);
+            y = _mm_mul_ps(y, three_minus_xy2);
+            y = _mm_mul_ps(y, mulx4);
+            _mm_storeu_ps(&input[i], y);
+        }
+    }
+    else
+    {
+        for (; i + 4 <= numElements; i += 4)
+        {
+            __m128 x = _mm_loadu_ps(&input[i]);
+            x = _mm_mul_ps(x, rdivx4);
+            __m128 mask = _mm_cmpneq_ps(x, xmm_p0);
+            __m128 y = _mm_rsqrt_ps(x);
+            y = _mm_and_ps(y, mask);
+            __m128 y2 = _mm_mul_ps(y, y);
+            __m128 xy2 = _mm_mul_ps(x, y2);
+            __m128 three_minus_xy2 = _mm_sub_ps(xmm_p3, xy2);
+            y = _mm_mul_ps(y, three_minus_xy2);
+            y = _mm_mul_ps(y, mulx4);
+            _mm_storeu_ps(&input[i], y);
+        }
+    }
+    if (eps)
+    {
+        for (; i < numElements; i++)
+            input[i] = rpp_rsqrt(input[i] * rdiv + eps) * mul;
+    }
+    else
+    {
+        for (; i < numElements; i++)
+        {
+            float x = input[i] * rdiv;
+            input[i] = x ? rpp_rsqrt(x) * mul : 0;
+        }
+    }
+}
+
+void compute_2D_mean(float *srcPtr, float *meanPtr, uint *dims, uint *stride)
+{
+    float *srcPtrTemp = srcPtr;
+    float normFactor = 1.0 / dims[1];
+    for(uint i = 0; i < dims[0]; i++)
+    {
+        meanPtr[i] = 0;
+        compute_sum(meanPtr[i], srcPtrTemp, 1, dims[1]);
+        srcPtrTemp += stride[1];
+        meanPtr[i] = meanPtr[i] * normFactor;
+    }
+}
+
+void compute_2D_inv_std_dev(float *srcPtr, float *meanPtr, float *stdDevPtr, uint *dims, uint *stride) {
+
+    float *srcPtrTemp = srcPtr;
+    float normFactor = (float)(1.0 / dims[1]);
+    for(uint i = 0; i < dims[0]; i++)
+    {
+        stdDevPtr[i] = 0;
+        compute_diff_square_sum(stdDevPtr[i], srcPtrTemp, 1, dims[1], meanPtr[i]);
+        srcPtrTemp += stride[1];
+    }
+    rpp_rsqrt_sse(stdDevPtr, (int64_t)dims[0], 0, normFactor, 1);
+}
+
+void normalize_2D_tensor(float *srcPtr, uint hStrideSrc, float *dstPtr, uint hStrideDst,
+                         float *meanPtr, float *invStdDevPtr, uint *dims, uint *paramStride)
+{
+    float *srcPtrTemp = srcPtr;
+    float *dstPtrTemp = dstPtr;
+    int paramIdx = 0;
+    for(uint i = 0; i < dims[0]; i++) {
+        float *srcPtrTempRow = srcPtrTemp;
+        float *dstPtrTempRow = dstPtrTemp;
+        for(uint j = 0; j < dims[1]; j++) {
+            *dstPtrTempRow++ = (*srcPtrTempRow++ - meanPtr[paramIdx]) * invStdDevPtr[paramIdx];
+            paramIdx += paramStride[0];
+        }
+        paramIdx = (!paramStride[1]) ? 0 : paramIdx + paramStride[1];
+        srcPtrTemp += hStrideSrc;
+        dstPtrTemp += hStrideDst;
+    }
+}
+
+void normalize_audio_host_tensor(float* srcPtr,
+                                 uint nStrideSrc,
+                                 uint hStrideSrc,
+                                 float* dstPtr,
+                                 uint nStrideDst,
+                                 uint hStrideDst,
+                                 rocalTensorInfo *_info,
+                                 int axis_mask,
+                                 uint numOfDims)
+{
+#pragma omp parallel for num_threads(8)
+	for(int batchCount = 0; batchCount < _info->batch_size(); batchCount++)
+	{
+        float *srcPtrTemp = srcPtr + batchCount * nStrideSrc;
+		float *dstPtrTemp = dstPtr + batchCount * nStrideDst;
+
+        // Set all values in dst buffer to 0.0
+        for(int cnt = 0; cnt < nStrideDst; cnt++)
+            dstPtrTemp[cnt] = 0.0f;
+
+        uint srcAudioDims[numOfDims], srcReductionDims[numOfDims], srcStride[numOfDims], paramStride[numOfDims];
+        srcAudioDims[0] = _info->get_roi()[batchCount].y1;
+        srcAudioDims[1] = _info->get_roi()[batchCount].x1;
+
+        if (axis_mask == 2) {
+            srcStride[0] = 1;
+            srcStride[1] = hStrideSrc;
+            srcReductionDims[0] = srcAudioDims[0];
+            srcReductionDims[1] = srcAudioDims[1];
+            paramStride[0] = 0;
+            paramStride[1] = 1;
+        }
+
+        float* meanTensor = (float *)malloc(srcReductionDims[0] * sizeof(float));
+        float* stdDevTensor = (float *)malloc(srcReductionDims[0] * sizeof(float));
+
+        meanTensor[0] = 0.0;
+        stdDevTensor[0] = 0.0;
+
+        compute_2D_mean(srcPtrTemp, meanTensor, srcReductionDims, srcStride);
+        compute_2D_inv_std_dev(srcPtrTemp, meanTensor, stdDevTensor, srcReductionDims, srcStride);
+
+        // Inv std dev calculations missing
+        normalize_2D_tensor(srcPtrTemp, hStrideSrc, dstPtrTemp, hStrideDst, meanTensor, stdDevTensor, srcAudioDims, paramStride);
+
+        free(meanTensor);
+        free(stdDevTensor);
+    }
+}
+
 unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
     if (_info._type != rocalTensorInfo::Type::HANDLE) return 0;
 
     //TODO : Handle this case for HIP buffer
-    auto src_stride = (_info.max_dims().at(0) * _info.max_dims().at(1) * _info.data_type_size());
-    auto dst_stride = (max_y1 * max_x1 * _info.data_type_size());
-    for (uint i = 0; i < _info._batch_size; i++) {
-        auto temp_src_ptr = static_cast<unsigned char *>(_mem_handle) + i * src_stride;
-        auto temp_dst_ptr = static_cast<unsigned char *>(user_buffer) + i * dst_stride;
-        for (uint height = 0; height < max_y1; height++) {
-            memcpy(temp_dst_ptr, temp_src_ptr, max_x1 * _info.data_type_size());
-            temp_src_ptr += _info.max_dims().at(0) * _info.data_type_size();
-            temp_dst_ptr += max_x1 * _info.data_type_size();
-        }
-    }
+    uint src_nstride = _info.max_dims().at(0) * _info.max_dims().at(1);
+    uint dst_nstride = max_y1 * max_x1;
+    uint src_hstride = _info.max_dims().at(0);
+    uint dst_hstride = max_x1;
+    auto src_ptr = static_cast<float *>(_mem_handle);
+    auto dst_ptr = static_cast<float *>(user_buffer);
+
+    normalize_audio_host_tensor(src_ptr, src_nstride, src_hstride, dst_ptr, dst_nstride, dst_hstride, &_info, 2, 2);
     return 0;
 }
 
