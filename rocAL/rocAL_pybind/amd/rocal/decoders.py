@@ -88,7 +88,7 @@ def image_slice(*inputs,file_root='',path='',annotations_file='',shard_id = 0, n
         image_decoder_slice = b.FusedDecoderCropShard(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
     return (image_decoder_slice)
 
-def audio(*inputs, file_root='', file_list_path = '', bytes_per_sample_hint=[0], shard_id = 0, num_shards = 1, random_shuffle = False, downmix=False, dtype=types.FLOAT, preserve=False, quality=50.0, max_frames=1 , max_channels=1 ,sample_rate=0.0, seed=1, storage_type=9, stick_to_shard=False, shard_size=-1):
+def audio(*inputs, file_root='', file_list_path = '', bytes_per_sample_hint=[0], shard_id = 0, num_shards = 1, random_shuffle = False, downmix=False, dtype=types.FLOAT, preserve=False, quality=50.0, max_frames=1 , max_channels=1 ,sample_rate=0.0, seed=1, storage_type=9, stick_to_shard=False, shard_size=-1, resample=False):
     kwargs_pybind = {
             "source_path": file_root,
             "source_file_list_path" : file_list_path,
@@ -103,7 +103,8 @@ def audio(*inputs, file_root='', file_list_path = '', bytes_per_sample_hint=[0],
             "max_channels":max_channels,
             "storage_type":storage_type,
             "stick_to_shard":stick_to_shard,
-            "shard_size":shard_size
+            "shard_size":shard_size,
+            "resample":resample
             }
     decoded_audio = b.Audio_DecoderSliceShard(Pipeline._current_pipeline._handle ,*(kwargs_pybind.values()))
 
