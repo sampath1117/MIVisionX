@@ -37,6 +37,7 @@ AudioLoaderNode::AudioLoaderNode(rocalTensor *output, DeviceResources device_res
 void AudioLoaderNode::init(unsigned internal_shard_count, const std::string &source_path, StorageType storage_type,
                            DecoderType decoder_type, bool shuffle, bool loop, size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader, bool resample)
 {
+    // std::cerr<<"inside AudioLoader::init, resample: "<<resample<<std::endl;
     if(!_loader_module)
         THROW("ERROR: loader module is not set for AudioLoaderNode, cannot initialize")
     if(internal_shard_count < 1)

@@ -177,7 +177,7 @@ AudioReadAndDecode::load(float* buff,
         return LoaderModuleStatus::NO_MORE_DATA_TO_READ;
     // load audios/frames from the disk and push them as a large audio onto the buff
     unsigned file_counter = 0;
-    std::cerr<<"resample boolean flag: "<<resample<<std::endl;
+    // std::cerr<<"resample boolean flag: "<<resample<<std::endl;
     // const auto ret = interpret_color_format(output_color_format);
     // const Decoder::ColorFormat decoder_color_format = std::get<0>(ret);
     const size_t audio_size = max_decoded_samples * max_decoded_channels;

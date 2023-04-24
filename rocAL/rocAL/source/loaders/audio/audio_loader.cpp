@@ -130,6 +130,7 @@ void AudioLoader::stop_internal_thread()
 
 void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original)
 {
+    // std::cerr<<"inside AudioLoader::initialize"<<std::endl;
     if (_is_initialized)
         WRN("initialize() function is already called and loader module is initialized")
 
@@ -173,6 +174,7 @@ void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
 
 void AudioLoader::initialize_test(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original, bool resample)
 {
+    // std::cerr<<"inside AudioLoader::initialize_test, resample: "<<resample<<std::endl;
     if (_is_initialized)
         WRN("initialize() function is already called and loader module is initialized")
 

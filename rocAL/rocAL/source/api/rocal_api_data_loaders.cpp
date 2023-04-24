@@ -709,7 +709,7 @@ rocalAudioFileSourceSingleShard(
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
-    resample = true;
+    // resample = true;
     // std::cerr << "Inside the rocALAudioFileSourceSingleShard" ;
     try
     {
@@ -819,7 +819,7 @@ rocalAudioFileSource(
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
-    resample = true;
+    // resample = true;
     try
     {
         // Audio tensor length is dependent on the longest audio sample present in a batch so following variables are not needed (to be removed)

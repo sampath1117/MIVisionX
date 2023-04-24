@@ -98,6 +98,7 @@ void
 AudioLoaderSharded::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type,
                                unsigned batch_size, bool keep_orig_size)
 {
+    // std::cerr<<"inside AudioLoaderSharded::initialize"<<std::endl;
     if(_initialized)
         return;
     _shard_count = reader_cfg.get_shard_count();
@@ -125,6 +126,7 @@ void
 AudioLoaderSharded::initialize_test(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type,
                                     unsigned batch_size, bool keep_orig_size, bool resample)
 {
+    // std::cerr<<"inside AudioLoaderSharded::initialize_test, resample: "<<resample<<std::endl;
     if(_initialized)
         return;
     _shard_count = reader_cfg.get_shard_count();
