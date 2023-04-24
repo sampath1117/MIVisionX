@@ -128,7 +128,7 @@ void AudioLoader::stop_internal_thread()
         _load_thread.join();
 }
 
-void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original)
+void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original, bool resample)
 {
     if (_is_initialized)
         WRN("initialize() function is already called and loader module is initialized")
@@ -143,6 +143,7 @@ void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
     _audio_loader = std::make_shared<AudioReadAndDecode>();
     size_t shard_count = reader_cfg.get_shard_count();
     int device_id = reader_cfg.get_shard_id();
+    _resample = resample;
     try
     {
         // set the device_id for decoder same as shard_id for number of shards > 1
@@ -205,7 +206,8 @@ AudioLoader::load_routine()
                                             _decoded_img_info._roi_audio_channels,
                                             _decoded_img_info._original_audio_samples,
                                             _decoded_img_info._original_audio_channels,
-                                            _decoded_img_info._original_audio_sample_rates);
+                                            _decoded_img_info._original_audio_sample_rates,
+                                            _resample);
             if(load_status == LoaderModuleStatus::OK)
             {
                 // if (_randombboxcrop_meta_data_reader)

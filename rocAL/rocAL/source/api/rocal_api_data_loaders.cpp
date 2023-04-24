@@ -704,11 +704,12 @@ rocalAudioFileSourceSingleShard(
         unsigned max_channels,
         unsigned storage_type,
         bool stick_to_shard,
-        signed shard_size)
+        signed shard_size,
+        bool resample)
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
-    std::cerr << "Inside the rocALAudioFileSourceSingleShard" ;
+    // std::cerr << "Inside the rocALAudioFileSourceSingleShard" ;
     try
     {
         if(shard_count < 1 )
@@ -753,8 +754,8 @@ rocalAudioFileSourceSingleShard(
                                                                                         context->master_graph->last_batch_policy(),
                                                                                         context->master_graph->last_batch_padded(),
                                                                                         stick_to_shard,
-                                                                                        shard_size
-                                                                                        );
+                                                                                        shard_size,
+                                                                                        resample);
         context->master_graph->set_loop(loop);
 
         if(downmix)
@@ -812,7 +813,8 @@ rocalAudioFileSource(
         float sample_rate,
         bool downmix,
         unsigned max_frames,
-        unsigned max_channels)
+        unsigned max_channels,
+        bool resample)
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
@@ -861,8 +863,8 @@ rocalAudioFileSource(
                                                                             loop,
                                                                             context->user_batch_size(),
                                                                             context->master_graph->mem_type(),
-                                                                            context->master_graph->meta_data_reader()
-                                                                            );
+                                                                            context->master_graph->meta_data_reader(),
+                                                                            resample);
         context->master_graph->set_loop(loop);
         if(downmix)
         {

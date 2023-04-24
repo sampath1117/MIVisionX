@@ -68,7 +68,8 @@ extern "C"  RocalTensor  ROCAL_API_CALL rocalAudioFileSource(RocalContext contex
                                                         float sample_rate = 0.0,
                                                         bool downmix = false,
                                                         unsigned max_frames = 1,
-                                                        unsigned max_channels = 1);
+                                                        unsigned max_channels = 1,
+                                                        bool resample = false);
 
 extern "C"  RocalTensor  ROCAL_API_CALL rocalAudioFileSourceSingleShard(RocalContext p_context,
                                                         const char* source_path,
@@ -84,7 +85,8 @@ extern "C"  RocalTensor  ROCAL_API_CALL rocalAudioFileSourceSingleShard(RocalCon
                                                         unsigned max_channels,
                                                         unsigned storage_type,
                                                         bool stick_to_shard,
-                                                        signed shard_size);
+                                                        signed shard_size,
+                                                        bool resample = false);
 
 /// Creates JPEG image reader and decoder. It allocates the resources and objects required to read and decode Jpeg images stored on the file systems. It accepts external sharding information to load a singe shard. only
 /// \param context Rocal context
