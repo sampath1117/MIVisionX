@@ -128,7 +128,50 @@ void AudioLoader::stop_internal_thread()
         _load_thread.join();
 }
 
-void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original, bool resample)
+void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original)
+{
+    if (_is_initialized)
+        WRN("initialize() function is already called and loader module is initialized")
+
+    if (_output_mem_size == 0)
+        THROW("output audio size is 0, set_output() should be called before initialize for loader modules")
+
+    _mem_type = mem_type;
+    _batch_size = batch_size;
+    _loop = reader_cfg.loop();
+    _decoder_keep_original = decoder_keep_original;
+    _audio_loader = std::make_shared<AudioReadAndDecode>();
+    size_t shard_count = reader_cfg.get_shard_count();
+    int device_id = reader_cfg.get_shard_id();
+    try
+    {
+        // set the device_id for decoder same as shard_id for number of shards > 1
+        if (shard_count > 1)
+          _audio_loader->create(reader_cfg, decoder_cfg, _batch_size, device_id);
+        else
+          _audio_loader->create(reader_cfg, decoder_cfg, _batch_size);
+    }
+    catch (const std::exception &e)
+    {
+        de_init();
+        throw;
+    }
+    _max_decoded_samples = _output_tensor->info().max_dims().at(0);
+    _max_decoded_channels = _output_tensor->info().max_dims().at(1);
+    _decoded_img_info._image_names.resize(_batch_size);
+    _decoded_img_info._roi_audio_samples.resize(_batch_size);
+    _decoded_img_info._roi_audio_channels.resize(_batch_size);
+    _decoded_img_info._original_audio_samples.resize(_batch_size);
+    _decoded_img_info._original_audio_channels.resize(_batch_size);
+    _decoded_img_info._original_audio_sample_rates.resize(_batch_size);
+    // _crop_audio_info._crop_audio_coords.resize(_batch_size);
+    _circ_buff.init(_mem_type, _output_mem_size,_prefetch_queue_depth );
+    _is_initialized = true;
+    // _audio_loader->set_random_bbox_data_reader(_randombboxcrop_meta_data_reader);
+    LOG("Loader module initialized");
+}
+
+void AudioLoader::initialize_test(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original, bool resample)
 {
     if (_is_initialized)
         WRN("initialize() function is already called and loader module is initialized")

@@ -47,7 +47,7 @@ void AudioLoaderNode::init(unsigned internal_shard_count, const std::string &sou
     reader_cfg.set_shard_count(internal_shard_count);
     reader_cfg.set_batch_count(load_batch_count);
     reader_cfg.set_meta_data_reader(meta_data_reader);
-    _loader_module->initialize(reader_cfg, DecoderConfig(decoder_type),
+    _loader_module->initialize_test(reader_cfg, DecoderConfig(decoder_type),
              mem_type,
              _batch_size, false, resample);
     _loader_module->start_loading();
