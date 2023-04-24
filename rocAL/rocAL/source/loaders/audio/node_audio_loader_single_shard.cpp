@@ -55,7 +55,7 @@ AudioLoaderSingleShardNode::init(unsigned shard_id, unsigned shard_count, const 
     reader_cfg.set_last_batch_policy(last_batch_policy, last_batch_padded);
     reader_cfg.set_stick_to_shard(stick_to_shard);
     reader_cfg.set_shard_size(shard_size);
-    _loader_module->initialize(reader_cfg, DecoderConfig(decoder_type),
+    _loader_module->initialize_test(reader_cfg, DecoderConfig(decoder_type),
                                mem_type,
                                _batch_size, resample);
     _loader_module->start_loading();

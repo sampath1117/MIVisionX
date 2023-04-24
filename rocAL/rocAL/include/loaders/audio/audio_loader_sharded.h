@@ -37,7 +37,8 @@ public:
 #endif
     ~AudioLoaderSharded() override;
     LoaderModuleStatus load_next() override;
-    void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false, bool resample=false) override;
+    void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false) override;
+    void initialize_test(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false, bool resample=false);
     void set_output (rocalTensor* output_audio) override;
     void set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader) override {};
     size_t remaining_count() override;

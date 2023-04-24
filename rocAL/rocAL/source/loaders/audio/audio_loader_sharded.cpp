@@ -93,9 +93,37 @@ LoaderModuleStatus AudioLoaderSharded::load_next()
 
     return ret;
 }
+
 void
 AudioLoaderSharded::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type,
-                               unsigned batch_size, bool keep_orig_size, bool resample)
+                               unsigned batch_size, bool keep_orig_size)
+{
+    if(_initialized)
+        return;
+    _shard_count = reader_cfg.get_shard_count();
+    // Create loader modules
+    for(size_t i = 0; i < _shard_count; i++)
+    {
+        std::shared_ptr loader = std::make_shared<AudioLoader>(_dev_resources);
+        loader->set_prefetch_queue_depth(_prefetch_queue_depth);
+        _loaders.push_back(loader);
+    }
+    // Initialize loader modules
+    for(size_t idx = 0; idx < _shard_count; idx++)
+    {
+        _loaders[idx]->set_output(_output_tensor);
+        // _loaders[idx]->set_random_bbox_data_reader(_randombboxcrop_meta_data_reader);
+        _loaders[idx]->set_gpu_device_id(idx);
+        reader_cfg.set_shard_count(_shard_count);
+        reader_cfg.set_shard_id(idx);
+        _loaders[idx]->initialize(reader_cfg, decoder_cfg, mem_type, batch_size, keep_orig_size);
+    }
+    _initialized = true;
+}
+
+void
+AudioLoaderSharded::initialize_test(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type,
+                                    unsigned batch_size, bool keep_orig_size, bool resample)
 {
     if(_initialized)
         return;
@@ -116,10 +144,11 @@ AudioLoaderSharded::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cf
         _loaders[idx]->set_gpu_device_id(idx);
         reader_cfg.set_shard_count(_shard_count);
         reader_cfg.set_shard_id(idx);
-        _loaders[idx]->initialize(reader_cfg, decoder_cfg, mem_type, batch_size, keep_orig_size, _resample);
+        _loaders[idx]->initialize_test(reader_cfg, decoder_cfg, mem_type, batch_size, keep_orig_size, _resample);
     }
     _initialized = true;
 }
+
 void AudioLoaderSharded::start_loading()
 {
     for(unsigned i = 0; i < _loaders.size(); i++)
