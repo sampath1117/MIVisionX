@@ -37,6 +37,7 @@ THE SOFTWARE.
 #include "device_manager.h"
 #endif
 #include "commons.h"
+// #include "master_graph.h"
 
 /*! \brief Converts Rocal Memory type to OpenVX memory type
  *

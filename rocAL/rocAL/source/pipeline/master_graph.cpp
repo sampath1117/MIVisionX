@@ -546,7 +546,7 @@ MasterGraph::last_batch_padded() {
     return _last_batch_padded;
 }
 
-uint 
+uint
 MasterGraph::last_batch_size()
 {
     return _loader_module->last_batch_padded_size();
@@ -556,9 +556,12 @@ Timing
 MasterGraph::timing()
 {
     Timing t = _loader_module->timing();
-    t.image_process_time += _process_time.get_timing();
+    // t.image_process_time += _process_time.get_timing();
+    t.audio_process_time += _process_time.get_timing();
     t.copy_to_output += _convert_time.get_timing();
     t.bb_process_time += _bencode_time.get_timing();
+    t.wait_if_empty_time += _ring_buffer._rb_block_if_empty_time.get_timing();
+    t.wait_if_full_time += _ring_buffer._rb_block_if_full_time.get_timing();
     return t;
 }
 
@@ -684,7 +687,6 @@ void MasterGraph::output_routine()
     }
     try {
 
-        _process_time.start();
         while (_processing)
         {
             std::vector<size_t> tensor_each_cycle_size_vec = tensor_output_byte_size(); // /batch_ratio;
@@ -809,7 +811,11 @@ void MasterGraph::output_routine()
                 }
                 _resize_width.insert(_resize_width.begin(), temp_width_arr);
                 _resize_height.insert(_resize_height.begin(), temp_height_arr);
+
+                 _process_time.start();
                 _graph->process();
+                _process_time.end();
+
                 for (size_t idx = 0; idx < _internal_tensor_list.size(); idx++)
                     _internal_tensor_list[idx]->copy_roi(tensor_roi_buffer[idx]);
             }
@@ -831,7 +837,7 @@ void MasterGraph::output_routine()
             _ring_buffer.push();
             // full_batch_meta_data->clear();
         }
-        _process_time.end();
+        // _process_time.end();
     }
     catch (const std::exception &e)
     {
@@ -839,7 +845,7 @@ void MasterGraph::output_routine()
         _processing = false;
         _ring_buffer.release_all_blocked_calls();
     }
-    _process_time.end();
+    // _process_time.end();
 }
 
 void MasterGraph::start_processing()
