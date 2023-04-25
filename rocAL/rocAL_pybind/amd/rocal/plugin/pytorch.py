@@ -31,7 +31,10 @@ class RALIGenericIterator(object):
 
     def __next__(self):
         torch.set_printoptions(threshold=10_000, profile="full", edgeitems=100)
-        
+
+        if(b.isEmpty(self.loader._handle) and (self.shard_size < 0 or self.batch_count >= self.shard_size)):
+            timing_info = self.loader.Timing_Info()
+
         if(b.isEmpty(self.loader._handle)) and self.shard_size < 0:
             if self.auto_reset:
                 self.reset()
