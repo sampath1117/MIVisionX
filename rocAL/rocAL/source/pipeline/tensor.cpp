@@ -385,6 +385,7 @@ unsigned rocalTensor::copy_data(void *user_buffer) {
 unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
     if (_info._type != rocalTensorInfo::Type::HANDLE) return 0;
 
+    // _convert_time.start();
     //TODO : Handle this case for HIP buffer
     ssize_t datatype_stride = _info.data_type_size();
     auto src_stride = (_info.max_dims().at(0) * _info.max_dims().at(1) * datatype_stride);
@@ -398,6 +399,7 @@ unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
             temp_dst_ptr += max_x1 * datatype_stride;
         }
     }
+    // _convert_time.end();
     return 0;
 }
 

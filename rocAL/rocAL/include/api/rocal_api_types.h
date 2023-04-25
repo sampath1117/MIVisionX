@@ -50,6 +50,8 @@ struct TimingInfo
     long long unsigned decode_time;
     long long unsigned process_time;
     long long unsigned transfer_time;
+    long long unsigned wait_if_empty_time;
+    long long unsigned wait_if_full_time;
 };
 enum RocalStatus
 {
