@@ -14,6 +14,94 @@
 #include "api/rocal_api_info.h"
 namespace py = pybind11;
 
+#include <string>
+#include <iostream>
+#include <chrono>
+#include <utility>
+#include "commons.h"
+
+#define DEFAULT_DBG_TIMING 1
+class TimingDBG {
+public:
+    //! Constrcutor
+    /*!
+    \param name Name of the timer,
+    \param enable enables the timer module, if not set, timer is disabled
+    */
+    explicit TimingDBG(std::string  name, bool enable = DEFAULT_DBG_TIMING):
+            _accumulated_time(_t_start - _t_start),
+            _count(0),
+            _enable(enable),
+            _name(std::move(name))
+    {}
+
+    //! Starts the timer
+    inline
+    void start()
+    {
+        if(!_enable)
+            return;
+
+        _t_start = std::chrono::high_resolution_clock::now();
+    }
+
+    //! Stops the timer
+    inline
+    void end()
+    {
+        if(!_enable)
+            return;
+
+        std::chrono::high_resolution_clock::time_point t_end =
+                std::chrono::high_resolution_clock::now();
+
+        if(_t_start < t_end)
+        {
+            _instantaneous_time = t_end - _t_start;
+            _accumulated_time = _accumulated_time + _instantaneous_time;
+            _count++;
+        }
+    }
+
+    //! Prints total elapsed time
+    unsigned long long get_timing()
+    {
+        if(!_enable)
+            return 0;
+
+        auto dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(_accumulated_time).count());
+        if(_count > 0)
+            LOG (_name + " ran " + TOSTR(_count) + " times with average duration " + TOSTR((dur / _count) / 1000000 ) + " sec " + TOSTR((dur / _count) % 1000000) + " us ")
+        _count = 0;
+        _accumulated_time = _t_start - _t_start;
+        return dur;
+    }
+
+    //! Returns last timing
+    unsigned long long get_last_timing()
+    {
+        if(!_enable)
+            return 0;
+        auto dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(_accumulated_time).count());
+        return dur;
+    }
+
+
+    unsigned count()
+    {
+        return _count;
+    }
+private:
+    std::chrono::high_resolution_clock::time_point _t_start;
+    std::chrono::duration<double, std::micro>  _accumulated_time = _t_start - _t_start;
+    std::chrono::duration<double, std::micro> _instantaneous_time = _t_start - _t_start;
+    unsigned _count;
+    const bool _enable;
+    std::string _name;
+};
+
+TimingDBG _convert_time("Conversion Time", 1);
+
 using float16 = half_float::half;
 static_assert(sizeof(float16) == 2, "Bad size");
 namespace pybind11
@@ -80,6 +168,25 @@ namespace rocal
         return py::bytes(s);
     }
 
+    py::object wrapper_timing_info(RocalContext context)
+    {
+        TimingInfo timing_info = rocalGetTimingInfo(context);
+        timing_info.transfer_time = _convert_time.get_timing();
+        std::cout<<"Load     time ::"<< timing_info.load_time <<std::endl;
+        std::cout<<"Decode   time ::"<< timing_info.decode_time <<std::endl;
+        std::cout<<"Process  time ::"<< timing_info.process_time <<std::endl;
+        std::cout<<"Transfer time ::"<< timing_info.transfer_time <<std::endl;
+        std::cout<<"Wait if empty time ::"<< timing_info.wait_if_empty_time <<std::endl;
+        std::cout<<"Wait if full time ::"<< timing_info.wait_if_full_time <<std::endl;
+        // info_new.load_time = info.load_time;
+        // info_new.decode_time = info.decode_time;
+        // info_new.process_time = info.process_time;
+        // info_new.transfer_time = info.transfer_time;
+        // info_new.wait_if_empty_time = info.wait_if_empty_time;
+        // info_new.wait_if_full_time = info.wait_if_full_time;
+        return py::cast<py::none>(Py_None);
+    }
+
     PYBIND11_MODULE(rocal_pybind, m)
     {
         m.doc() = "Python bindings for the C++ portions of ROCAL";
@@ -100,7 +207,9 @@ namespace rocal
             .def_readwrite("load_time", &TimingInfo::load_time)
             .def_readwrite("decode_time", &TimingInfo::decode_time)
             .def_readwrite("process_time", &TimingInfo::process_time)
-            .def_readwrite("transfer_time", &TimingInfo::transfer_time);
+            .def_readwrite("transfer_time",&TimingInfo::transfer_time)
+            .def_readwrite("wait_if_empty_time",&TimingInfo::wait_if_empty_time)
+            .def_readwrite("wait_if_full_time",&TimingInfo::wait_if_full_time);
         py::class_<rocalTensor>(m, "rocalTensor")
                 .def(
                 "__add__",
@@ -165,7 +274,7 @@ namespace rocal
                 },
                 R"code(
                 Returns a tensor data's total number of dimensions.
-                ex: 3 in case of audio, 4 in case of an image, 5 in case of video 
+                ex: 3 in case of audio, 4 in case of an image, 5 in case of video
                 )code"
             )
                 .def(
@@ -228,8 +337,10 @@ namespace rocal
             .def(
             "copy_data", [](rocalTensor &output_tensor, py::object p, uint max_x1, uint max_y1)
             {
-            auto ptr = ctypes_void_ptr(p);
-            output_tensor.copy_data(ptr, max_x1, max_y1);
+                _convert_time.start();
+                auto ptr = ctypes_void_ptr(p);
+                output_tensor.copy_data(ptr, max_x1, max_y1);
+                _convert_time.end();
             }
             ,py::return_value_policy::reference
             )
@@ -395,7 +506,8 @@ namespace rocal
         m.def("isEmpty", &rocalIsEmpty, py::return_value_policy::reference);
         m.def("getStatus", rocalGetStatus, py::return_value_policy::reference);
         m.def("rocalGetErrorMessage", &rocalGetErrorMessage, py::return_value_policy::reference);
-        m.def("rocalGetTimingInfo", &rocalGetTimingInfo, py::return_value_policy::reference);
+        // m.def("rocalGetTimingInfo", &rocalGetTimingInfo, py::return_value_policy::reference);
+        m.def("rocalGetTimingInfo", &wrapper_timing_info);
         m.def("setOutputImages", &rocalSetOutputs, py::return_value_policy::reference);
         m.def("labelReader", &rocalCreateLabelReader, py::return_value_policy::reference);
         m.def("labelReaderFileList", &rocalCreateFileListLabelReader, py::return_value_policy::reference);
@@ -503,7 +615,7 @@ namespace rocal
             py::return_value_policy::reference);
         m.def("ToDecibels", &rocalToDecibels, "Converts to Decibals",
             py::return_value_policy::reference);
-        m.def("PreEmphasisFilter", &rocalPreEmphasisFilter, "Applies preemphasis filter to the input data", 
+        m.def("PreEmphasisFilter", &rocalPreEmphasisFilter, "Applies preemphasis filter to the input data",
             py::return_value_policy::reference);
         m.def("Spectrogram", &rocalSpectrogram, " Produces a spectrogram from a 1D signal (for example, audio)",
             py::return_value_policy::reference);
