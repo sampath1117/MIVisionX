@@ -393,7 +393,8 @@ unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
         auto temp_src_ptr = static_cast<unsigned char *>(_mem_handle) + i * src_stride;
         auto temp_dst_ptr = static_cast<unsigned char *>(user_buffer) + i * dst_stride;
         for (uint height = 0; height < max_y1; height++) {
-            memcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride);
+            hipMemcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride, hipMemcpyHostToDevice);
+            // memcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride);
             temp_src_ptr += _info.max_dims().at(0) * datatype_stride;
             temp_dst_ptr += max_x1 * datatype_stride;
         }

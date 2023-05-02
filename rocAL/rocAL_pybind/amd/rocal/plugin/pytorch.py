@@ -31,7 +31,7 @@ class RALIGenericIterator(object):
 
     def __next__(self):
         torch.set_printoptions(threshold=10_000, profile="full", edgeitems=100)
-        
+
         if(b.isEmpty(self.loader._handle)) and self.shard_size < 0:
             if self.auto_reset:
                 self.reset()
@@ -55,6 +55,7 @@ class RALIGenericIterator(object):
         self.batch_count+=self.batch_size
         #From init
         self.num_of_dims = self.output_tensor_list[0].num_of_dims()
+        torch_gpu_device = torch.device('cuda', self.device_id)
         if self.num_of_dims == 4: # In the case of the Image data
             self.w = self.output_tensor_list[0].batch_width()
             self.h = self.output_tensor_list[0].batch_height()
@@ -81,7 +82,7 @@ class RALIGenericIterator(object):
             y1 = torch.tensor(roi[...,1:2])
             max_x1 = torch.max(x1)
             max_y1 = torch.max(y1)
-            self.output = torch.empty((self.batch_size, max_y1, max_x1,), dtype=torch.float32)
+            self.output = torch.empty((self.batch_size, max_y1, max_x1,), dtype=torch.float32, device = torch_gpu_device)
             # next
             self.labels = self.loader.rocalGetImageLabels()
             self.labels_tensor = torch.from_numpy(self.labels).type(torch.LongTensor)
