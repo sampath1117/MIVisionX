@@ -41,7 +41,6 @@ void PadNode::create_node() {
     vx_status status;
 
     _fill_values_array = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_FLOAT32, _batch_size * _num_of_dims);
-    std::cerr << "\n _inputs[0]->info().dims().data()" <<_inputs[0]->info().dims()[0];
     _anchors_tensor = vxCreateTensor(vxGetContext((vx_reference)_graph->get()), (_num_of_dims), _outputs[0]->info().dims().data(), VX_TYPE_FLOAT32, 0);
     if ((status = vxGetStatus((vx_reference)_anchors_tensor)) != VX_SUCCESS)
         THROW("Error: vxCreateTensor for _anchors_tensor: failed " + TOSTR(status))

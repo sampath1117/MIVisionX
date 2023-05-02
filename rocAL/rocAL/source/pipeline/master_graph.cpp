@@ -669,7 +669,6 @@ ImageNameBatch& operator+=(ImageNameBatch& dest, const ImageNameBatch& src)
 
 void MasterGraph::output_routine()
 {
-    std::cerr << "output routine";
     INFO("Output routine started with "+TOSTR(_remaining_count) + " to load");
     size_t batch_ratio = _is_sequence_reader_output ? _sequence_batch_ratio : _user_to_internal_batch_ratio;
     if(!_is_sequence_reader_output)
@@ -845,7 +844,6 @@ void MasterGraph::start_processing()
 {
     _processing = true;
     _remaining_count = _loader_module->remaining_count();
-    std::cerr << "_remaining_count: "<< _remaining_count;
     _output_thread = std::thread(&MasterGraph::output_routine, this);
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32) && !defined(__CYGWIN__)
 #else

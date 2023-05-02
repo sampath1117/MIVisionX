@@ -2389,7 +2389,6 @@ VX_API_ENTRY vx_node VX_API_CALL vxExtrppNode_Resample(vx_graph graph, vx_tensor
             (vx_reference)NBATCHSIZE,
             (vx_reference)DEV_TYPE};
         node = createNode(graph, VX_KERNEL_RPP_RESAMPLE, params, 12);
-        std::cerr << "Node created";
     }
     return node;
 }

@@ -34,7 +34,6 @@ Node::~Node()
 void
 Node::create(std::shared_ptr<Graph> graph)
 {
-    std::cerr << "In node::  create ()";
     if(_outputs.empty() || _inputs.empty())
         THROW("Uninitialized input/output images to the node")
 
