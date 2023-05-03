@@ -46,6 +46,8 @@ public:
     void set_output (rocalTensor* output_audio) override;
     // void set_output_tensor(rocalTensor* output_audio) override;
     void set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader) override {};
+    void set_sample_dist(FloatParam* sample_rate_dist) { _sample_rate_dist = sample_rate_dist; }
+    void set_sample_rate(int sample_rate) { _sample_rate = sample_rate; }
     size_t remaining_count() override; // returns number of remaining items to be loaded
     size_t last_batch_padded_size() override;
     void reset() override; // Resets the loader to load from the beginning of the media
@@ -94,4 +96,6 @@ private:
     RocalBatchPolicy _last_batch_policy;
     bool last_batch_padded;
     bool _resample;
+    FloatParam* _sample_rate_dist;
+    int _sample_rate;
 };

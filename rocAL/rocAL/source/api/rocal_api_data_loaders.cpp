@@ -815,7 +815,10 @@ rocalAudioFileSource(
         bool downmix,
         unsigned max_frames,
         unsigned max_channels,
-        bool resample)
+        bool resample,
+        int start_sample_rate_range,
+        int end_sample_rate_range,
+        int sample_rate)
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
@@ -856,6 +859,8 @@ rocalAudioFileSource(
         info.set_tensor_layout(RocalTensorlayout::NONE);
         output = context->master_graph->create_loader_output_tensor(info);
 
+        IntParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_int_rand_param(start, end);
+
         // TODO: Add a loader module for loading audio files from filesystem
         context->master_graph->add_node<AudioLoaderNode>({}, {output})->init(internal_shard_count,
                                                                             source_path,
@@ -866,7 +871,9 @@ rocalAudioFileSource(
                                                                             context->user_batch_size(),
                                                                             context->master_graph->mem_type(),
                                                                             context->master_graph->meta_data_reader(),
-                                                                            resample);
+                                                                            resample, 
+                                                                            sample_rate_dist, 
+                                                                            sample_rate);
         context->master_graph->set_loop(loop);
         if(downmix)
         {

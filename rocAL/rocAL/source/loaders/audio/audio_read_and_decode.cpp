@@ -167,7 +167,9 @@ AudioReadAndDecode::load(float* buff,
                          std::vector<uint32_t> &actual_samples,
                          std::vector<uint32_t> &actual_channels,
                          std::vector<float> &actual_sample_rates,
-                         bool resample)
+                         bool resample,
+                         IntParam* sample_rate_dist,
+                         int sample_rate)
 {
     if(max_decoded_samples == 0 || max_decoded_channels == 0 )
         THROW("Zero audio dimension is not valid")
@@ -242,7 +244,7 @@ AudioReadAndDecode::load(float* buff,
             _original_samples[i] = original_samples;
             _original_sample_rates[i] = original_sample_rates;
 
-            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window, resample) != AudioDecoder::Status::OK) {
+            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window, resample, sample_rate_dist, sample_rate) != AudioDecoder::Status::OK) {
                 THROW("Decoder failed for file: " + _audio_names[i].c_str())
             }
             _decoder[i]->release();

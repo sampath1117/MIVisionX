@@ -147,6 +147,8 @@ AudioLoaderSharded::initialize_test(ReaderConfig reader_cfg, DecoderConfig decod
         reader_cfg.set_shard_count(_shard_count);
         reader_cfg.set_shard_id(idx);
         _loaders[idx]->initialize_test(reader_cfg, decoder_cfg, mem_type, batch_size, keep_orig_size, _resample);
+        _loaders[idx]->set_sample_dist(_sample_rate_dist);
+        _loaders[idx]->set_sample_rate(_sample_rate);
     }
     _initialized = true;
 }

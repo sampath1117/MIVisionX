@@ -35,7 +35,7 @@ THE SOFTWARE.
 
 SndFileDecoder::SndFileDecoder(){};
 
-AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample)
+AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, IntParam* sample_rate_dist, int sample_rate)
 {
     if(!resample)
     {

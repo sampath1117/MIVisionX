@@ -69,7 +69,10 @@ extern "C"  RocalTensor  ROCAL_API_CALL rocalAudioFileSource(RocalContext contex
                                                         bool downmix = false,
                                                         unsigned max_frames = 1,
                                                         unsigned max_channels = 1,
-                                                        bool resample = false);
+                                                        bool resample = false,
+                                                        int start_sample_rate_range = 0.1,
+                                                        int end_sample_rate_range = 1.15,
+                                                        int sample_rate = 16000);
 
 extern "C"  RocalTensor  ROCAL_API_CALL rocalAudioFileSourceSingleShard(RocalContext p_context,
                                                         const char* source_path,
