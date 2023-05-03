@@ -43,12 +43,12 @@ THE SOFTWARE.
 
 std::tuple<unsigned, unsigned>
 evaluate_audio_data_set(StorageType storage_type,
-                        DecoderType decoder_type, const std::string &source_path, const std::string &json_path)
+                        DecoderType decoder_type, const std::string &source_path, const std::string &json_path, float resample_factor = 1.0f)
 {
     AudioSourceEvaluator source_evaluator;
     if(source_evaluator.create(ReaderConfig(storage_type, source_path, json_path), DecoderConfig(decoder_type)) != AudioSourceEvaluatorStatus::OK)
         THROW("Initializing file source input evaluator failed ")
-    auto max_samples = source_evaluator.max_samples() * 0.95;
+    auto max_samples = source_evaluator.max_samples() * resample_factor;
     auto max_channels = source_evaluator.max_channels();
     if(max_samples == 0 ||max_channels  == 0)
         THROW("Cannot find size of the audio files or files cannot be accessed")
@@ -707,8 +707,6 @@ rocalAudioFileSourceSingleShard(
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
-    // resample = true;
-    // std::cerr << "Inside the rocALAudioFileSourceSingleShard" ;
     try
     {
         if(shard_count < 1 )
@@ -716,6 +714,7 @@ rocalAudioFileSourceSingleShard(
 
         if(shard_id >= shard_count)
             THROW("Shard id should be smaller than shard count")
+
         auto [max_frames, max_channels] = evaluate_audio_data_set(StorageType::FILE_SYSTEM, DecoderType::SNDFILE,
                                                        source_path, "");
         std::cerr<<"\n Completed the evaluation of audio data set max_frame:: "<<max_frames<<"\t max_channels ::"<<max_channels;
@@ -835,8 +834,11 @@ rocalAudioFileSource(
         //     LOG("User input size " + TOSTR(max_width) + " x " + TOSTR(max_height))
         // }
         // TODO - Add support with max_frames and channels passed by user
+        float resample_factor = 1.0f;
+        if(resample)
+            resample_factor = end_sample_rate_range;
         auto [max_frames, max_channels] = evaluate_audio_data_set(StorageType::FILE_SYSTEM, DecoderType::SNDFILE,
-                                                       source_path, "");
+                                                       source_path, "", resample_factor);
         INFO("Internal buffer size for audio frames = "+ TOSTR(max_frames))
 
         // RocalTensorlayout tensor_format = RocalTensorlayout::NONE;
