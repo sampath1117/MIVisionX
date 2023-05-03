@@ -186,7 +186,6 @@ rocalJpegFileSourceSingleShard(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
-        std::cerr<<"\n Last batch policy :: "<<context->master_graph->last_batch_policy()<<"\t last batch padded:: "<<context->master_graph->last_batch_padded();
         context->master_graph->add_node<ImageLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path, "",
                                                                                         StorageType::FILE_SYSTEM,
@@ -279,7 +278,6 @@ rocalJpegFileSource(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
-        std::cerr<<"\n Last batch policy :: "<<context->master_graph->last_batch_policy()<<"\t last batch padded:: "<<context->master_graph->last_batch_padded();
         context->master_graph->add_node<ImageLoaderNode>({}, {output})->init(internal_shard_count,
                                                                           source_path, "",
                                                                           std::map<std::string, std::string>(),
@@ -816,9 +814,8 @@ rocalAudioFileSource(
         unsigned max_frames,
         unsigned max_channels,
         bool resample,
-        int start_sample_rate_range,
-        int end_sample_rate_range,
-        int sample_rate)
+        float start_sample_rate_range,
+        float end_sample_rate_range)
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
@@ -859,7 +856,7 @@ rocalAudioFileSource(
         info.set_tensor_layout(RocalTensorlayout::NONE);
         output = context->master_graph->create_loader_output_tensor(info);
 
-        IntParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_int_rand_param(start, end);
+        FloatParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_float_rand_param(start_sample_rate_range, end_sample_rate_range);
 
         // TODO: Add a loader module for loading audio files from filesystem
         context->master_graph->add_node<AudioLoaderNode>({}, {output})->init(internal_shard_count,
@@ -871,8 +868,8 @@ rocalAudioFileSource(
                                                                             context->user_batch_size(),
                                                                             context->master_graph->mem_type(),
                                                                             context->master_graph->meta_data_reader(),
-                                                                            resample, 
-                                                                            sample_rate_dist, 
+                                                                            resample,
+                                                                            sample_rate_dist,
                                                                             sample_rate);
         context->master_graph->set_loop(loop);
         if(downmix)

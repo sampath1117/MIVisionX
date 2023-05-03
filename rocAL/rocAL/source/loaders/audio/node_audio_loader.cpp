@@ -35,10 +35,9 @@ AudioLoaderNode::AudioLoaderNode(rocalTensor *output, DeviceResources device_res
 
 
 void AudioLoaderNode::init(unsigned internal_shard_count, const std::string &source_path, StorageType storage_type,
-                           DecoderType decoder_type, bool shuffle, bool loop, size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader, 
-                           bool resample, IntParam* sample_rate_dist, int sample_rate)
+                           DecoderType decoder_type, bool shuffle, bool loop, size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader,
+                           bool is_resample, FloatParam* sample_rate_dist, float sample_rate)
 {
-    // std::cerr<<"inside AudioLoader::init, resample: "<<resample<<std::endl;
     if(!_loader_module)
         THROW("ERROR: loader module is not set for AudioLoaderNode, cannot initialize")
     if(internal_shard_count < 1)
@@ -49,11 +48,13 @@ void AudioLoaderNode::init(unsigned internal_shard_count, const std::string &sou
     reader_cfg.set_shard_count(internal_shard_count);
     reader_cfg.set_batch_count(load_batch_count);
     reader_cfg.set_meta_data_reader(meta_data_reader);
-    _loader_module->initialize_test(reader_cfg, DecoderConfig(decoder_type),
+    _loader_module->initialize(reader_cfg, DecoderConfig(decoder_type),
              mem_type,
-             _batch_size, false, resample);
+             _batch_size, false);
     _loader_module->set_sample_dist(sample_rate_dist);
     _loader_module->set_sample_rate(sample_rate);
+    if(is_resample)
+        _loader_module->set_resample_output();
     _loader_module->start_loading();
 }
 

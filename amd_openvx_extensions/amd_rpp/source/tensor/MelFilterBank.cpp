@@ -105,8 +105,6 @@ static vx_status VX_CALLBACK refreshMelFilterBank(vx_node node, const vx_referen
     for(uint i = 0; i < data->nbatchSize; i++) {
         data->srcDims[i].width = data->roi_ptr_src[i].xywhROI.xy.x;
         data->srcDims[i].height = data->roi_ptr_src[i].xywhROI.xy.y;
-        // std::cerr<<"data->srcDims[i].width " << data->srcDims[i].width;
-        // std::cerr<< "data->srcDims[i].height " << data->srcDims[i].height;
     }
     update_destination_roi(parameters, data);
     return status;

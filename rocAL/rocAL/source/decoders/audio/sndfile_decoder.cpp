@@ -37,8 +37,7 @@ SndFileDecoder::SndFileDecoder(){};
 
 AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, IntParam* sample_rate_dist, int sample_rate)
 {
-    if(!resample)
-    {
+    if(!resample) {
         int readcount = 0;
         readcount = sf_readf_float(_sf_ptr, buffer, _sfinfo.frames);
         if(readcount != _sfinfo.frames)
@@ -48,9 +47,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
             AudioDecoder::Status status = Status::CONTENT_DECODE_FAILED;
             return status;
         }
-    }
-    else
-    {
+    } else {
         // Allocate temporary memory for input
         float *srcPtrTemp = (float *)malloc(_sfinfo.frames * sizeof(float));
 

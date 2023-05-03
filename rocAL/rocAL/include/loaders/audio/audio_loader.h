@@ -42,12 +42,12 @@ public:
     ~AudioLoader() override;
     LoaderModuleStatus load_next() override;
     void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false) override;
-    void initialize_test(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false, bool resample=false);
     void set_output (rocalTensor* output_audio) override;
+    void set_resample_output() { _is_resample = true; }
     // void set_output_tensor(rocalTensor* output_audio) override;
     void set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader) override {};
     void set_sample_dist(FloatParam* sample_rate_dist) { _sample_rate_dist = sample_rate_dist; }
-    void set_sample_rate(int sample_rate) { _sample_rate = sample_rate; }
+    void set_sample_rate(float sample_rate) { _sample_rate = sample_rate; }
     size_t remaining_count() override; // returns number of remaining items to be loaded
     size_t last_batch_padded_size() override;
     void reset() override; // Resets the loader to load from the beginning of the media
@@ -97,5 +97,6 @@ private:
     bool last_batch_padded;
     bool _resample;
     FloatParam* _sample_rate_dist;
-    int _sample_rate;
+    bool _is_resample = false;
+    float _sample_rate = 16000.0f;
 };

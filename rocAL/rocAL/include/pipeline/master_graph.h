@@ -46,7 +46,7 @@ THE SOFTWARE.
 #endif
 #include "randombboxcrop_meta_data_reader.h"
 #define MAX_STRING_LENGTH 100
-#define MAX_OBJECTS 50 // Max number of objects/image in COCO dataset is 93 
+#define MAX_OBJECTS 50 // Max number of objects/image in COCO dataset is 93
 #define BBOX_COUNT 4
 #define MAX_NUM_ANCHORS 8732
 #define MAX_MASK_BUFFER 10000
@@ -269,7 +269,6 @@ template<> inline std::shared_ptr<ImageLoaderSingleShardNode> MasterGraph::add_n
     _loader_module = node->get_loader_module();
     _loader_module->set_prefetch_queue_depth(_prefetch_queue_depth);
     _root_nodes.push_back(node);
-    std::cerr<<"Head Node added!";
     for(auto& output: outputs)
         _tensor_map.insert(make_pair(output, node));
 

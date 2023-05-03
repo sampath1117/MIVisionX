@@ -45,8 +45,8 @@ public:
     /// The loader will repeat Audios if necessary to be able to have Audios in multiples of the load_batch_count,
     /// for example if there are 10 Audios in the dataset and load_batch_count is 3, the loader repeats 2 Audios as if there are 12 Audios available.
     void init(unsigned internal_shard_count, const std::string &source_path, StorageType storage_type,
-              DecoderType decoder_type, bool shuffle, bool loop, size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader, 
-              bool resample, IntParam* sample_rate_dist, int sample_rate);
+              DecoderType decoder_type, bool shuffle, bool loop, size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader,
+              bool resample, FloatParam* sample_rate_dist, float sample_rate);
 
     std::shared_ptr<LoaderModule> get_loader_module();
 protected:
