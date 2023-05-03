@@ -42,8 +42,8 @@ public:
     ~AudioLoader() override;
     LoaderModuleStatus load_next() override;
     void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false) override;
-    void initialize_test(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false, bool resample=false);
     void set_output (rocalTensor* output_audio) override;
+    void set_resample_output() { _is_resample = true; }
     // void set_output_tensor(rocalTensor* output_audio) override;
     void set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader) override {};
     size_t remaining_count() override; // returns number of remaining items to be loaded
@@ -93,5 +93,5 @@ private:
     // std::shared_ptr<RandomBBoxCrop_MetaDataReader> _randombboxcrop_meta_data_reader = nullptr;
     RocalBatchPolicy _last_batch_policy;
     bool last_batch_padded;
-    bool _resample;
+    bool _is_resample = false;
 };

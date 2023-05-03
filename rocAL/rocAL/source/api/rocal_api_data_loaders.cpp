@@ -186,7 +186,6 @@ rocalJpegFileSourceSingleShard(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
-        std::cerr<<"\n Last batch policy :: "<<context->master_graph->last_batch_policy()<<"\t last batch padded:: "<<context->master_graph->last_batch_padded();
         context->master_graph->add_node<ImageLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path, "",
                                                                                         StorageType::FILE_SYSTEM,
@@ -279,7 +278,6 @@ rocalJpegFileSource(
         info.set_color_format(color_format);
         info.set_tensor_layout(tensor_format);
         output = context->master_graph->create_loader_output_tensor(info);
-        std::cerr<<"\n Last batch policy :: "<<context->master_graph->last_batch_policy()<<"\t last batch padded:: "<<context->master_graph->last_batch_padded();
         context->master_graph->add_node<ImageLoaderNode>({}, {output})->init(internal_shard_count,
                                                                           source_path, "",
                                                                           std::map<std::string, std::string>(),
