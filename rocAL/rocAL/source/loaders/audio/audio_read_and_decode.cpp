@@ -35,25 +35,6 @@ THE SOFTWARE.
 #include <immintrin.h>
 #endif
 
-// std::tuple<Decoder::ColorFormat, unsigned >
-// interpret_color_format(RocalColorFormat color_format )
-// {
-//     switch (color_format) {
-//         case RocalColorFormat::RGB24:
-//             return  std::make_tuple(Decoder::ColorFormat::RGB, 3);
-
-//         case RocalColorFormat::BGR24:
-//             return  std::make_tuple(Decoder::ColorFormat::BGR, 3);
-
-//         case RocalColorFormat::U8:
-//             return  std::make_tuple(Decoder::ColorFormat::GRAY, 1);
-
-//         default:
-//             throw std::invalid_argument("Invalid color format\n");
-//     }
-// }
-
-
 Timing
 AudioReadAndDecode::timing()
 {
@@ -136,6 +117,7 @@ AudioReadAndDecode::last_batch_padded_size()
 
 #include "audio_decoder.h"
 
+// Function to generate values for ResamplingWindow. Used in case if resampling is enabled
 inline void windowed_sinc(ResamplingWindow &window,
         int coeffs, int lobes, std::function<double(double)> envelope = Hann) {
     float scale = 2.0f * lobes / (coeffs - 1);
@@ -180,8 +162,6 @@ AudioReadAndDecode::load(float* buff,
     // load audios/frames from the disk and push them as a large audio onto the buff
     unsigned file_counter = 0;
     // std::cerr<<"resample boolean flag: "<<resample<<std::endl;
-    // const auto ret = interpret_color_format(output_color_format);
-    // const Decoder::ColorFormat decoder_color_format = std::get<0>(ret);
     const size_t audio_size = max_decoded_samples * max_decoded_channels;
     // std::cerr<<"\n max_decoded_samples * max_decoded_channels * sizeof(float) :: "<<max_decoded_samples<<"\t "<<max_decoded_channels<<"\t "<<sizeof(float);
     // std::cerr<<"\n audio size :: "<<audio_size;
@@ -255,8 +235,6 @@ AudioReadAndDecode::load(float* buff,
             actual_samples[i] = roi_samples[i] = _original_samples[i]; // TODO - Needs to be checked
             actual_channels[i] = roi_channels[i] = _original_channels[i];
             actual_sample_rates[i] = _original_sample_rates[i];
-            // actual_samples[i] = _actual_decoded_samples[i];
-            // actual_channels[i] = _actual_decoded_channels[i];
         }
     }
     _decode_time.end();// Debug timing
