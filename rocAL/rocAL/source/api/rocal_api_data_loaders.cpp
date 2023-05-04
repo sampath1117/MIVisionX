@@ -703,7 +703,9 @@ rocalAudioFileSourceSingleShard(
         unsigned storage_type,
         bool stick_to_shard,
         signed shard_size,
-        bool resample)
+        bool resample,
+        float start_sample_rate_range,
+        float end_sample_rate_range)
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
@@ -715,8 +717,11 @@ rocalAudioFileSourceSingleShard(
         if(shard_id >= shard_count)
             THROW("Shard id should be smaller than shard count")
 
+        float resample_factor = 1.0f;
+        if(resample)
+            resample_factor = end_sample_rate_range;
         auto [max_frames, max_channels] = evaluate_audio_data_set(StorageType::FILE_SYSTEM, DecoderType::SNDFILE,
-                                                       source_path, "");
+                                                       source_path, "", resample_factor);
         std::cerr<<"\n Completed the evaluation of audio data set max_frame:: "<<max_frames<<"\t max_channels ::"<<max_channels;
         INFO("Internal buffer size for audio frames = "+ TOSTR(max_frames))
 
@@ -735,6 +740,7 @@ rocalAudioFileSourceSingleShard(
         info.set_tensor_layout(RocalTensorlayout::NONE);
         output = context->master_graph->create_loader_output_tensor(info);
         output->reset_audio_sample_rate();
+        FloatParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_float_rand_param(start_sample_rate_range, end_sample_rate_range);
         context->master_graph->add_node<AudioLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path,
                                                                                         source_file_list_path,
@@ -749,7 +755,9 @@ rocalAudioFileSourceSingleShard(
                                                                                         context->master_graph->last_batch_padded(),
                                                                                         stick_to_shard,
                                                                                         shard_size,
-                                                                                        resample);
+                                                                                        resample,
+                                                                                        sample_rate_dist,
+                                                                                        sample_rate);
         context->master_graph->set_loop(loop);
 
         if(downmix)
