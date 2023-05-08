@@ -7,7 +7,7 @@ import ctypes
 torch.set_printoptions(threshold=10_000, profile="full")
 
 class RALIGenericIterator(object):
-    def __init__(self, pipeline, tensor_layout = types.NCHW, reverse_channels = False, multiplier = [1.0,1.0,1.0], offset = [0.0, 0.0, 0.0], tensor_dtype=types.FLOAT, size = -1, auto_reset=False):
+    def __init__(self, pipeline, tensor_layout = types.NCHW, reverse_channels = False, multiplier = [1.0,1.0,1.0], offset = [0.0, 0.0, 0.0], tensor_dtype=types.FLOAT, size = -1, auto_reset = False, device_id = 0):
         self.loader = pipeline
         self.tensor_format =tensor_layout
         self.multiplier = multiplier
@@ -24,6 +24,7 @@ class RALIGenericIterator(object):
         self.samples = None
         self.channels = None
         self.output = None
+        self.device_id = device_id
         self.batch_size = self.loader._batch_size
 
     def next(self):
@@ -172,8 +173,9 @@ class ROCALClassificationIterator(RALIGenericIterator):
                  auto_reset=False,
                  fill_last_batch=True,
                  dynamic_shape=False,
-                 last_batch_padded=False):
+                 last_batch_padded=False,
+                 device_id = 0):
         pipe = pipelines
         super(ROCALClassificationIterator, self).__init__(pipe, tensor_layout = pipe._tensor_layout, tensor_dtype = pipe._tensor_dtype,
-                                                            multiplier=pipe._multiplier, offset=pipe._offset, size = size, auto_reset = auto_reset)
+                                                            multiplier=pipe._multiplier, offset=pipe._offset, size = size, auto_reset = auto_reset, device_id = device_id)
 
