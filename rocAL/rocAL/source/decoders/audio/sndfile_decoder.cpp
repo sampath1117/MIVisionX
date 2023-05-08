@@ -35,7 +35,7 @@ THE SOFTWARE.
 
 SndFileDecoder::SndFileDecoder(){};
 
-AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, IntParam* sample_rate_dist, int sample_rate)
+AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, FloatParam* sample_rate_dist, float sample_rate)
 {
     if(!resample) {
         int readcount = 0;
@@ -64,7 +64,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
 
         float *dstPtrTemp = buffer;
         uint srcLength = _sfinfo.frames;
-        float outRate = 16000 * 0.95f;
+        float outRate = 16000 * sample_rate_dist->core->get();
         float inRate = 16000;
         int64_t outEnd = std::ceil(srcLength * outRate / inRate);
         int64_t inPos = 0;
