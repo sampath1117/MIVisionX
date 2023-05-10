@@ -47,8 +47,7 @@ AudioReadAndDecode::timing()
 
 AudioReadAndDecode::AudioReadAndDecode():
     _file_load_time("FileLoadTime", DBG_TIMING ),
-    _decode_time("DecodeTime", DBG_TIMING),
-    _sample_dist(RESAMPLE_RANGE[0], RESAMPLE_RANGE[1])
+    _decode_time("DecodeTime", DBG_TIMING)
 {
 }
 
@@ -151,7 +150,7 @@ AudioReadAndDecode::load(float* buff,
                          std::vector<uint32_t> &actual_channels,
                          std::vector<float> &actual_sample_rates,
                          bool resample,
-                         FloatParam* sample_rate_dist,
+                         vx_array sample_rate_dist,
                          float sample_rate)
 {
     if(max_decoded_samples == 0 || max_decoded_channels == 0 )
@@ -171,9 +170,9 @@ AudioReadAndDecode::load(float* buff,
     // File read is done serially since I/O parallelization does not work very well.
     _file_load_time.start();// Debug timing
     // _sample_dist.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
-    _sample_dist.set_param(core(sample_rate_dist));
-    _sample_dist.update_array();
-    vx_array _sample_dist_vx_array = _sample_dist.default_array();
+    vx_float32 *sample_rate_arr;
+    sample_rate_arr = (vx_float32 *)malloc(sizeof(vx_float32) * _batch_size);
+    STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)sample_rate_dist, 0, _batch_size, sizeof(vx_float32), sample_rate_arr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
 
     float quality = 50.0f;
     ResamplingWindow window;
@@ -229,7 +228,7 @@ AudioReadAndDecode::load(float* buff,
             _original_samples[i] = original_samples;
             _original_sample_rates[i] = original_sample_rates;
 
-            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window, resample, sample_rate_dist, sample_rate) != AudioDecoder::Status::OK) {
+            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window, resample, sample_rate_arr, sample_rate) != AudioDecoder::Status::OK) {
                 THROW("Decoder failed for file: " + _audio_names[i].c_str())
             }
             _decoder[i]->release();

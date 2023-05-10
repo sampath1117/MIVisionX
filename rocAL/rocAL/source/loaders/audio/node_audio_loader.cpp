@@ -51,7 +51,7 @@ void AudioLoaderNode::init(unsigned internal_shard_count, const std::string &sou
     _loader_module->initialize(reader_cfg, DecoderConfig(decoder_type),
              mem_type,
              _batch_size, false);
-    _loader_module->set_sample_dist(sample_rate_dist);
+    // _loader_module->set_sample_dist(sample_rate_dist);
     _loader_module->set_sample_rate(sample_rate);
     if(is_resample)
         _loader_module->set_resample_output();

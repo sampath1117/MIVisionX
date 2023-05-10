@@ -25,7 +25,7 @@ THE SOFTWARE.
 #include <cstddef>
 #include <iostream>
 #include <vector>
-#include "parameter_factory.h"
+#include "parameter_vx.h"
 #include "sndfile.h"
 
 #if _WIN32
@@ -114,7 +114,7 @@ public:
         NO_MEMORY
     };
     virtual AudioDecoder::Status initialize(const char *src_filename) = 0;
-    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, FloatParam* sample_rate_dist = NULL, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
+    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, vx_float32* sample_rate_arr = NULL, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
     virtual AudioDecoder::Status decode_info(int* samples, int* channels, float* sample_rates) = 0; //to decode info about the audio samples
     virtual void release() = 0;
     virtual ~AudioDecoder() = default;

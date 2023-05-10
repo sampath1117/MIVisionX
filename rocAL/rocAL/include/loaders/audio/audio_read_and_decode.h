@@ -60,7 +60,7 @@ public:
             std::vector<uint32_t> &actual_channels,
             std::vector<float> &actual_sample_rates,
             bool resample = false,
-            FloatParam* sample_rate_dist = NULL,
+            vx_array sample_rate_dist = NULL,
             float sample_rate = 16000); // sampath check this
     size_t last_batch_padded_size();
     //! returns timing info or other status information
@@ -87,7 +87,7 @@ private:
     // std::shared_ptr<RandomBBoxCrop_MetaDataReader> _randombboxcrop_meta_data_reader = nullptr;
     // pCropCord _CropCord;
     std::string _input_path;
-    ParameterVX<float> _sample_dist;
-    constexpr static float RESAMPLE_RANGE [2] = {0.85, 1.15};
+    // ParameterVX<float> _sample_dist;
+    // constexpr static float RESAMPLE_RANGE [2] = {0.85, 1.15};
 };
 
