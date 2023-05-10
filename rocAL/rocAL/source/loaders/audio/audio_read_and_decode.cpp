@@ -47,7 +47,8 @@ AudioReadAndDecode::timing()
 
 AudioReadAndDecode::AudioReadAndDecode():
     _file_load_time("FileLoadTime", DBG_TIMING ),
-    _decode_time("DecodeTime", DBG_TIMING)
+    _decode_time("DecodeTime", DBG_TIMING),
+    _sample_dist(RESAMPLE_RANGE[0], RESAMPLE_RANGE[1])
 {
 }
 
@@ -169,9 +170,10 @@ AudioReadAndDecode::load(float* buff,
     // Decode with the channels and size equal to a single audio
     // File read is done serially since I/O parallelization does not work very well.
     _file_load_time.start();// Debug timing
-
+    // _sample_dist.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
     _sample_dist.set_param(core(sample_rate_dist));
-    vx_array _sample_vx_array = _sample_dist.default_array();
+    _sample_dist.update_array();
+    vx_array _sample_dist_vx_array = _sample_dist.default_array();
 
     float quality = 50.0f;
     ResamplingWindow window;
