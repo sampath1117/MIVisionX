@@ -30,6 +30,7 @@ THE SOFTWARE.
 #include "timing_debug.h"
 #include "loader_module.h"
 #include "audio_decoder.h"
+#include "parameter_vx.h"
 
 class AudioReadAndDecode
 {
@@ -86,5 +87,6 @@ private:
     // std::shared_ptr<RandomBBoxCrop_MetaDataReader> _randombboxcrop_meta_data_reader = nullptr;
     // pCropCord _CropCord;
     std::string _input_path;
+    ParameterVX<float> _sample_dist(0.85, 1.15);
 };
 

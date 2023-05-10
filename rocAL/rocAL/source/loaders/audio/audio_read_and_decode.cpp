@@ -170,6 +170,9 @@ AudioReadAndDecode::load(float* buff,
     // File read is done serially since I/O parallelization does not work very well.
     _file_load_time.start();// Debug timing
 
+    _sample_dist.set_param(core(sample_rate_dist));
+    vx_array _sample_vx_array = _sample_dist.default_array();
+
     float quality = 50.0f;
     ResamplingWindow window;
     int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
