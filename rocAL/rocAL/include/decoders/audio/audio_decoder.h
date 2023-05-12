@@ -25,8 +25,9 @@ THE SOFTWARE.
 #include <cstddef>
 #include <iostream>
 #include <vector>
-#include "parameter_vx.h"
+#include <cmath>
 #include "sndfile.h"
+#include <functional>
 
 #if _WIN32
 #include <intrin.h>
@@ -86,6 +87,27 @@ struct ResamplingWindow {
     std::vector<float> lookup;
 };
 
+// Function to generate values for ResamplingWindow. Used in case if resampling is enabled
+inline void windowed_sinc(ResamplingWindow &window,
+        int coeffs, int lobes, std::function<double(double)> envelope = Hann) {
+    float scale = 2.0f * lobes / (coeffs - 1);
+    float scale_envelope = 2.0f / coeffs;
+    window.coeffs = coeffs;
+    window.lobes = lobes;
+    window.lookup.clear();
+    window.lookup.resize(coeffs + 5);
+    window.lookup_size = window.lookup.size();
+    window.pxLookupMax = _mm_set1_epi32(window.lookup_size - 2);
+    int center = (coeffs - 1) * 0.5f;
+    for (int i = 0; i < coeffs; i++) {
+        float x = (i - center) * scale;
+        float y = (i - center) * scale_envelope;
+        float w = sinc(x) * envelope(y);
+        window.lookup[i + 1] = w;
+    }
+    window.center = center + 1;
+    window.scale = 1 / scale;
+}
 
 enum class AudioDecoderType
 {
@@ -114,7 +136,7 @@ public:
         NO_MEMORY
     };
     virtual AudioDecoder::Status initialize(const char *src_filename) = 0;
-    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, vx_float32* sample_rate_arr = NULL, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
+    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, float out_sample_rate = 16000, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
     virtual AudioDecoder::Status decode_info(int* samples, int* channels, float* sample_rates) = 0; //to decode info about the audio samples
     virtual void release() = 0;
     virtual ~AudioDecoder() = default;

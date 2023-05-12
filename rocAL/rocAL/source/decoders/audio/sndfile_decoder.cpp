@@ -23,19 +23,12 @@ THE SOFTWARE.
 #include <cstdio>
 #include <cstring>
 #include <commons.h>
+#include <tuple>
 #include "sndfile_decoder.h"
-
-#if _WIN32
-#include <intrin.h>
-#else
-#include <x86intrin.h>
-#include <smmintrin.h>
-#include <immintrin.h>
-#endif
 
 SndFileDecoder::SndFileDecoder(){};
 
-AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, FloatParam* sample_rate_dist, float sample_rate)
+AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, float out_sample_rate, float sample_rate)
 {
     if(!resample) {
         int readcount = 0;
@@ -64,7 +57,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
 
         float *dstPtrTemp = buffer;
         uint srcLength = _sfinfo.frames;
-        float outRate = 16000 * sample_rate_dist->core->get();
+        float outRate = out_sample_rate;
         float inRate = 16000;
         int64_t outEnd = std::ceil(srcLength * outRate / inRate);
         int64_t inPos = 0;
