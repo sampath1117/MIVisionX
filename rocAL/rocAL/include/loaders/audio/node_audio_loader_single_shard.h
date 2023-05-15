@@ -51,6 +51,5 @@ protected:
     void update_node() override {};
 private:
     std::shared_ptr<AudioLoader> _loader_module = nullptr;
-    ParameterVX<float> _sample_dist;
     constexpr static float RESAMPLE_RANGE [2] = {0.85, 1.15};
 };

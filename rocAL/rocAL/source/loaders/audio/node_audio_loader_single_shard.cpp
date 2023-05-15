@@ -29,8 +29,7 @@ AudioLoaderSingleShardNode::AudioLoaderSingleShardNode(rocalTensor *output, Devi
 #else
 AudioLoaderSingleShardNode::AudioLoaderSingleShardNode(rocalTensor *output, DeviceResources device_resources):
 #endif
-        Node({}, {output}),
-        _sample_dist(RESAMPLE_RANGE[0], RESAMPLE_RANGE[1])
+        Node({}, {output})
 {
     _loader_module = std::make_shared<AudioLoader>(device_resources);
 }
@@ -60,12 +59,11 @@ AudioLoaderSingleShardNode::init(unsigned shard_id, unsigned shard_count, const 
     _loader_module->initialize(reader_cfg, DecoderConfig(decoder_type),
                                mem_type,
                                _batch_size, false);
-    _sample_dist.set_param(core(sample_rate_dist));
-    _sample_dist.create_array(_graph , VX_TYPE_FLOAT32, _batch_size);
-    _sample_dist.update_array();
-    _loader_module->set_sample_rate(sample_rate);
     if(is_resample)
+    {
+        _loader_module->set_sample_rate(sample_rate);
         _loader_module->set_resample_output();
+    }
     _loader_module->start_loading();
 }
 

@@ -44,8 +44,7 @@ public:
     void set_output (rocalTensor* output_audio) override;
     void set_resample_output() { _is_resample = true; }
     void set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader) override {};
-    void set_sample_dist(vx_array dist_vx_array) { _dist_vx_array = dist_vx_array; }
-    void set_sample_rate(int sample_rate) { _sample_rate = sample_rate; }
+    void set_sample_rate(float sample_rate) { _sample_rate = sample_rate; }
     size_t remaining_count() override;
     void reset() override;
     void start_loading() override;
@@ -72,8 +71,8 @@ private:
     size_t _prefetch_queue_depth;
     rocalTensor *_output_tensor;
     // FloatParam* _sample_rate_dist;
-    int _sample_rate;
+    float _sample_rate;
     bool _is_resample = false;
-    vx_array _dist_vx_array;
+    // vx_array _dist_vx_array;
     // std::shared_ptr<RandomBBoxCrop_MetaDataReader> _randombboxcrop_meta_data_reader = nullptr;
 };

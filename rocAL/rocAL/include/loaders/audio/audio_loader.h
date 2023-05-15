@@ -61,6 +61,7 @@ public:
     void set_prefetch_queue_depth(size_t prefetch_queue_depth)  override;
     void set_gpu_device_id(int device_id);
     void shut_down() override;
+    void renew_sample_dist_param();
 private:
     bool is_out_of_data();
     void de_init();
@@ -99,4 +100,6 @@ private:
     FloatParam* _sample_rate_dist;
     bool _is_resample = false;
     float _sample_rate = 16000.0f;
+    Parameter<float> *_sample_dist_param;
+    std::vector<float> _sample_rate_values;
 };

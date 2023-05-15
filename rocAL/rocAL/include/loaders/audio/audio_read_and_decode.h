@@ -60,7 +60,7 @@ public:
             std::vector<uint32_t> &actual_channels,
             std::vector<float> &actual_sample_rates,
             bool resample = false,
-            vx_array sample_rate_dist = NULL,
+            std::vector<float> sample_rate_dist = {},
             float sample_rate = 16000); // sampath check this
     size_t last_batch_padded_size();
     //! returns timing info or other status information

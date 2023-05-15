@@ -110,7 +110,7 @@ AudioReadAndDecode::load(float* buff,
                          std::vector<uint32_t> &actual_channels,
                          std::vector<float> &actual_sample_rates,
                          bool resample,
-                         vx_array sample_rate_vx,
+                         std::vector<float> sample_rate_array,
                          float sample_rate)
 {
     if(max_decoded_samples == 0 || max_decoded_channels == 0 )
@@ -123,21 +123,16 @@ AudioReadAndDecode::load(float* buff,
     unsigned file_counter = 0;
     const size_t audio_size = max_decoded_samples * max_decoded_channels;
     _file_load_time.start();// Debug timing
-    float *sample_rate_arr;
-    sample_rate_arr = (float *)malloc(_batch_size * sizeof(float));
-    vxCopyArrayRange((vx_array)sample_rate_vx, 0, _batch_size, sizeof(float), sample_rate_arr, VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    // std::cerr<<"resample boolean flag: "<<resample<<std::endl;
 
     // Intialize parameters w.r.t resampling
     float quality = 50.0f;
-    ResamplingWindow window;
     int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
     int lookupSize = lobes * 64 + 1;
+    ResamplingWindow window;
     if(resample)
         windowed_sinc(window, lookupSize, lobes);
 
     while ((file_counter != _batch_size) && _reader->count_items() > 0) {
-
         size_t fsize = _reader->open();
         if (fsize == 0) {
             WRN("Opened file " + _reader->id() + " of size 0");
@@ -157,10 +152,13 @@ AudioReadAndDecode::load(float* buff,
         for (size_t i = 0; i < _batch_size; i++){
             _decompressed_buff_ptrs[i] = buff + (audio_size * i);
         }
+
 #pragma omp parallel for num_threads(8)  // default(none) TBD: option disabled in Ubuntu 20.04
         for (size_t i = 0; i < _batch_size; i++)
         {
-            float out_sample_rate = sample_rate_arr[i] * 16000;
+            float out_sample_rate = 16000.0f;
+            if(resample)
+                out_sample_rate = sample_rate_array[i] * 16000.0;
             // initialize the actual decoded channels and samples with the maximum
             _actual_decoded_samples[i] = max_decoded_samples;
             _actual_decoded_channels[i] = max_decoded_channels;
@@ -175,7 +173,7 @@ AudioReadAndDecode::load(float* buff,
             }
             _original_channels[i] = original_channels;
             if(resample)
-                original_samples = original_samples * sample_rate_arr[i];
+                original_samples = std::ceil(original_samples * sample_rate_array[i]);
             _original_samples[i] = original_samples;
             _original_sample_rates[i] = original_sample_rates;
 
@@ -193,6 +191,5 @@ AudioReadAndDecode::load(float* buff,
         }
     }
     _decode_time.end();// Debug timing
-    free(sample_rate_arr);
     return LoaderModuleStatus::OK;
 }

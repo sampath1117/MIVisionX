@@ -48,7 +48,7 @@ evaluate_audio_data_set(StorageType storage_type,
     AudioSourceEvaluator source_evaluator;
     if(source_evaluator.create(ReaderConfig(storage_type, source_path, json_path), DecoderConfig(decoder_type)) != AudioSourceEvaluatorStatus::OK)
         THROW("Initializing file source input evaluator failed ")
-    auto max_samples = source_evaluator.max_samples() * resample_factor;
+    auto max_samples = std::ceil(source_evaluator.max_samples() * resample_factor);
     auto max_channels = source_evaluator.max_channels();
     if(max_samples == 0 ||max_channels  == 0)
         THROW("Cannot find size of the audio files or files cannot be accessed")
