@@ -507,7 +507,7 @@ namespace rocal
         m.def("getStatus", rocalGetStatus, py::return_value_policy::reference);
         m.def("rocalGetErrorMessage", &rocalGetErrorMessage, py::return_value_policy::reference);
         // m.def("rocalGetTimingInfo", &rocalGetTimingInfo, py::return_value_policy::reference);
-        m.def("rocalGetTimingInfo", &wrapper_timing_info);
+        m.def("getTimingInfo", &wrapper_timing_info);
         m.def("setOutputImages", &rocalSetOutputs, py::return_value_policy::reference);
         m.def("labelReader", &rocalCreateLabelReader, py::return_value_policy::reference);
         m.def("labelReaderFileList", &rocalCreateFileListLabelReader, py::return_value_policy::reference);
