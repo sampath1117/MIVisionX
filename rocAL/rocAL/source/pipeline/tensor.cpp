@@ -389,16 +389,19 @@ unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
     ssize_t datatype_stride = _info.data_type_size();
     auto src_stride = (_info.max_dims().at(0) * _info.max_dims().at(1) * datatype_stride);
     auto dst_stride = (max_y1 * max_x1 * datatype_stride);
+    unsigned char *dst_temp = (unsigned char *)malloc((size_t)(dst_stride * _info._batch_size));
     for (uint i = 0; i < _info._batch_size; i++) {
         auto temp_src_ptr = static_cast<unsigned char *>(_mem_handle) + i * src_stride;
-        auto temp_dst_ptr = static_cast<unsigned char *>(user_buffer) + i * dst_stride;
+        auto temp_dst_ptr = static_cast<unsigned char *>(dst_temp) + i * dst_stride;
         for (uint height = 0; height < max_y1; height++) {
-            hipMemcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride, hipMemcpyHostToDevice);
-            // memcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride);
+            memcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride);
             temp_src_ptr += _info.max_dims().at(0) * datatype_stride;
             temp_dst_ptr += max_x1 * datatype_stride;
         }
     }
+
+    hipMemcpy(user_buffer, (void *)dst_temp, (size_t)(dst_stride * _info._batch_size), hipMemcpyHostToDevice);
+    free(dst_temp);
     return 0;
 }
 
