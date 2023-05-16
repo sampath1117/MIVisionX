@@ -23,12 +23,12 @@ THE SOFTWARE.
 #include "node.h"
 Node::~Node()
 {
-
-    if(!_node)
-        vxReleaseNode(&_node);
+    if(!_src_tensor_roi) vxReleaseTensor(&_src_tensor_roi);
+    if(!_dst_tensor_roi) vxReleaseTensor(&_dst_tensor_roi);
+    if(!_node) vxReleaseNode(&_node);
     _node = nullptr;
-    vxReleaseTensor(&_src_tensor_roi);
-    vxReleaseTensor(&_dst_tensor_roi);
+    _src_tensor_roi = nullptr;
+    _dst_tensor_roi = nullptr;
 }
 
 void
@@ -59,7 +59,6 @@ Node::create(std::shared_ptr<Graph> graph)
         if ((status = vxGetStatus((vx_reference)_dst_tensor_roi)) != VX_SUCCESS)
             THROW("Error: vxCreateTensorFromHandle(dst tensor roi: failed " + TOSTR(status))
     }
-
     create_node();
 }
 
@@ -68,4 +67,3 @@ Node::update_parameters()
 {
     update_node();
 }
-

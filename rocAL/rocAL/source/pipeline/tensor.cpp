@@ -116,7 +116,8 @@ void allocate_host_or_pinned_mem(void **ptr, size_t size, RocalMemType mem_type)
 }
 
 void rocalTensorInfo::reset_tensor_roi_buffers() {
-    allocate_host_or_pinned_mem((void **)&_roi_buf, _batch_size * 4 * sizeof(unsigned), _mem_type);
+    size_t roi_size = (_layout == RocalTensorlayout::NFCHW || _layout == RocalTensorlayout::NFHWC) ? _dims[0] * _dims[1] : _batch_size; // For Sequences pre allocating the ROI to N * F to replicate in OpenVX extensions
+    allocate_host_or_pinned_mem((void **)&_roi_buf, roi_size * 4 * sizeof(unsigned), _mem_type);
     if (_mem_type == RocalMemType::HIP) {
 #if ENABLE_HIP
         _roi.reset(_roi_buf, hipHostFree);
@@ -127,8 +128,8 @@ void rocalTensorInfo::reset_tensor_roi_buffers() {
     if (_is_image) {
         auto roi = get_roi();
         for (unsigned i = 0; i < _batch_size; i++) {
-            roi[i].x2 = _max_dims[0];
-            roi[i].y2 = _max_dims[1];
+            roi[i].x2 = _max_shape.at(0);
+            roi[i].y2 = _max_shape.at(1);
         }
     } else {
         // TODO - For other tensor types
@@ -171,9 +172,8 @@ rocalTensorInfo::rocalTensorInfo(std::vector<size_t> dims,
     _num_of_dims = dims.size();
     _data_size = tensor_data_size(data_type);
     for (unsigned i = 0; i < _num_of_dims; i++) _data_size *= dims.at(i);
-    // std::cerr << "rocalTensorInfo" ;
+
     if (_num_of_dims <= 3) _is_image = false;
-    // std::cerr << "\n rocalTensorInfo 1";
 }
 
 void rocalTensor::update_audio_tensor_sample_rate(const std::vector<float> &sample_rate) {
@@ -194,9 +194,9 @@ void rocalTensor::update_audio_tensor_sample_rate(const std::vector<float> &samp
 void rocalTensor::update_tensor_roi(const std::vector<uint32_t> &width,
                                     const std::vector<uint32_t> &height) {
     if (_info.is_image()) {
-        auto max_dims = _info.max_dims();
-        unsigned max_width = max_dims.at(0);
-        unsigned max_height = max_dims.at(1);
+        auto max_shape = _info.max_shape();
+        unsigned max_width = max_shape.at(0);
+        unsigned max_height = max_shape.at(1);
 
         if (width.size() != height.size())
             THROW("Batch size of Tensor height and width info does not match")
@@ -221,9 +221,9 @@ void rocalTensor::update_tensor_roi(const std::vector<uint32_t> &width,
     }
     else if(!_info.is_metadata())
     {
-        auto max_dims = _info.max_dims();
-        unsigned max_samples = max_dims.at(0);
-        unsigned max_channels = max_dims.at(1);
+        auto max_shape = _info.max_shape();
+        unsigned max_samples = max_shape.at(0);
+        unsigned max_channels = max_shape.at(1);
 
         auto samples = width;
         auto channels = height;
@@ -282,7 +282,7 @@ int rocalTensor::create_virtual(vx_context context, vx_graph graph) {
     _vx_handle = vxCreateVirtualTensor(graph, _info.num_of_dims(), _info.dims().data(), interpret_tensor_data_type(_info.data_type()), 0);
     vx_status status;
     if ((status = vxGetStatus((vx_reference)_vx_handle)) != VX_SUCCESS)
-        THROW("Error: vxCreateVirtualTensor(input:[" + TOSTR(_info.max_dims().at(0)) + "W" + TOSTR(_info.max_dims().at(1)) + "H" + "]): failed " + TOSTR(status))
+        THROW("Error: vxCreateVirtualTensor(input:[" + TOSTR(_info.max_shape().at(0)) + "W" + TOSTR(_info.max_shape().at(1)) + "H" + "]): failed " + TOSTR(status))
 
     _info._type = rocalTensorInfo::Type::VIRTUAL;
     return 0;
@@ -388,14 +388,14 @@ unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
     // _convert_time.start();
     //TODO : Handle this case for HIP buffer
     ssize_t datatype_stride = _info.data_type_size();
-    auto src_stride = (_info.max_dims().at(0) * _info.max_dims().at(1) * datatype_stride);
+    auto src_stride = (_info.max_shape().at(0) * _info.max_shape().at(1) * datatype_stride);
     auto dst_stride = (max_y1 * max_x1 * datatype_stride);
     for (uint i = 0; i < _info._batch_size; i++) {
         auto temp_src_ptr = static_cast<unsigned char *>(_mem_handle) + i * src_stride;
         auto temp_dst_ptr = static_cast<unsigned char *>(user_buffer) + i * dst_stride;
         for (uint height = 0; height < max_y1; height++) {
             memcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride);
-            temp_src_ptr += _info.max_dims().at(0) * datatype_stride;
+            temp_src_ptr += _info.max_shape().at(0) * datatype_stride;
             temp_dst_ptr += max_x1 * datatype_stride;
         }
     }

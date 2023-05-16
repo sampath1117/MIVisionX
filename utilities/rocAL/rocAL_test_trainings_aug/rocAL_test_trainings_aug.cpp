@@ -350,8 +350,8 @@ int main(int argc, const char ** argv)
         cv::Mat mat_output;
         for(int idx = 0; idx < output_tensor_list->size(); idx++)
         {
-            int h = output_tensor_list->at(idx)->info().max_dims().at(1) * output_tensor_list->at(idx)->info().dims().at(0);
-            int w = output_tensor_list->at(idx)->info().max_dims().at(0);
+            int h = output_tensor_list->at(idx)->info().max_shape().at(1) * output_tensor_list->at(idx)->info().dims().at(0);
+            int w = output_tensor_list->at(idx)->info().max_shape().at(0);
             mat_input = cv::Mat(h, w, cv_color_format);
             mat_output = cv::Mat(h, w, cv_color_format);
 

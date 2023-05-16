@@ -23,68 +23,9 @@ THE SOFTWARE.
 #include "commons.h"
 #include "context.h"
 #include "rocal_api.h"
-#if !ENABLE_HIP
+#if ENABLE_OPENCL
 #include "CL/cl.h"
 #endif
-
-RocalStatus ROCAL_API_CALL
-rocalCopyToOutput(
-        RocalContext p_context,
-        void* out_ptr,
-        size_t out_size)
-{
-    auto context = static_cast<Context*>(p_context);
-    try
-    {
-        context->master_graph->copy_output(out_ptr, out_size);
-    }
-    catch(const std::exception& e)
-    {
-        context->capture_error(e.what());
-        ERR(e.what())
-        return ROCAL_RUNTIME_ERROR;
-    }
-    return ROCAL_OK;
-}
-
-RocalStatus ROCAL_API_CALL
-rocalCopyToOutput(
-        RocalContext p_context,
-        unsigned char * out_ptr,
-        size_t out_size)
-{
-    auto context = static_cast<Context*>(p_context);
-    try
-    {
-        context->master_graph->copy_output(out_ptr, out_size);
-    }
-    catch(const std::exception& e)
-    {
-        context->capture_error(e.what());
-        ERR(e.what())
-        return ROCAL_RUNTIME_ERROR;
-    }
-    return ROCAL_OK;
-}
-
-RocalStatus ROCAL_API_CALL
-rocalCopyToTensorOutput(
-        RocalContext p_context,
-        std::vector<void *> &out_ptr)
-{
-    auto context = static_cast<Context*>(p_context);
-    try
-    {
-        context->master_graph->copy_output(out_ptr);
-    }
-    catch(const std::exception& e)
-    {
-        context->capture_error(e.what());
-        ERR(e.what())
-        return ROCAL_RUNTIME_ERROR;
-    }
-    return ROCAL_OK;
-}
 
 RocalTensorList ROCAL_API_CALL
 rocalGetOutputTensors(

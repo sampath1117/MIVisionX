@@ -39,7 +39,6 @@ struct Context
         std::cerr << "\n last_batch_padded" << last_batch_padded;
         LOG("Processing on " + STR(((affinity == RocalAffinity::CPU)?" CPU": " GPU")))
         master_graph = std::make_shared<MasterGraph>(batch_size, affinity, gpu_id, prefetch_queue_depth, output_tensor_type, last_batch_policy, last_batch_padded);
-        _internal_batch_size = master_graph->internal_batch_size();
     }
     ~Context()
     {
@@ -58,10 +57,8 @@ struct Context
         return master_graph->timing();
     }
     size_t user_batch_size() { return _user_batch_size; }
-    size_t internal_batch_size() { return _internal_batch_size; }
 private:
     void clear_errors() { error = "";}
     std::string error;
     size_t _user_batch_size;
-    size_t _internal_batch_size;
 };

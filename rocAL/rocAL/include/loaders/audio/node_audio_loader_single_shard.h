@@ -29,11 +29,7 @@ THE SOFTWARE.
 class AudioLoaderSingleShardNode: public Node
 {
 public:
-#if ENABLE_HIP
-    AudioLoaderSingleShardNode(rocalTensor *output, DeviceResourcesHip device_resources);
-#else
-    AudioLoaderSingleShardNode(rocalTensor *output, DeviceResources device_resources);
-#endif
+    AudioLoaderSingleShardNode(rocalTensor *output, void *device_resources);
     ~AudioLoaderSingleShardNode() override;
 
     /// \param user_shard_count shard count from user

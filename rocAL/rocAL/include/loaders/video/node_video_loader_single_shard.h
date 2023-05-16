@@ -30,11 +30,7 @@ THE SOFTWARE.
 class VideoLoaderSingleShardNode : public Node
 {
 public:
-#if ENABLE_HIP
-    VideoLoaderSingleShardNode(rocalTensor *output, DeviceResourcesHip device_resources);
-#else
-    VideoLoaderSingleShardNode(rocalTensor *output, DeviceResources device_resources);
-#endif
+    VideoLoaderSingleShardNode(rocalTensor *output, void *device_resources);
     ~VideoLoaderSingleShardNode() override;
 
     /// \param user_shard_count shard count from user

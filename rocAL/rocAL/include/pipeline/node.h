@@ -38,8 +38,8 @@ public:
     void update_parameters();
     std::vector<rocalTensor *> input() { return _inputs; };
     std::vector<rocalTensor *> output() { return _outputs; };
-    void add_next(const std::shared_ptr<rocalTensor>& node) {} // To be implemented
-    void add_previous(const std::shared_ptr<rocalTensor>& node) {} //To be implemented
+    void add_next(const std::shared_ptr<Node>& node) {} // To be implemented
+    void add_previous(const std::shared_ptr<Node>& node) {} //To be implemented
     std::shared_ptr<Graph> graph() { return _graph; }
     void set_meta_data(MetaDataBatch* meta_data_info){_meta_data_info = meta_data_info;}
     bool _is_ssd = false;

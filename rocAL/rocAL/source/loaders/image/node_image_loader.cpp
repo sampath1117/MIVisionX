@@ -23,11 +23,7 @@ THE SOFTWARE.
 #include "node_image_loader.h"
 #include "exception.h"
 
-#if ENABLE_HIP
-ImageLoaderNode::ImageLoaderNode(rocalTensor *output, DeviceResourcesHip device_resources):
-#else
-ImageLoaderNode::ImageLoaderNode(rocalTensor *output, DeviceResources device_resources):
-#endif
+ImageLoaderNode::ImageLoaderNode(rocalTensor *output, void *device_resources):
         Node({}, {output})
 {
     _loader_module = std::make_shared<ImageLoaderSharded>(device_resources);

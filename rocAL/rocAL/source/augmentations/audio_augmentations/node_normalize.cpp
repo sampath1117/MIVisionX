@@ -31,8 +31,8 @@ NormalizeNode::NormalizeNode(const std::vector<rocalTensor *> &inputs, const std
 void NormalizeNode::create_node() {
     if(_node)
         return;
-    std::vector<int> src_frames(_batch_size, _inputs[0]->info().max_dims()[0]);
-    std::vector<int> src_channels(_batch_size, _inputs[0]->info().max_dims()[1]);
+    std::vector<int> src_frames(_batch_size, _inputs[0]->info().max_shape()[0]);
+    std::vector<int> src_channels(_batch_size, _inputs[0]->info().max_shape()[1]);
 
     _src_frames_array = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_INT32, _batch_size);
     _src_channels_array = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_INT32, _batch_size);

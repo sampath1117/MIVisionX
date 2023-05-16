@@ -568,8 +568,8 @@ rocalResize(RocalContext p_context,
         } else {
             // compute the output info width and height wrt the scaling modes and roi passed
             if(resize_scaling_mode == ROCAL_SCALING_MODE_STRETCH) {
-                max_out_width = out_width ? out_width : input->info().max_dims()[0];
-                max_out_height = out_height ? out_height : input->info().max_dims()[1];
+                max_out_width = out_width ? out_width : input->info().max_shape()[0];
+                max_out_height = out_height ? out_height : input->info().max_shape()[1];
             } else if(resize_scaling_mode == ROCAL_SCALING_MODE_NOT_SMALLER) {
                 max_out_width = (out_width ? out_width : out_height) * MAX_ASPECT_RATIO;
                 max_out_height = (out_height ? out_height : out_width) * MAX_ASPECT_RATIO;
@@ -641,8 +641,8 @@ rocalResizeShorter(
         rocalTensorInfo output_info = input->info();
         output_info.set_tensor_layout(op_tensorLayout);
         output_info.set_data_type(op_tensorDataType);
-        if (size == 0) size = input->info().max_dims()[0];
-        if (size == 0) size = input->info().max_dims()[1];
+        if (size == 0) size = input->info().max_shape()[0];
+        if (size == 0) size = input->info().max_shape()[1];
         std::vector<size_t> out_dims = output_info.dims();
         int size_dim = size * 10;
         if(op_tensorLayout == RocalTensorlayout::NHWC)
@@ -877,7 +877,7 @@ rocalSpectrogram(RocalContext p_context,
         int layout=0;
         get_rocal_tensor_data_type(rocal_tensor_output_type, op_tensorDataType);
         rocalTensorInfo output_info = input->info();
-        std::vector<size_t> max_dims = output_info.max_dims();
+        std::vector<size_t> max_dims = output_info.max_shape();
         int window_offset = 0;
         if(!center_windows)
             window_offset = window_length;
@@ -982,7 +982,7 @@ RocalTensor rocalMelFilterBank(RocalContext p_context,
     auto input = static_cast<rocalTensor*>(p_input);
     try {
         rocalTensorInfo output_info = input->info();
-        std::vector<size_t> max_dims = output_info.max_dims();
+        std::vector<size_t> max_dims = output_info.max_shape();
         int max_frame = max_dims[0];
         max_frame = std::max(0, max_frame);
         std::vector<size_t> dims = output_info.dims();
@@ -1196,7 +1196,7 @@ rocalResample(RocalContext p_context,
         output_info.set_tensor_layout(RocalTensorlayout::NONE);
         output_info.set_data_type(op_tensorDataType);
         if(sample_hint > 0) {
-            std::vector<size_t> max_dims = output_info.max_dims();
+            std::vector<size_t> max_dims = output_info.max_shape();
             std::vector<size_t> dims = output_info.dims();
             dims[1] = std::ceil(sample_hint);
             dims[2] = max_dims[1];

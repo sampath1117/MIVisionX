@@ -25,14 +25,10 @@ THE SOFTWARE.
 #include "cifar10_data_loader.h"
 #include "vx_ext_amd.h"
 
-#if ENABLE_HIP
-CIFAR10DataLoader::CIFAR10DataLoader(DeviceResourcesHip dev_resources):
-#else
-CIFAR10DataLoader::CIFAR10DataLoader(DeviceResources dev_resources):
-#endif
-_circ_buff(dev_resources),
-_file_load_time("file load time", DBG_TIMING),
-_swap_handle_time("Swap_handle_time", DBG_TIMING)
+CIFAR10DataLoader::CIFAR10DataLoader(void *dev_resources):
+        _circ_buff(dev_resources),
+        _file_load_time("file load time", DBG_TIMING),
+        _swap_handle_time("Swap_handle_time", DBG_TIMING)
 {
     _output_image = nullptr;
     _mem_type = RocalMemType::HOST;
@@ -205,8 +201,8 @@ CIFAR10DataLoader::load_routine()
                 }
                 _actual_read_size[file_counter] = _reader->read_data(read_ptr, readSize);
                 _raw_img_info._image_names[file_counter] = _reader->id();
-                _raw_img_info._roi_width[file_counter] = _output_image->info().max_dims()[0];
-                _raw_img_info._roi_height[file_counter] = _output_image->info().max_dims()[1];
+                _raw_img_info._roi_width[file_counter] = _output_image->info().max_shape()[0];
+                _raw_img_info._roi_height[file_counter] = _output_image->info().max_shape()[1];
                 _reader->close();
                 file_counter++;
             }

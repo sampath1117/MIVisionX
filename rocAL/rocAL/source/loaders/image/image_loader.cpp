@@ -26,13 +26,9 @@ THE SOFTWARE.
 #include "image_read_and_decode.h"
 #include "vx_ext_amd.h"
 
-#if ENABLE_HIP
-ImageLoader::ImageLoader(DeviceResourcesHip dev_resources):
-#else
-ImageLoader::ImageLoader(DeviceResources dev_resources):
-#endif
-_circ_buff(dev_resources),
-_swap_handle_time("Swap_handle_time", DBG_TIMING)
+ImageLoader::ImageLoader(void *dev_resources):
+      _circ_buff(dev_resources),
+      _swap_handle_time("Swap_handle_time", DBG_TIMING)
 {
     _output_tensor = nullptr;
     _mem_type = RocalMemType::HOST;
@@ -115,7 +111,7 @@ ImageLoader::load_next()
 void ImageLoader::set_output (rocalTensor* output_tensor)
 {
     _output_tensor = output_tensor;
-    _output_mem_size = _output_tensor->info().data_size();
+    _output_mem_size = ((_output_tensor->info().data_size()/ 8) * 8 + 8); // TODO - CHECK why this is a multiple of 8 here
 }
 
 void ImageLoader::set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader)
@@ -163,8 +159,8 @@ void ImageLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
         de_init();
         throw;
     }
-    _max_decoded_width = _output_tensor->info().max_dims().at(0);
-    _max_decoded_height = _output_tensor->info().max_dims().at(1);
+    _max_decoded_width = _output_tensor->info().max_shape().at(0);
+    _max_decoded_height = _output_tensor->info().max_shape().at(1);
     _decoded_img_info._image_names.resize(_batch_size);
     _decoded_img_info._roi_height.resize(_batch_size);
     _decoded_img_info._roi_width.resize(_batch_size);

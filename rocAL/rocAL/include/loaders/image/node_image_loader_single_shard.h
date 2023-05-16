@@ -29,11 +29,7 @@ THE SOFTWARE.
 class ImageLoaderSingleShardNode : public Node
 {
 public:
-#if ENABLE_HIP
-    ImageLoaderSingleShardNode(rocalTensor *output, DeviceResourcesHip device_resources);
-#else
-    ImageLoaderSingleShardNode(rocalTensor *output, DeviceResources device_resources);
-#endif
+    ImageLoaderSingleShardNode(rocalTensor *output, void *device_resources);
     ~ImageLoaderSingleShardNode() override;
 
     /// \param user_shard_count shard count from user

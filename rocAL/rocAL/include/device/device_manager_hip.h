@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include "hip/hip_runtime.h"
 #include <vx_ext_amd.h>
 #include <VX/vx_types.h>
+#include <memory>
 
 struct DeviceResourcesHip {
     hipStream_t hip_stream;
@@ -41,7 +42,7 @@ public:
 
     hipError_t initialize();
 
-    DeviceResourcesHip resources();
+    DeviceResourcesHip *resources();
 
     void init_hip(vx_context context);
 

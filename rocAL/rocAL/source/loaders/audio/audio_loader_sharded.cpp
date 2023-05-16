@@ -22,11 +22,7 @@ THE SOFTWARE.
 
 #include "audio_loader_sharded.h"
 
-#if ENABLE_HIP
-AudioLoaderSharded::AudioLoaderSharded(DeviceResourcesHip dev_resources):
-#else
-AudioLoaderSharded::AudioLoaderSharded(DeviceResources dev_resources):
-#endif
+AudioLoaderSharded::AudioLoaderSharded(void *dev_resources):
         _dev_resources(dev_resources)
 {
     _loader_idx = 0;

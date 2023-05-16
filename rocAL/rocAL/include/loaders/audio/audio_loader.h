@@ -34,11 +34,7 @@ THE SOFTWARE.
 // it uses a circular buffer to store decoded frames and audios for the user
 class AudioLoader : public LoaderModule {
 public:
-#if ENABLE_HIP
-    explicit AudioLoader(DeviceResourcesHip dev_resources);
-#else
-    explicit AudioLoader(DeviceResources dev_resources);
-#endif
+    explicit AudioLoader(void *dev_resources);
     ~AudioLoader() override;
     LoaderModuleStatus load_next() override;
     void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false) override;

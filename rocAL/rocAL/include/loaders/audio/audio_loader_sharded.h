@@ -30,11 +30,7 @@ THE SOFTWARE.
 class AudioLoaderSharded : public LoaderModule
 {
 public:
-#if ENABLE_HIP
-    explicit AudioLoaderSharded(DeviceResourcesHip dev_resources);
-#else
-    explicit AudioLoaderSharded(DeviceResources dev_resources);
-#endif
+    explicit AudioLoaderSharded(void *dev_resources);
     ~AudioLoaderSharded() override;
     LoaderModuleStatus load_next() override;
     void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false) override;
@@ -53,11 +49,7 @@ public:
 
 private:
     void increment_loader_idx();
-#if ENABLE_HIP
-    const DeviceResourcesHip _dev_resources;
-#else
-    const DeviceResources _dev_resources;
-#endif
+    void *_dev_resources;
     bool _initialized = false;
     std::vector<std::shared_ptr<AudioLoader>> _loaders;
     size_t _loader_idx;

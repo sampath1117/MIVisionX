@@ -27,11 +27,8 @@ THE SOFTWARE.
 #include "vx_ext_amd.h"
 
 #ifdef ROCAL_VIDEO
-#if ENABLE_HIP
-VideoLoader::VideoLoader(DeviceResourcesHip dev_resources):
-#else
-VideoLoader::VideoLoader(DeviceResources dev_resources):
-#endif
+
+VideoLoader::VideoLoader(void *dev_resources):
 _circ_buff(dev_resources),
 _swap_handle_time("Swap_handle_time", DBG_TIMING)
 {
@@ -143,8 +140,8 @@ void VideoLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
         de_init();
         throw;
     }
-    _max_decoded_width = _output_tensor->info().max_dims().at(0);
-    _max_decoded_height = _output_tensor->info().max_dims().at(1);
+    _max_decoded_width = _output_tensor->info().max_shape().at(0);
+    _max_decoded_height = _output_tensor->info().max_shape().at(1);
     _decoded_img_info._image_names.resize(_batch_size);
     // TODO -the below 4 lines need change?
     _decoded_img_info._roi_height.resize(_batch_size);

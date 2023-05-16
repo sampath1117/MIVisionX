@@ -13,8 +13,8 @@ public:
     void init(int interpolation_type,std::vector<float>& mean,  std::vector<float>& std_dev, IntParam *mirror, int layout);
     vx_array return_mirror(){ return _mirror.default_array();  }
 
-    unsigned int get_dst_width() { return _outputs[0]->info().max_dims()[0]; }
-    unsigned int get_dst_height() { return _outputs[0]->info().max_dims()[1]; }
+    unsigned int get_dst_width() { return _outputs[0]->info().max_shape()[0]; }
+    unsigned int get_dst_height() { return _outputs[0]->info().max_shape()[1]; }
     vx_array get_src_width() { return _src_roi_width; }
     vx_array get_src_height() { return _src_roi_height; }
 protected:

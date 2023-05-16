@@ -30,7 +30,7 @@ class RALIGenericIterator(object):
         return self.__next__()
 
     def __next__(self):
-        torch.set_printoptions(threshold=10_000, profile="full", edgeitems=100)
+        torch.set_printoptions(threshold=10_000, profile="full", edgeitems=100) # For debugging
 
         if(b.isEmpty(self.loader._handle)) and self.shard_size < 0:
             timing_info = self.loader.Timing_Info()
@@ -53,8 +53,8 @@ class RALIGenericIterator(object):
         else:
             self.output_tensor_list = self.loader.rocalGetOutputTensors()
             # Move to init
-        self.last_batch_padded_size = b.getLastBatchPaddedSize(self.loader._handle)
-        self.last_batch_size = self.batch_size - self.last_batch_padded_size
+        selflast_batch_padded_size.last_batch_padded_size = b.getLastBatchPaddedSize(self.loader._handle)
+        self.last_batch_size = self.batch_size - self.
         self.batch_count+=self.batch_size
         #From init
         self.num_of_dims = self.output_tensor_list[0].num_of_dims()

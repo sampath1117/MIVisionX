@@ -32,8 +32,8 @@ void ResizeNode::create_node()
 {
     if(_node)
         return;
-    std::vector<uint32_t> dst_roi_width(_batch_size,_outputs[0]->info().max_dims()[0]);
-    std::vector<uint32_t> dst_roi_height(_batch_size, _outputs[0]->info().max_dims()[1]);
+    std::vector<uint32_t> dst_roi_width(_batch_size,_outputs[0]->info().max_shape()[0]);
+    std::vector<uint32_t> dst_roi_height(_batch_size, _outputs[0]->info().max_shape()[1]);
 
     _dst_roi_width = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_UINT32, _batch_size);
     _dst_roi_height = vxCreateArray(vxGetContext((vx_reference)_graph->get()), VX_TYPE_UINT32, _batch_size);
@@ -71,8 +71,8 @@ void ResizeNode::update_node() {
         _dst_width = _out_width;
         _dst_height = _out_height;
         adjust_out_roi_size();
-        _dst_width = std::min(_dst_width, (unsigned)_outputs[0]->info().max_dims()[0]);
-        _dst_height = std::min(_dst_height, (unsigned)_outputs[0]->info().max_dims()[1]);
+        _dst_width = std::min(_dst_width, (unsigned)_outputs[0]->info().max_shape()[0]);
+        _dst_height = std::min(_dst_height, (unsigned)_outputs[0]->info().max_shape()[1]);
         _dst_roi_width_vec.push_back(_dst_width);
         _dst_roi_height_vec.push_back(_dst_height);
     }

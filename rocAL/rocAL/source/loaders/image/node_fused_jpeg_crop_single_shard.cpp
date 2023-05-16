@@ -2,11 +2,7 @@
 #include "exception.h"
 
 
-#if ENABLE_HIP
-FusedJpegCropSingleShardNode::FusedJpegCropSingleShardNode(rocalTensor *output, DeviceResourcesHip device_resources):
-#else
-FusedJpegCropSingleShardNode::FusedJpegCropSingleShardNode(rocalTensor *output, DeviceResources device_resources):
-#endif
+FusedJpegCropSingleShardNode::FusedJpegCropSingleShardNode(rocalTensor *output, void *device_resources):
         Node({}, {output})
 {
     _loader_module = std::make_shared<ImageLoader>(device_resources);

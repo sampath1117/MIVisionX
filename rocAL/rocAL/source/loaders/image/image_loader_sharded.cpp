@@ -22,11 +22,7 @@ THE SOFTWARE.
 
 #include "image_loader_sharded.h"
 
-#if ENABLE_HIP
-ImageLoaderSharded::ImageLoaderSharded(DeviceResourcesHip dev_resources):
-#else
-ImageLoaderSharded::ImageLoaderSharded(DeviceResources dev_resources):
-#endif
+ImageLoaderSharded::ImageLoaderSharded(void *dev_resources):
         _dev_resources(dev_resources)
 {
     _loader_idx = 0;
@@ -111,7 +107,6 @@ ImageLoaderSharded::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cf
     }
     _initialized = true;
 }
-
 void ImageLoaderSharded::start_loading()
 {
     for(unsigned i = 0; i < _loaders.size(); i++)
@@ -152,7 +147,6 @@ void ImageLoaderSharded::set_random_bbox_data_reader(std::shared_ptr<RandomBBoxC
 {
     _randombboxcrop_meta_data_reader = randombboxcrop_meta_data_reader;
 }
-
 
 size_t ImageLoaderSharded::remaining_count()
 {

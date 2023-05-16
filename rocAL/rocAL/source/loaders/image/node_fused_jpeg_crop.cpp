@@ -23,11 +23,7 @@ THE SOFTWARE.
 #include "node_fused_jpeg_crop.h"
 #include "exception.h"
 
-#if ENABLE_HIP
-FusedJpegCropNode::FusedJpegCropNode(rocalTensor *output, DeviceResourcesHip device_resources):
-#else
-FusedJpegCropNode::FusedJpegCropNode(rocalTensor *output, DeviceResources device_resources):
-#endif
+FusedJpegCropNode::FusedJpegCropNode(rocalTensor *output, void *device_resources):
         Node({}, {output})
 {
     _loader_module = std::make_shared<ImageLoaderSharded>(device_resources);

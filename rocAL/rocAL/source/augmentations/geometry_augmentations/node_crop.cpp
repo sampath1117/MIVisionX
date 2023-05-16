@@ -28,8 +28,8 @@ THE SOFTWARE.
 
 CropNode::CropNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs) :
         Node(inputs, outputs),
-        _dest_width(_outputs[0]->info().max_dims()[0]),
-        _dest_height(_outputs[0]->info().max_dims()[1])
+        _dest_width(_outputs[0]->info().max_shape()[0]),
+        _dest_height(_outputs[0]->info().max_shape()[1])
 {
     _crop_param = std::make_shared<RocalCropParam>(_batch_size);
 }

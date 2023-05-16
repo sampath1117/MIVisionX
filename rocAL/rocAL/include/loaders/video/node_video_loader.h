@@ -30,11 +30,7 @@ THE SOFTWARE.
 class VideoLoaderNode : public Node
 {
 public:
-#if ENABLE_HIP
-    VideoLoaderNode(rocalTensor *output, DeviceResourcesHip device_resources);
-#else
-    VideoLoaderNode(rocalTensor *output, DeviceResources device_resources);
-#endif
+    VideoLoaderNode(rocalTensor *output, void * device_resources);
     ~VideoLoaderNode() override;
     VideoLoaderNode() = delete;
     ///

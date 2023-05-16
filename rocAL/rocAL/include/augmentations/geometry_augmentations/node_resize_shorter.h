@@ -29,8 +29,8 @@ public:
     ResizeShorterNode(const std::vector<rocalTensor *> &inputs, const std::vector<rocalTensor *> &outputs);
     ResizeShorterNode() = delete;
     void init(int size);
-    unsigned int get_dst_width() { return _outputs[0]->info().max_dims()[0]; }
-    unsigned int get_dst_height() { return _outputs[0]->info().max_dims()[1]; }
+    unsigned int get_dst_width() { return _outputs[0]->info().max_shape()[0]; }
+    unsigned int get_dst_height() { return _outputs[0]->info().max_shape()[1]; }
 protected:
     void create_node() override;
     void update_node() override;

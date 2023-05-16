@@ -24,7 +24,7 @@ THE SOFTWARE.
 #include "commons.h"
 #include <vector>
 #include <condition_variable>
-#if !ENABLE_HIP
+#if ENABLE_OPENCL
 #include <CL/cl.h>
 #endif
 #include <queue>
@@ -46,11 +46,7 @@ public:
     ///\param dev
     ///\param sub_buffer_size
     ///\param sub_buffer_count
-#if ENABLE_HIP
-    void initHip(RocalMemType mem_type, DeviceResourcesHip dev, std::vector<size_t> sub_buffer_size, unsigned sub_buffer_count, size_t roi_buffer_size);
-#else
-    void init(RocalMemType mem_type, DeviceResources dev, std::vector<size_t> sub_buffer_size, unsigned sub_buffer_count, size_t roi_buffer_size);
-#endif
+    void init(RocalMemType mem_type, void *dev, std::vector<size_t> &sub_buffer_size, size_t roi_buffer_size);
     void initBoxEncoderMetaData(RocalMemType mem_type, size_t encoded_bbox_size, size_t encoded_labels_size);
     void init_metadata(RocalMemType mem_type, std::vector<size_t> sub_buffer_size, unsigned sub_buffer_count);
     void release_gpu_res();
@@ -86,13 +82,12 @@ private:
     const unsigned BUFF_DEPTH;
     std::vector<size_t> _sub_buffer_size;
     unsigned _sub_buffer_count;
-    std::vector<size_t> _meta_data_sub_buffer_size;
+    std::vector<std::vector<size_t>> _meta_data_sub_buffer_size;
     unsigned _meta_data_sub_buffer_count;
     std::mutex _lock;
     std::condition_variable _wait_for_load;
     std::condition_variable _wait_for_unload;
     std::vector<std::vector<void*>> _dev_sub_buffer;
-    std::vector<void*> _host_master_buffers;
     std::vector<std::vector<void*>> _host_sub_buffers;
     std::vector<std::vector<unsigned *>> _dev_roi_buffers;
     std::vector<std::vector<unsigned *>> _host_roi_buffers;
@@ -101,11 +96,7 @@ private:
     std::vector<void *> _dev_labels_buffer;
     bool _dont_block = false;
     RocalMemType _mem_type;
-#if ENABLE_HIP
-    DeviceResourcesHip _devhip;
-#else
-    DeviceResources _dev;
-#endif
+    void *_dev;
     size_t _write_ptr;
     size_t _read_ptr;
     size_t _level;

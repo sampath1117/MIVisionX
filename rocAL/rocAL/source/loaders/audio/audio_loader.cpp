@@ -26,11 +26,7 @@ THE SOFTWARE.
 #include "audio_read_and_decode.h"
 #include "vx_ext_amd.h"
 
-#if ENABLE_HIP
-AudioLoader::AudioLoader(DeviceResourcesHip dev_resources):
-#else
-AudioLoader::AudioLoader(DeviceResources dev_resources):
-#endif
+AudioLoader::AudioLoader(void *dev_resources):
 _circ_buff(dev_resources),
 _swap_handle_time("Swap_handle_time", DBG_TIMING)
 {
@@ -156,8 +152,8 @@ void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
         de_init();
         throw;
     }
-    _max_decoded_samples = _output_tensor->info().max_dims().at(0);
-    _max_decoded_channels = _output_tensor->info().max_dims().at(1);
+    _max_decoded_samples = _output_tensor->info().max_shape().at(0);
+    _max_decoded_channels = _output_tensor->info().max_shape().at(1);
     _decoded_img_info._image_names.resize(_batch_size);
     _decoded_img_info._roi_audio_samples.resize(_batch_size);
     _decoded_img_info._roi_audio_channels.resize(_batch_size);

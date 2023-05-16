@@ -35,8 +35,8 @@ void ResizeMirrorNormalizeNode::create_node()
 {
     if(_node)
         return;
-    std::vector<uint32_t> dst_roi_width(_batch_size,_outputs[0]->info().max_dims()[0]);
-    std::vector<uint32_t> dst_roi_height(_batch_size, _outputs[0]->info().max_dims()[1]);
+    std::vector<uint32_t> dst_roi_width(_batch_size,_outputs[0]->info().max_shape()[0]);
+    std::vector<uint32_t> dst_roi_height(_batch_size, _outputs[0]->info().max_shape()[1]);
     _mean_vx.resize(_batch_size*3);
     _std_dev_vx.resize(_batch_size*3);
     for (uint i=0; i < _batch_size; i++ ) {

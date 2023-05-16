@@ -23,11 +23,7 @@ THE SOFTWARE.
 #include "node_audio_loader.h"
 #include "exception.h"
 
-#if ENABLE_HIP
-AudioLoaderNode::AudioLoaderNode(rocalTensor *output, DeviceResourcesHip device_resources):
-#else
-AudioLoaderNode::AudioLoaderNode(rocalTensor *output, DeviceResources device_resources):
-#endif
+AudioLoaderNode::AudioLoaderNode(rocalTensor *output, void *device_resources):
         Node({}, {output})
 {
     _loader_module = std::make_shared<AudioLoaderSharded>(device_resources);
