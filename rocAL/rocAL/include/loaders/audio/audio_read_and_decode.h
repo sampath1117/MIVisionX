@@ -80,8 +80,6 @@ private:
     TimingDBG _file_load_time, _decode_time;
     size_t _batch_size;
     DecoderConfig _decoder_config;
-    // std::shared_ptr<RandomBBoxCrop_MetaDataReader> _randombboxcrop_meta_data_reader = nullptr;
-    // pCropCord _CropCord;
     std::string _input_path;
 };
 

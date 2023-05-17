@@ -44,7 +44,6 @@ class AudioSourceEvaluator
 public:
     AudioSourceEvaluatorStatus create(ReaderConfig reader_cfg, DecoderConfig decoder_cfg);
     void find_max_dimension();
-    // void set_size_evaluation_policy(MaxSizeEvaluationPolicy arg);
     size_t max_samples();
     size_t max_channels();
 
@@ -52,18 +51,15 @@ private:
     class FindMaxSize
     {
     public:
-        // void set_policy(MaxSizeEvaluationPolicy arg) { _policy = arg; }
         void process_sample(unsigned val);
         unsigned get_max() { return _max; };
     private:
-        // MaxSizeEvaluationPolicy _policy = MaxSizeEvaluationPolicy::MAXIMUM_FOUND_SIZE;
         std::map<unsigned,unsigned> _hist;
         unsigned _max = 0;
         unsigned _max_count = 0;
     };
     FindMaxSize _samples_max;
     FindMaxSize _channels_max;
-    DecoderConfig _decoder_cfg_cv;
     std::shared_ptr<AudioDecoder> _decoder;
     std::shared_ptr<Reader> _reader;
     std::shared_ptr<MetaDataReader> _meta_data_reader;

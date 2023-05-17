@@ -56,8 +56,6 @@ extern "C"  RocalTensor  ROCAL_API_CALL rocalJpegFileSource(RocalContext context
 /// \param is_output Determines if the user wants the loaded images to be part of the output or not.
 /// \param shuffle Determines if the user wants to shuffle the dataset or not.
 /// \param loop Determines if the user wants to indefinitely loops through images or not.
-/// \param max_width The maximum width of the decoded images, larger or smaller will be resized to closest
-/// \param max_height The maximum height of the decoded images, larger or smaller will be resized to closest
 /// \return Reference to the output image
 extern "C"  RocalTensor  ROCAL_API_CALL rocalAudioFileSource(RocalContext context,
                                                         const char* source_path,

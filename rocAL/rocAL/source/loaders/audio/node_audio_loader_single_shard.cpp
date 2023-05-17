@@ -33,7 +33,7 @@ AudioLoaderSingleShardNode::AudioLoaderSingleShardNode(rocalTensor *output, void
 void
 AudioLoaderSingleShardNode::init(unsigned shard_id, unsigned shard_count, const std::string &source_path, const std::string &source_list_path,
                                  StorageType storage_type, DecoderType decoder_type, bool shuffle, bool loop,
-                                 size_t load_batch_count, RocalMemType mem_type, std::shared_ptr<MetaDataReader> meta_data_reader, RocalBatchPolicy last_batch_policy, bool last_batch_padded, bool stick_to_shard, signed shard_size)
+                                 size_t load_batch_count, RocalMemType mem_type, RocalBatchPolicy last_batch_policy, bool last_batch_padded, bool stick_to_shard, signed shard_size)
 {
     if(!_loader_module)
         THROW("ERROR: loader module is not set for AudioLoaderNode, cannot initialize")
@@ -47,7 +47,6 @@ AudioLoaderSingleShardNode::init(unsigned shard_id, unsigned shard_count, const 
     reader_cfg.set_shard_count(shard_count);
     reader_cfg.set_shard_id(shard_id);
     reader_cfg.set_batch_count(load_batch_count);
-    reader_cfg.set_meta_data_reader(meta_data_reader);
     reader_cfg.set_last_batch_policy(last_batch_policy, last_batch_padded);
     reader_cfg.set_stick_to_shard(stick_to_shard);
     reader_cfg.set_shard_size(shard_size);
