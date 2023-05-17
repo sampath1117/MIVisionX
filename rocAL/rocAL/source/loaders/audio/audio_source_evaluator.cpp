@@ -81,7 +81,6 @@ AudioSourceEvaluator::find_max_dimension()
         _samples_max.process_sample(samples);
         _channels_max.process_sample(channels);
         _decoder->release();
-
     }
     // return the reader read pointer to the begining of the resource
     _reader->reset();
