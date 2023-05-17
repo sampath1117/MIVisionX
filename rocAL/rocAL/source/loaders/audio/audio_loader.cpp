@@ -286,9 +286,6 @@ AudioLoader::update_output_audio()
         return LoaderModuleStatus::OK;
 
     _output_decoded_img_info = _circ_buff.get_image_info();
-    // if (_randombboxcrop_meta_data_reader) {
-    //   _output_cropped_img_info = _circ_buff.get_cropped_audio_info();
-    // }
     _output_names = _output_decoded_img_info._image_names;
     _output_tensor->update_tensor_roi(_output_decoded_img_info._roi_audio_samples, _output_decoded_img_info._roi_audio_channels);
     _output_tensor->update_audio_tensor_sample_rate(_output_decoded_img_info._original_audio_sample_rates);
@@ -341,9 +338,4 @@ std::vector<std::string> AudioLoader::get_id()
 decoded_image_info AudioLoader::get_decode_image_info()
 {
     return _output_decoded_img_info;
-}
-
-crop_image_info AudioLoader::get_crop_image_info()
-{
-    return _output_cropped_img_info;
 }

@@ -39,7 +39,6 @@ public:
     LoaderModuleStatus load_next() override;
     void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false) override;
     void set_output (rocalTensor* output_audio) override;
-    // void set_output_tensor(rocalTensor* output_audio) override;
     void set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader) override {};
     size_t remaining_count() override; // returns number of remaining items to be loaded
     size_t last_batch_padded_size() override;
@@ -50,7 +49,7 @@ public:
     LoaderModuleStatus set_cpu_sched_policy(struct sched_param sched_policy);
     std::vector<std::string> get_id() override;
     decoded_image_info get_decode_image_info() override;
-    crop_image_info get_crop_image_info() override;
+    crop_image_info get_crop_image_info() override {};
     void set_prefetch_queue_depth(size_t prefetch_queue_depth)  override;
     void set_gpu_device_id(int device_id);
     void shut_down() override;
@@ -64,16 +63,12 @@ private:
     rocalTensor* _output_tensor;
     std::vector<std::string> _output_names;//!< audio name/ids that are stores in the _output_audio
     size_t _output_mem_size;
-    MetaDataBatch* _meta_data = nullptr;//!< The output of the meta_data_graph,
-    std::vector<std::vector <float>> _bbox_coords;
     bool _internal_thread_running;
     size_t _batch_size;
     std::thread _load_thread;
     RocalMemType _mem_type;
     decoded_image_info _decoded_img_info;
-    crop_image_info _crop_image_info;
     decoded_image_info _output_decoded_img_info;
-    crop_image_info _output_cropped_img_info;
     CircularBuffer _circ_buff;
     TimingDBG _swap_handle_time;
     bool _is_initialized;

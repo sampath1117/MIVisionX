@@ -49,9 +49,6 @@ unsigned FileListReader::count_items()
 {
     if(_loop)
         return _file_names.size();
-    // std::cerr << "\n read_counter " <<_read_counter ;
-    // for (auto x : _file_names)
-    //     std::cerr << x <<"\n";
     int ret = ((int)_file_names.size() -_read_counter);
     return ((ret < 0) ? 0 : ret);
 }
@@ -76,7 +73,6 @@ Reader::Status FileListReader::initialize(ReaderConfig desc)
     _last_batch_info = desc.get_last_batch_policy();
     _stick_to_shard = desc.get_stick_to_shard();
     _shard_size = desc.get_shard_size();
-    // std::cerr<<"\n _last_batch_info :: in file_list_reader "<<_last_batch_info.first<<"\t "<<_last_batch_info.second;
     _meta_data_reader = desc.meta_data_reader();
     ret = subfolder_reading();
     // the following code is required to make every shard the same size:: required for multi-gpu training
@@ -114,8 +110,6 @@ void FileListReader::incremenet_read_ptr()
 size_t FileListReader::open()
 {
     auto file_path = _file_names[_curr_file_idx];// Get next file name
-    // std::cerr<< "\n In Open - file_path "<<file_path;
-    // std::cerr << "\n OPEN -- current_file_idx : "<<_curr_file_idx;
     incremenet_read_ptr();
     _last_file_path = _last_id = file_path;
     auto last_slash_idx = _last_id.find_last_of("\\/");
@@ -179,8 +173,6 @@ FileListReader::release()
 
 void FileListReader::reset()
 {
-    // std::cerr << "\n RESETTTTT";
-    
     _shuffle_time.start();
     if (_shuffle) std::random_shuffle(_file_names.begin(), _file_names.end());
     _shuffle_time.end();
@@ -237,7 +229,6 @@ void FileListReader::increment_shard_id()
 // before calling the generate_file_names - call - increment shard_id to increase the entropy of the dataset i.e use the complete data if stick to shard is false in the reset() function else dont increment the shard_id & do not regenerate
 void FileListReader::generate_file_names()
 {
-    // std::cerr << "[GENERATE] _shard_id" <<_shard_id;
     std::ifstream fp (_file_list_path);
 
     if (fp.is_open())  {
@@ -250,9 +241,6 @@ void FileListReader::generate_file_names()
             file_path = _folder_path + "/"+ file_path;
 
 
-            // std::cout << "\n entry Path String" << entry_path << '\n';
-
-            // std::cout << filesys::is_regular_file(entry.path()) << "\n";
             if (filesys::is_regular_file(file_path ))
             {
                 if(get_file_shard_id() != _shard_id )
@@ -265,17 +253,15 @@ void FileListReader::generate_file_names()
                 _in_batch_read_count = (_in_batch_read_count%_batch_count == 0) ? 0 : _in_batch_read_count;
                 _last_file_name = file_path;
                 _file_names.push_back(file_path);
-                // std::cerr<<"\n _file_names : "<<file_path<<std::endl;
                 _file_count_all_shards++;
                 incremenet_file_id();
             }
-            
+
 
         } // for loop ends
     }
-    
+
             uint images_to_pad_shard = _file_count_all_shards - (ceil(_file_count_all_shards / _shard_count) * _shard_count);
-            // std::cerr << "\n images_to_pad_shard :: " <<images_to_pad_shard;
             if(!images_to_pad_shard) {
                 for(int i = 0; i < images_to_pad_shard; i++) {
                     if(get_file_shard_id() != _shard_id )
@@ -290,7 +276,6 @@ void FileListReader::generate_file_names()
                     incremenet_file_id();
                 }
     }
-    // _actual_file_names = _file_names;
 }
 
 
@@ -344,11 +329,7 @@ void FileListReader::replicate_last_image_to_fill_last_shard()
     }
     else if(_last_batch_info.first == RocalBatchPolicy::PARTIAL)
     {
-        // std::cerr<<"\n RocalBatchPolicy::PARTIAL";
         _last_batch_padded_size = _batch_count - _in_batch_read_count;
-        // std::cerr << "\n [REPLICATE] _in_batch_read_count " << _in_batch_read_count;
-        // std::cerr << "\n [REPLICATE] _last_batch_padded_size " << _last_batch_padded_size;
-        // std::cerr<<"\n RocalBatchPolicy::PARTIAL";
         if(_last_batch_info.second == true) {
         for(size_t i = (_batch_count - _in_batch_read_count); i < _batch_count; i++)
             _file_names.push_back(_last_file_name);
@@ -393,7 +374,6 @@ Reader::Status FileListReader::open_folder()
         file_path.append(_entity->d_name);
         _last_file_name = file_path;
         _file_names.push_back(file_path);
-        // std::cerr<<"\n _file_names : "<<file_path;
         _file_count_all_shards++;
         incremenet_file_id();
     }
@@ -423,6 +403,5 @@ size_t FileListReader::get_file_shard_id()
 {
     if(_batch_count == 0 || _shard_count == 0)
         THROW("Shard (Batch) size cannot be set to 0")
-    //return (_file_id / (_batch_count)) % _shard_count;
     return _file_id  % _shard_count;
 }

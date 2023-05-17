@@ -27,24 +27,6 @@ THE SOFTWARE.
 #include "audio_decoder_factory.h"
 #include "audio_read_and_decode.h"
 
-// std::tuple<Decoder::ColorFormat, unsigned >
-// interpret_color_format(RocalColorFormat color_format )
-// {
-//     switch (color_format) {
-//         case RocalColorFormat::RGB24:
-//             return  std::make_tuple(Decoder::ColorFormat::RGB, 3);
-
-//         case RocalColorFormat::BGR24:
-//             return  std::make_tuple(Decoder::ColorFormat::BGR, 3);
-
-//         case RocalColorFormat::U8:
-//             return  std::make_tuple(Decoder::ColorFormat::GRAY, 1);
-
-//         default:
-//             throw std::invalid_argument("Invalid color format\n");
-//     }
-// }
-
 
 Timing
 AudioReadAndDecode::timing()
@@ -137,12 +119,7 @@ AudioReadAndDecode::load(float* buff,
         return LoaderModuleStatus::NO_MORE_DATA_TO_READ;
     // load audios/frames from the disk and push them as a large audio onto the buff
     unsigned file_counter = 0;
-    // const auto ret = interpret_color_format(output_color_format);
-    // const Decoder::ColorFormat decoder_color_format = std::get<0>(ret);
     const size_t audio_size = max_decoded_samples * max_decoded_channels;
-    // std::cerr<<"\n max_decoded_samples * max_decoded_channels * sizeof(float) :: "<<max_decoded_samples<<"\t "<<max_decoded_channels<<"\t "<<sizeof(float);
-    // std::cerr<<"\n audio size :: "<<audio_size;
-    // exit(0);
     // Decode with the channels and size equal to a single audio
     // File read is done serially since I/O parallelization does not work very well.
     _file_load_time.start();// Debug timing
@@ -154,15 +131,10 @@ AudioReadAndDecode::load(float* buff,
             continue;
         }
 
-        // _compressed_buff[file_counter].reserve(fsize);
-        // _actual_read_size[file_counter] = _reader->read(_compressed_buff[file_counter].data(), fsize);
         _audio_names[file_counter] = _reader->id();
-        // std::cerr<<" \n In audio Read and decode - _input_path"<<_input_path;
-        // std::cerr<<" \n In audio Read and decode - _reader->id()"<<_reader->id();
 
         _audio_file_path[file_counter] = _reader->file_path();
         _reader->close();
-        // _compressed_audio_size[file_counter] = fsize;
         file_counter++;
     }
 
@@ -203,8 +175,6 @@ AudioReadAndDecode::load(float* buff,
             actual_samples[i] = roi_samples[i] = _original_samples[i]; // TODO - Needs to be checked
             actual_channels[i] = roi_channels[i] = _original_channels[i];
             actual_sample_rates[i] = _original_sample_rates[i];
-            // actual_samples[i] = _actual_decoded_samples[i];
-            // actual_channels[i] = _actual_decoded_channels[i];
         }
     }
     _decode_time.end();// Debug timing
