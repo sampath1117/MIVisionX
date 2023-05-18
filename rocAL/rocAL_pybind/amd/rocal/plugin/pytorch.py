@@ -53,8 +53,8 @@ class RALIGenericIterator(object):
         else:
             self.output_tensor_list = self.loader.rocalGetOutputTensors()
             # Move to init
-        selflast_batch_padded_size.last_batch_padded_size = b.getLastBatchPaddedSize(self.loader._handle)
-        self.last_batch_size = self.batch_size - self.
+        self.last_batch_padded_size = b.getLastBatchPaddedSize(self.loader._handle)
+        self.last_batch_size = self.batch_size - self.last_batch_padded_size
         self.batch_count+=self.batch_size
         #From init
         self.num_of_dims = self.output_tensor_list[0].num_of_dims()

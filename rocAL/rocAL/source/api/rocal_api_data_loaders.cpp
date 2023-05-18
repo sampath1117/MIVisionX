@@ -736,8 +736,6 @@ rocalAudioFileSourceSingleShard(
         auto info  = rocalTensorInfo(std::vector<size_t>(std::move(dims)),
                                 context->master_graph->mem_type(),
                                 tensor_data_type);
-        // info.reallocate
-        info.set_tensor_layout(RocalTensorlayout::NONE);
         info.set_max_shape();
         // info.reallocate_tensor_sample_rate_buffers();
         output = context->master_graph->create_loader_output_tensor(info);
@@ -769,8 +767,6 @@ rocalAudioFileSourceSingleShard(
             output_dims.at(1) = info.dims()[1];
             output_dims.at(2) = 1;
             output_info.set_dims(output_dims);
-            output_info.set_tensor_layout(RocalTensorlayout::NONE);
-            output_info.set_max_shape();
             auto downmixed_output = context->master_graph->create_tensor(output_info, false);
             std::shared_ptr<DownmixNode> downmix_node = context->master_graph->add_node<DownmixNode>({output}, {downmixed_output});
 
@@ -851,7 +847,6 @@ rocalAudioFileSource(
         auto info  = rocalTensorInfo(std::vector<size_t>(std::move(dims)),
                                 context->master_graph->mem_type(),
                                 tensor_data_type);
-        info.set_tensor_layout(RocalTensorlayout::NONE);
         info.set_max_shape();
         output = context->master_graph->create_loader_output_tensor(info);
 
@@ -877,8 +872,6 @@ rocalAudioFileSource(
             output_dims.at(1) = info.dims()[1];
             output_dims.at(2) = 1;
             output_info.set_dims(output_dims);
-            output_info.set_tensor_layout(RocalTensorlayout::NONE);
-            output_info.set_max_shape();
             auto downmixed_output = context->master_graph->create_tensor(output_info, false);
             std::shared_ptr<DownmixNode> downmix_node = context->master_graph->add_node<DownmixNode>({output}, {downmixed_output});
 

@@ -227,9 +227,9 @@ void RingBuffer::init(RocalMemType mem_type, void *devres, std::vector<size_t> &
         for(size_t buffIdx = 0; buffIdx < BUFF_DEPTH; buffIdx++)
         {
             // a minimum of extra MEM_ALIGNMENT is allocated
-            _host_sub_buffers[buffIdx].resize(_sub_buffer_count);
-            _host_roi_buffers[buffIdx].resize(_sub_buffer_count);
-            for(size_t sub_buff_idx = 0; sub_buff_idx < _sub_buffer_count; sub_buff_idx++) {
+            _host_sub_buffers[buffIdx].resize(sub_buffer_count);
+            _host_roi_buffers[buffIdx].resize(sub_buffer_count);
+            for(size_t sub_buff_idx = 0; sub_buff_idx < sub_buffer_count; sub_buff_idx++) {
                 _host_sub_buffers[buffIdx][sub_buff_idx] = aligned_alloc(MEM_ALIGNMENT, MEM_ALIGNMENT * (_sub_buffer_size[sub_buff_idx] / MEM_ALIGNMENT + 1));
                 _host_roi_buffers[buffIdx][sub_buff_idx] = (unsigned *)malloc(roi_buffer_size);
             }
