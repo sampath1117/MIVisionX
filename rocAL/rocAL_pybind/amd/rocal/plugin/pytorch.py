@@ -25,7 +25,7 @@ class RALIGenericIterator(object):
         self.channels = None
         self.output = None
         self.batch_size = self.loader._batch_size
-
+        self.last_batch_padded_size = b.getLastBatchPaddedSize(self.loader._handle)
     def next(self):
         return self.__next__()
 
@@ -50,9 +50,7 @@ class RALIGenericIterator(object):
         else:
             self.output_tensor_list = self.loader.rocalGetOutputTensors()
             # Move to init
-        self.last_batch_padded_size = b.getLastBatchPaddedSize(self.loader._handle)
-        self.last_batch_size = self.batch_size - self.last_batch_padded_size
-        self.batch_count+=self.batch_size
+        self.batch_count += self.batch_size
         #From init
         self.num_of_dims = self.output_tensor_list[0].num_of_dims()
         if self.num_of_dims == 4: # In the case of the Image data
@@ -76,11 +74,10 @@ class RALIGenericIterator(object):
             self.channels = self.output_tensor_list[0].batch_width() if self.channels is None else self.channels #Max Channels
             self.samples = self.output_tensor_list[0].batch_height() if self.samples is None else self.samples #Max Samples
             self.audio_length = self.channels * self.samples if self.audio_length is None else self.audio_length
+            self.last_batch_size = self.batch_size - self.last_batch_padded_size
             roi = self.output_tensor_list[0].get_rois().reshape(self.batch_size,4)
-            x1 = torch.tensor(roi[...,0:1])
-            y1 = torch.tensor(roi[...,1:2])
-            max_x1 = torch.max(x1)
-            max_y1 = torch.max(y1)
+            max_x1 = np.max(roi[...,0:1])
+            max_y1 = np.max(roi[...,1:2])
             self.output = torch.empty((self.batch_size, max_y1, max_x1,), dtype=torch.float32)
             # next
             self.labels = self.loader.rocalGetImageLabels()
