@@ -323,23 +323,18 @@ MasterGraph::create_output_tensor(const rocalTensorInfo &info)
 
 rocalTensor * MasterGraph::create_tensor(const rocalTensorInfo &info, bool is_output)
 {
-    auto* new_tensor = new rocalTensor(info);
+    auto* output = new rocalTensor(info);
     // if the tensor is not an output tensor, the tensor creation is deferred and later it'll be created as a virtual tensor
     if(is_output)
     {
-        if (new_tensor->create_from_handle(_context) != 0)
-            THROW("Cannot create the tensor from handle")
-
-        _internal_tensor_list.push_back(new_tensor);
-
-        auto * output = new rocalTensor(info);
         if (output->create_from_handle(_context) != 0)
             THROW("Cannot create the tensor from handle")
 
-        _output_tensor_list.push_back(output);
+        _internal_tensor_list.push_back(output);
+        _output_tensor_list.push_back(new rocalTensor(info));
     }
 
-    return new_tensor;
+    return output;
 }
 
 void
@@ -351,12 +346,7 @@ MasterGraph::set_output(rocalTensor* output_tensor)
                 THROW("Cannot create the tensor from handle")
 
         _internal_tensor_list.push_back(output_tensor);
-
-        auto* output = new rocalTensor(output_tensor->info());
-        if (output->create_from_handle(_context) != 0)
-                THROW("Cannot create the tensor from handle")
-
-        _output_tensor_list.push_back(output);
+        _output_tensor_list.push_back(new rocalTensor(output_tensor->info()));
     }
     else
     {
@@ -381,7 +371,7 @@ void MasterGraph::release()
     _output_tensor_list.release();
     for(auto& tensor: _internal_tensors)
         delete tensor;
-    deallocate_output_tensor();
+    // deallocate_output_tensor();
 
 
     if(_graph != nullptr)
@@ -590,7 +580,7 @@ MasterGraph::get_output_tensors()
     {
         std::shared_ptr<unsigned> roi_ptr_sh;
         roi_ptr_sh.reset(roi_ptr[i], deleter);
-        _output_tensor_list[i]->swap_handle(output_ptr[i]);
+        _output_tensor_list[i]->set_mem_handle(output_ptr[i]);
         _output_tensor_list[i]->swap_tensor_roi(roi_ptr_sh);
 
     }

@@ -365,7 +365,7 @@ unsigned rocalTensor::copy_data(hipStream_t stream, void *host_memory, bool sync
 #endif
 
 unsigned rocalTensor::copy_data(void *user_buffer) {
-    if (_info._type != rocalTensorInfo::Type::HANDLE) return 0;
+    if (_mem_handle == nullptr) return 0;
 
 #if ENABLE_HIP
     if (_info._mem_type == RocalMemType::HIP) {
@@ -383,7 +383,7 @@ unsigned rocalTensor::copy_data(void *user_buffer) {
 }
 
 unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
-    if (_info._type != rocalTensorInfo::Type::HANDLE) return 0;
+    if (_mem_handle == nullptr) return 0;
 
     //TODO : Handle this case for HIP buffer
     ssize_t datatype_stride = _info.data_type_size();
@@ -402,7 +402,7 @@ unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
 }
 
 unsigned rocalTensor::copy_data(void *user_buffer, uint last_batch_size) {
-    if (_info._type != rocalTensorInfo::Type::HANDLE) return 0;
+    if (_mem_handle == nullptr) return 0;
 
 #if ENABLE_HIP
     if (_info._mem_type == RocalMemType::HIP) {
