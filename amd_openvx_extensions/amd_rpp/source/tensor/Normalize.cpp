@@ -196,9 +196,7 @@ static vx_status VX_CALLBACK processNormalize(vx_node node, const vx_reference *
 
 static vx_status VX_CALLBACK initializeNormalize(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
-    // std::cerr<< "\n initializeNormalize";
     NormalizeLocalData *data = new NormalizeLocalData;
-    // unsigned roiType;
     memset(data, 0, sizeof(*data));
 #if ENABLE_OPENCL
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_OPENCL_COMMAND_QUEUE, &data->handle.cmdq, sizeof(data->handle.cmdq)));

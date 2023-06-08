@@ -25,8 +25,89 @@ THE SOFTWARE.
 #include <cstddef>
 #include <iostream>
 #include <vector>
-#include "parameter_factory.h"
+#include <cmath>
 #include "sndfile.h"
+#include <functional>
+
+#if _WIN32
+#include <intrin.h>
+#else
+#include <x86intrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+#endif
+
+inline double Hann(double x) {
+    return 0.5 * (1 + std::cos(x * M_PI));
+}
+
+inline float sinc(float x)
+{
+    x *= M_PI;
+    return (std::abs(x) < 1e-5f) ? (1.0f - x * x * (1.0f / 6)) : std::sin(x) / x;
+}
+
+struct ResamplingWindow {
+    inline std::pair<int, int> input_range(float x) {
+        int xc = ceilf(x);
+        int i0 = xc - lobes;
+        int i1 = xc + lobes;
+        return {i0, i1};
+    }
+
+    inline float operator()(float x) {
+        float fi = x * scale + center;
+        int i = floorf(fi);
+        float di = fi - i;
+        i = std::max(std::min(i, lookup_size - 2), 0);
+        float curr = lookup[i];
+        float next = lookup[i + 1];
+        return curr + di * (next - curr);
+    }
+
+    inline __m128 operator()(__m128 x) {
+        __m128 fi = _mm_add_ps(x * _mm_set1_ps(scale), _mm_set1_ps(center));
+        __m128i i = _mm_cvttps_epi32(fi);
+        __m128 fifloor = _mm_cvtepi32_ps(i);
+        __m128 di = _mm_sub_ps(fi, fifloor);
+        // i = _mm_max_epi32(_mm_min_epi32(i, pxLookupMax), xmm_px0);
+        int idx[4];
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(idx), i);
+        __m128 curr = _mm_setr_ps(lookup[idx[0]],   lookup[idx[1]],
+                                lookup[idx[2]],   lookup[idx[3]]);
+        __m128 next = _mm_setr_ps(lookup[idx[0]+1], lookup[idx[1]+1],
+                                lookup[idx[2]+1], lookup[idx[3]+1]);
+        return _mm_add_ps(curr, _mm_mul_ps(di, _mm_sub_ps(next, curr)));
+    }
+
+    float scale = 1, center = 1;
+    int lobes = 0, coeffs = 0;
+    int lookup_size = 0;
+    __m128i pxLookupMax;
+    std::vector<float> lookup;
+};
+
+// Function to generate values for ResamplingWindow. Used in case if resampling is enabled
+inline void windowed_sinc(ResamplingWindow &window,
+        int coeffs, int lobes, std::function<double(double)> envelope = Hann) {
+    float scale = 2.0f * lobes / (coeffs - 1);
+    float scale_envelope = 2.0f / coeffs;
+    window.coeffs = coeffs;
+    window.lobes = lobes;
+    window.lookup.clear();
+    window.lookup.resize(coeffs + 5);
+    window.lookup_size = window.lookup.size();
+    window.pxLookupMax = _mm_set1_epi32(window.lookup_size - 2);
+    int center = (coeffs - 1) * 0.5f;
+    for (int i = 0; i < coeffs; i++) {
+        float x = (i - center) * scale;
+        float y = (i - center) * scale_envelope;
+        float w = sinc(x) * envelope(y);
+        window.lookup[i + 1] = w;
+    }
+    window.center = center + 1;
+    window.scale = 1 / scale;
+}
 
 enum class AudioDecoderType
 {
@@ -55,7 +136,7 @@ public:
         NO_MEMORY
     };
     virtual AudioDecoder::Status initialize(const char *src_filename) = 0;
-    virtual AudioDecoder::Status decode(float* buffer) = 0; //to pass buffer & number of frames/samples to decode
+    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, float out_sample_rate = 16000, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
     virtual AudioDecoder::Status decode_info(int* samples, int* channels, float* sample_rates) = 0; //to decode info about the audio samples
     virtual void release() = 0;
     virtual ~AudioDecoder() = default;

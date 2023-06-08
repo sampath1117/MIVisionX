@@ -108,7 +108,6 @@ void FileSourceReader::incremenet_read_ptr()
 size_t FileSourceReader::open()
 {
     auto file_path = _file_names[_curr_file_idx];// Get next file name
-    // std::cerr<< "\n In Open - file_path "<<file_path;
     incremenet_read_ptr();
     _last_file_path = _last_id = file_path;
     auto last_slash_idx = _last_id.find_last_of("\\/");
@@ -221,7 +220,6 @@ Reader::Status FileSourceReader::subfolder_reading()
         std::string file_path = entry_path;
         _last_file_name = file_path;
         _file_names.push_back(file_path);
-        // std::cerr<<"\n _file_names : "<<file_path<<std::endl;
         _file_count_all_shards++;
         incremenet_file_id();
         }
@@ -250,28 +248,24 @@ Reader::Status FileSourceReader::subfolder_reading()
 }
 void FileSourceReader::replicate_last_image_to_fill_last_shard()
 {
-    std::cerr<<"\n replicate_last_image_to_fill_last_shard Padding "<<_in_batch_read_count<<" images. ";
     // orig
     // for(size_t i = _in_batch_read_count; i < _batch_count; i++)
     //     _file_names.push_back(_last_file_name);
     // // fill
     if(_last_batch_info.first == RocalBatchPolicy::BATCH_FILL)
     {
-        std::cerr<<"\n RocalBatchPolicy::BATCH_FILL";
         for(size_t i = 0; i < (_batch_count - _in_batch_read_count); i++)
             _file_names.push_back(_file_names.at(i));
     }
     // // drop
     else if(_last_batch_info.first == RocalBatchPolicy::DROP)
     {
-        std::cerr<<"\n RocalBatchPolicy::DROP";
         for(size_t i = 0; i < _in_batch_read_count; i++)
             _file_names.pop_back();
     }
     else if(_last_batch_info.first == RocalBatchPolicy::PARTIAL)
     {
         _last_batch_padded_size = _batch_count - _in_batch_read_count;
-        std::cerr<<"\n RocalBatchPolicy::PARTIAL";
         for(size_t i = 0; i < (_batch_count - _in_batch_read_count); i++)
             _file_names.push_back(_file_names.at(i));
     }
@@ -293,7 +287,6 @@ Reader::Status FileSourceReader::open_folder()
     if ((_src_dir = opendir (_folder_path.c_str())) == nullptr)
         THROW("FileReader ShardID ["+ TOSTR(_shard_id)+ "] ERROR: Failed opening the directory at " + _folder_path);
 
-    std::cerr<<"\n open_folder() -> folder_path  :  "<<_folder_path;
     while((_entity = readdir (_src_dir)) != nullptr)
     {
         if(_entity->d_type != DT_REG)
@@ -312,7 +305,6 @@ Reader::Status FileSourceReader::open_folder()
         file_path.append(_entity->d_name);
         _last_file_name = file_path;
         _file_names.push_back(file_path);
-        std::cerr<<"\n _file_names : "<<file_path;
         _file_count_all_shards++;
         incremenet_file_id();
         uint images_to_pad_shard = _file_count_all_shards % _shard_count;

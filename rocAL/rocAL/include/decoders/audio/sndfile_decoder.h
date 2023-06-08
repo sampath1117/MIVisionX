@@ -30,7 +30,7 @@ public:
     //! Default constructor
     SndFileDecoder();
     AudioDecoder::Status initialize(const char *src_filename) override;
-    AudioDecoder::Status decode(float* buffer);
+    AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample=false, float out_sample_rate = 16000, float sample_rate = 16000);
     AudioDecoder::Status decode_info(int* samples, int* channels, float* sample_rates) override;
     void release() override;
     ~SndFileDecoder() override;

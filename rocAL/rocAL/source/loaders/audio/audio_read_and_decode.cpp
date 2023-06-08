@@ -27,25 +27,6 @@ THE SOFTWARE.
 #include "audio_decoder_factory.h"
 #include "audio_read_and_decode.h"
 
-// std::tuple<Decoder::ColorFormat, unsigned >
-// interpret_color_format(RocalColorFormat color_format )
-// {
-//     switch (color_format) {
-//         case RocalColorFormat::RGB24:
-//             return  std::make_tuple(Decoder::ColorFormat::RGB, 3);
-
-//         case RocalColorFormat::BGR24:
-//             return  std::make_tuple(Decoder::ColorFormat::BGR, 3);
-
-//         case RocalColorFormat::U8:
-//             return  std::make_tuple(Decoder::ColorFormat::GRAY, 1);
-
-//         default:
-//             throw std::invalid_argument("Invalid color format\n");
-//     }
-// }
-
-
 Timing
 AudioReadAndDecode::timing()
 {
@@ -127,7 +108,10 @@ AudioReadAndDecode::load(float* buff,
                          std::vector<uint32_t> &roi_channels,
                          std::vector<uint32_t> &actual_samples,
                          std::vector<uint32_t> &actual_channels,
-                         std::vector<float> &actual_sample_rates)
+                         std::vector<float> &actual_sample_rates,
+                         bool resample,
+                         std::vector<float> sample_rate_array,
+                         float sample_rate)
 {
     if(max_decoded_samples == 0 || max_decoded_channels == 0 )
         THROW("Zero audio dimension is not valid")
@@ -135,34 +119,29 @@ AudioReadAndDecode::load(float* buff,
         THROW("Null pointer passed as output buffer")
     if(_reader->count_items() < _batch_size)
         return LoaderModuleStatus::NO_MORE_DATA_TO_READ;
-    // load audios/frames from the disk and push them as a large audio onto the buff
-    unsigned file_counter = 0;
-    // const auto ret = interpret_color_format(output_color_format);
-    // const Decoder::ColorFormat decoder_color_format = std::get<0>(ret);
-    const size_t audio_size = max_decoded_samples * max_decoded_channels;
-    // std::cerr<<"\n max_decoded_samples * max_decoded_channels * sizeof(float) :: "<<max_decoded_samples<<"\t "<<max_decoded_channels<<"\t "<<sizeof(float);
-    // std::cerr<<"\n audio size :: "<<audio_size;
-    // exit(0);
-    // Decode with the channels and size equal to a single audio
-    // File read is done serially since I/O parallelization does not work very well.
-    _file_load_time.start();// Debug timing
-    while ((file_counter != _batch_size) && _reader->count_items() > 0) {
 
+    unsigned file_counter = 0;
+    const size_t audio_size = max_decoded_samples * max_decoded_channels;
+    _file_load_time.start();// Debug timing
+
+    // Intialize parameters w.r.t resampling
+    float quality = 50.0f;
+    int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
+    int lookupSize = lobes * 64 + 1;
+    ResamplingWindow window;
+    if(resample)
+        windowed_sinc(window, lookupSize, lobes);
+
+    while ((file_counter != _batch_size) && _reader->count_items() > 0) {
         size_t fsize = _reader->open();
         if (fsize == 0) {
             WRN("Opened file " + _reader->id() + " of size 0");
             continue;
         }
 
-        // _compressed_buff[file_counter].reserve(fsize);
-        // _actual_read_size[file_counter] = _reader->read(_compressed_buff[file_counter].data(), fsize);
         _audio_names[file_counter] = _reader->id();
-        // std::cerr<<" \n In audio Read and decode - _input_path"<<_input_path;
-        // std::cerr<<" \n In audio Read and decode - _reader->id()"<<_reader->id();
-
         _audio_file_path[file_counter] = _reader->file_path();
         _reader->close();
-        // _compressed_audio_size[file_counter] = fsize;
         file_counter++;
     }
 
@@ -173,9 +152,13 @@ AudioReadAndDecode::load(float* buff,
         for (size_t i = 0; i < _batch_size; i++){
             _decompressed_buff_ptrs[i] = buff + (audio_size * i);
         }
+
 #pragma omp parallel for num_threads(8)  // default(none) TBD: option disabled in Ubuntu 20.04
         for (size_t i = 0; i < _batch_size; i++)
         {
+            float out_sample_rate = 16000.0f;
+            if(resample)
+                out_sample_rate = sample_rate_array[i] * 16000.0;
             // initialize the actual decoded channels and samples with the maximum
             _actual_decoded_samples[i] = max_decoded_samples;
             _actual_decoded_channels[i] = max_decoded_channels;
@@ -189,10 +172,12 @@ AudioReadAndDecode::load(float* buff,
                 THROW("Unable to fetch decode info for file: " + _audio_names[i].c_str())
             }
             _original_channels[i] = original_channels;
+            if(resample)
+                original_samples = std::ceil(original_samples * sample_rate_array[i]);
             _original_samples[i] = original_samples;
             _original_sample_rates[i] = original_sample_rates;
 
-            if (_decoder[i]->decode(_decompressed_buff_ptrs[i]) != AudioDecoder::Status::OK) {
+            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window, resample, out_sample_rate, sample_rate) != AudioDecoder::Status::OK) {
                 THROW("Decoder failed for file: " + _audio_names[i].c_str())
             }
             _decoder[i]->release();
@@ -203,8 +188,6 @@ AudioReadAndDecode::load(float* buff,
             actual_samples[i] = roi_samples[i] = _original_samples[i]; // TODO - Needs to be checked
             actual_channels[i] = roi_channels[i] = _original_channels[i];
             actual_sample_rates[i] = _original_sample_rates[i];
-            // actual_samples[i] = _actual_decoded_samples[i];
-            // actual_channels[i] = _actual_decoded_channels[i];
         }
     }
     _decode_time.end();// Debug timing

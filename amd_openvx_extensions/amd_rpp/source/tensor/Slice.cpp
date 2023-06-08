@@ -189,7 +189,6 @@ static vx_status VX_CALLBACK validateSlice(vx_node node, const vx_reference para
 static vx_status VX_CALLBACK processSlice(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
     //TODO: Swetha : To clean up the debug code
-    // std::cerr<<"\n processSlice";
     RppStatus rpp_status = RPP_SUCCESS;
     vx_status return_status = VX_SUCCESS;
     SliceLocalData *data = NULL;
@@ -315,7 +314,6 @@ static vx_status VX_CALLBACK initializeSlice(vx_node node, const vx_reference *p
 // #endif
 //     data->roi_tensor_ptr = (RpptROI *)calloc(data->src_desc_ptr->n, sizeof(RpptROI));
 //TODO: Swetha : To clean up the debug code
-// std::cerr<<"\n Gonna call refresh slice in initialize";
     refreshSlice(node, parameters, num, data);
     // std::cerr << "Calling refersh ";
 #if ENABLE_OPENCL
