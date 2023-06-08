@@ -489,7 +489,6 @@ void MasterGraph::output_routine()
             if (_loader_module->remaining_count() <= (_is_sequence_reader_output ? _sequence_batch_size : _user_batch_size))
             {
                 _final_batch_padded_size = _loader_module->last_batch_padded_size();
-                // std::cerr<<"\n _final_batch_padded_size:: "<<_final_batch_padded_size;
             }
             if (_loader_module->remaining_count() < (_is_sequence_reader_output ? _sequence_batch_size : _user_batch_size))
             {

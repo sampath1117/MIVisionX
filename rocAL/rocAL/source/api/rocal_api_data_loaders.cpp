@@ -738,7 +738,6 @@ rocalAudioFileSourceSingleShard(
         info.set_max_shape();
         output = context->master_graph->create_loader_output_tensor(info);
         output->reset_audio_sample_rate();
-        FloatParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_float_rand_param(start_sample_rate_range, end_sample_rate_range);
         context->master_graph->add_node<AudioLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path,
                                                                                         source_file_list_path,
@@ -754,7 +753,6 @@ rocalAudioFileSourceSingleShard(
                                                                                         stick_to_shard,
                                                                                         shard_size,
                                                                                         resample,
-                                                                                        sample_rate_dist,
                                                                                         sample_rate);
         context->master_graph->set_loop(loop);
         if(downmix)
@@ -839,7 +837,6 @@ rocalAudioFileSource(
                                 tensor_data_type);
         info.set_tensor_layout(RocalTensorlayout::NONE);
         output = context->master_graph->create_loader_output_tensor(info);
-        FloatParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_float_rand_param(start_sample_rate_range, end_sample_rate_range);
 
         // TODO: Add a loader module for loading audio files from filesystem
         context->master_graph->add_node<AudioLoaderNode>({}, {output})->init(internal_shard_count,
@@ -852,7 +849,6 @@ rocalAudioFileSource(
                                                                             context->master_graph->mem_type(),
                                                                             context->master_graph->meta_data_reader(),
                                                                             resample,
-                                                                            sample_rate_dist,
                                                                             sample_rate);
         context->master_graph->set_loop(loop);
         if(downmix)
