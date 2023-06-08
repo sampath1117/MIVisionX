@@ -165,7 +165,7 @@ void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
     // _audio_loader->set_random_bbox_data_reader(_randombboxcrop_meta_data_reader);
 
     // TODO add condition check to create sample dist only if _is_resample flag is set
-    _sample_dist_param = ParameterFactory::instance()->create_uniform_rand_param<float>(0.85, 1.15);
+    _sample_dist_param = ParameterFactory::instance()->create_uniform_rand_param<float>(0.85, 1.15); // TODO Harcoded for now, need to get params from user for the range
     _sample_rate_values.resize(_batch_size);
 
     LOG("Loader module initialized");
@@ -211,7 +211,8 @@ AudioLoader::load_routine()
                                     _decoded_img_info._original_audio_channels,
                                     _decoded_img_info._original_audio_sample_rates,
                                     _is_resample,
-                                    _sample_rate_values);
+                                    _sample_rate_values,
+                                    _sample_rate);
             } else {
                 load_status = _audio_loader->load(data,
                                 _decoded_img_info._image_names,

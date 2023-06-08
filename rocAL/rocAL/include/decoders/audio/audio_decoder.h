@@ -37,6 +37,8 @@ THE SOFTWARE.
 #include <immintrin.h>
 #endif
 
+const __m128 xmm_p4 = _mm_set1_ps(4);
+
 inline double Hann(double x) {
     return 0.5 * (1 + std::cos(x * M_PI));
 }

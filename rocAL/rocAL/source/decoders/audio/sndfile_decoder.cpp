@@ -89,7 +89,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
                     __m128 w4 = window(x4);
 
                     f4 = _mm_add_ps(f4, _mm_mul_ps(_mm_loadu_ps(inBlockPtr + i), w4));
-                    x4 = _mm_add_ps(x4, _mm_set1_ps(4));
+                    x4 = _mm_add_ps(x4, xmm_p4);
                 }
 
                 f4 = _mm_add_ps(f4, _mm_shuffle_ps(f4, f4, _MM_SHUFFLE(1, 0, 3, 2)));

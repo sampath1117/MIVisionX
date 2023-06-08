@@ -158,9 +158,9 @@ AudioReadAndDecode::load(float* buff,
 #pragma omp parallel for num_threads(8)  // default(none) TBD: option disabled in Ubuntu 20.04
         for (size_t i = 0; i < _batch_size; i++)
         {
-            float out_sample_rate = 16000.0f;
+            float out_sample_rate = sample_rate;
             if(resample)
-                out_sample_rate = sample_rate_array[i] * 16000.0;
+                out_sample_rate = out_sample_rate * sample_rate_array[i];
             // initialize the actual decoded channels and samples with the maximum
             _actual_decoded_samples[i] = max_decoded_samples;
             _actual_decoded_channels[i] = max_decoded_channels;
