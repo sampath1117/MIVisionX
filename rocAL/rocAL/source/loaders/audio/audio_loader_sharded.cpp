@@ -89,6 +89,7 @@ LoaderModuleStatus AudioLoaderSharded::load_next()
 
     return ret;
 }
+
 void
 AudioLoaderSharded::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type,
                                unsigned batch_size, bool keep_orig_size)
@@ -108,12 +109,16 @@ AudioLoaderSharded::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cf
     {
         _loaders[idx]->set_output(_output_tensor);
         _loaders[idx]->set_gpu_device_id(idx);
+        _loaders[idx]->set_sample_rate(_sample_rate);
+        if(_is_resample)
+            _loaders[idx]->set_resample_output();
         reader_cfg.set_shard_count(_shard_count);
         reader_cfg.set_shard_id(idx);
         _loaders[idx]->initialize(reader_cfg, decoder_cfg, mem_type, batch_size, keep_orig_size);
     }
     _initialized = true;
 }
+
 void AudioLoaderSharded::start_loading()
 {
     for(unsigned i = 0; i < _loaders.size(); i++)

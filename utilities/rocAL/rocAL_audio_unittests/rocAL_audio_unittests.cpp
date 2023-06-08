@@ -125,7 +125,8 @@ int test(int test_case, const char *path, float sample_rate, int downmix, unsign
     //Decoder
     RocalTensor input1, output;
     RocalTensorList non_silent_region_op;
-    input1 = rocalAudioFileSourceSingleShard(handle, path, 0, 1, false, false, false, 10, max_frames, downmix, max_channels);
+    std::string file_list_path = "/dockerx/MIVisionX-data/rocal_data/audio_samples/audio_file_list.txt";
+    input1 = rocalAudioFileSourceSingleShard(handle, path, file_list_path.c_str(), 0, 1, false, false, false, 16000, downmix, max_frames, max_channels, 9, false, 1, true, 0.85, 1.0);
     
     std::cerr<< "\n Comes out of the rocALAudioFileSource";
     if (rocalGetStatus(handle) != ROCAL_OK)

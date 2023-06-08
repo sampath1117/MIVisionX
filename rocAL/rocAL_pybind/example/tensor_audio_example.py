@@ -14,7 +14,7 @@ import amd.rocal.types as types
 import math
 # import rocal_pybind.tensor
 import sys
-import cv2
+# import cv2
 import matplotlib.pyplot as plt
 import os
 def draw_patches(img, idx, device):
@@ -115,7 +115,7 @@ def main():
         normalize_audio = fn.normalize(to_decibels_audio, axes=[1])
         # pad_audio = fn.pad(normalize_audio, fill_value=0)
 
-        audio_pipeline.set_outputs(normalize_audio)
+        audio_pipeline.set_outputs(audio_decode)
     audio_pipeline.build()
     audioIteratorPipeline = ROCALClassificationIterator(audio_pipeline, auto_reset=True)
     cnt = 0

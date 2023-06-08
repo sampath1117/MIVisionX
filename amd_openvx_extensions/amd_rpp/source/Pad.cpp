@@ -89,7 +89,7 @@ void update_destination_roi_pad(const vx_reference *parameters, PadLocalData *da
         }
             data->roi_ptr_dst[i].xywhROI.xy.x = data->roi_ptr_src[i].xywhROI.xy.x;
             data->roi_ptr_dst[i].xywhROI.xy.y = data->roi_ptr_src[i].xywhROI.xy.y;
-        
+
     }
 }
 
@@ -178,8 +178,6 @@ static vx_status VX_CALLBACK validatePad(vx_node node, const vx_reference parame
 
 static vx_status VX_CALLBACK processPad(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
-    //TODO: Swetha : To clean up the debug code
-    // std::cerr<<"\n processPad";
     RppStatus rpp_status = RPP_SUCCESS;
     vx_status return_status = VX_SUCCESS;
     PadLocalData *data = NULL;
@@ -197,23 +195,23 @@ static vx_status VX_CALLBACK processPad(vx_node node, const vx_reference *parame
         refreshPad(node, parameters, num, data);
 //TODO: Swetha : To clean up the debug code
 //  float * buffer = (float *)data->anchor;
-//             for(int n = 0; n < data->nbatchSize * 2; n++) 
+//             for(int n = 0; n < data->nbatchSize * 2; n++)
 //             {
 //                 std::cerr <<"slice begin:  "<<(float)buffer[n] << "\n";
 //             }
 //  float * buffer1 = (float *)data->shape;
-//             for(int n = 0; n < data->nbatchSize * 2; n++) 
+//             for(int n = 0; n < data->nbatchSize * 2; n++)
 //             {
 //                 std::cerr <<"slice length:  "<<(float)buffer1[n] << "\n";
 //             }
 
 // int * dimSrc = (int*) data->srcDims;
-//  for(int n = 0; n < data->nbatchSize*2; n++) 
+//  for(int n = 0; n < data->nbatchSize*2; n++)
 //             {
 //                 std::cerr <<"src length:  "<<(int)dimSrc[n] << "\n";
 //             }
 // float * psrc = (float*) data->pSrc;
-//  for(int n = 0; n < data->nbatchSize; n++) 
+//  for(int n = 0; n < data->nbatchSize; n++)
 //             {
 //                 for (int j=0; j<(int)dimSrc[n];j++)
 
@@ -222,7 +220,7 @@ static vx_status VX_CALLBACK processPad(vx_node node, const vx_reference *parame
 
         rpp_status = rppt_slice_host((float *)data->pSrc, data->src_desc_ptr, (float *)data->pDst, data->dst_desc_ptr, data->srcDims, (float*)data->anchor, (float*)data->shape, data->fill_values);
 // float * pdst = (float*) data->pDst;
-//  for(int n = 0; n < data->nbatchSize; n++) 
+//  for(int n = 0; n < data->nbatchSize; n++)
 //             {
 //                 // for (int j=0; j<(int)dimSrc[n];j++)
 
@@ -235,10 +233,7 @@ static vx_status VX_CALLBACK processPad(vx_node node, const vx_reference *parame
 
 static vx_status VX_CALLBACK initializePad(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
-    //TODO: Swetha : To clean up the debug code
-    // std::cerr<<"\n static vx_status VX_CALLBACK initializePad ";
     PadLocalData *data = new PadLocalData;
-    // unsigned roiType;
     memset(data, 0, sizeof(*data));
 #if ENABLE_OPENCL
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_ATTRIBUTE_AMD_OPENCL_COMMAND_QUEUE, &data->handle.cmdq, sizeof(data->handle.cmdq)));
@@ -331,9 +326,7 @@ static vx_status VX_CALLBACK initializePad(vx_node node, const vx_reference *par
 // #endif
 //     data->roi_tensor_ptr = (RpptROI *)calloc(data->src_desc_ptr->n, sizeof(RpptROI));
 //TODO: Swetha : To clean up the debug code
-// std::cerr<<"\n Gonna call refresh pad in initialize";
     refreshPad(node, parameters, num, data);
-    // std::cerr << "Calling refersh ";
 #if ENABLE_OPENCL
     if (data->deviceType == AGO_TARGET_AFFINITY_GPU)
         rppCreateWithStreamAndBatchSize(&data->rppHandle, data->handle.cmdq, data->nbatchSize);

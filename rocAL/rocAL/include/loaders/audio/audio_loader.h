@@ -39,8 +39,11 @@ public:
     LoaderModuleStatus load_next() override;
     void initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool keep_orig_size=false) override;
     void set_output (rocalTensor* output_audio) override;
+    void set_resample_output() { _is_resample = true; }
     // void set_output_tensor(rocalTensor* output_audio) override;
     void set_random_bbox_data_reader(std::shared_ptr<RandomBBoxCrop_MetaDataReader> randombboxcrop_meta_data_reader) override {};
+    void set_sample_dist(FloatParam* sample_rate_dist) { _sample_rate_dist = sample_rate_dist; }
+    void set_sample_rate(float sample_rate) { _sample_rate = sample_rate; }
     size_t remaining_count() override; // returns number of remaining items to be loaded
     size_t last_batch_padded_size() override;
     void reset() override; // Resets the loader to load from the beginning of the media
@@ -54,6 +57,7 @@ public:
     void set_prefetch_queue_depth(size_t prefetch_queue_depth)  override;
     void set_gpu_device_id(int device_id);
     void shut_down() override;
+    void renew_sample_dist_param();
 private:
     bool is_out_of_data();
     void de_init();
@@ -87,4 +91,10 @@ private:
     size_t _max_decoded_samples, _max_decoded_channels;
     RocalBatchPolicy _last_batch_policy;
     bool last_batch_padded;
+    bool _resample;
+    FloatParam* _sample_rate_dist;
+    bool _is_resample = false;
+    float _sample_rate = 16000.0f;
+    Parameter<float> *_sample_dist_param;
+    std::vector<float> _sample_rate_values;
 };

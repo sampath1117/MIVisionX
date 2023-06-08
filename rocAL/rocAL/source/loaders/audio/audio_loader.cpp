@@ -126,6 +126,7 @@ void AudioLoader::stop_internal_thread()
 
 void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg, RocalMemType mem_type, unsigned batch_size, bool decoder_keep_original)
 {
+    // std::cerr<<"inside AudioLoader::initialize"<<std::endl;
     if (_is_initialized)
         WRN("initialize() function is already called and loader module is initialized")
 
@@ -161,6 +162,12 @@ void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
     _decoded_img_info._original_audio_sample_rates.resize(_batch_size);
     _circ_buff.init(_mem_type, _output_mem_size,_prefetch_queue_depth );
     _is_initialized = true;
+    // _audio_loader->set_random_bbox_data_reader(_randombboxcrop_meta_data_reader);
+
+    // TODO add condition check to create sample dist only if _is_resample flag is set
+    _sample_dist_param = ParameterFactory::instance()->create_uniform_rand_param<float>(0.85, 1.15);
+    _sample_rate_values.resize(_batch_size);
+
     LOG("Loader module initialized");
 }
 
@@ -187,18 +194,36 @@ AudioLoader::load_routine()
         if (!_internal_thread_running)
             break;
 
+        if(_is_resample)
+            renew_sample_dist_param();
+
         auto load_status = LoaderModuleStatus::NO_MORE_DATA_TO_READ;
         {
-            load_status = _audio_loader->load(data,
-                                            _decoded_img_info._image_names,
-                                            _max_decoded_samples,
-                                            _max_decoded_channels,
-                                            _decoded_img_info._roi_audio_samples,
-                                            _decoded_img_info._roi_audio_channels,
-                                            _decoded_img_info._original_audio_samples,
-                                            _decoded_img_info._original_audio_channels,
-                                            _decoded_img_info._original_audio_sample_rates);
-
+            if(_is_resample)
+            {
+                load_status = _audio_loader->load(data,
+                                    _decoded_img_info._image_names,
+                                    _max_decoded_samples,
+                                    _max_decoded_channels,
+                                    _decoded_img_info._roi_audio_samples,
+                                    _decoded_img_info._roi_audio_channels,
+                                    _decoded_img_info._original_audio_samples,
+                                    _decoded_img_info._original_audio_channels,
+                                    _decoded_img_info._original_audio_sample_rates,
+                                    _is_resample,
+                                    _sample_rate_values);
+            } else {
+                load_status = _audio_loader->load(data,
+                                _decoded_img_info._image_names,
+                                _max_decoded_samples,
+                                _max_decoded_channels,
+                                _decoded_img_info._roi_audio_samples,
+                                _decoded_img_info._roi_audio_channels,
+                                _decoded_img_info._original_audio_samples,
+                                _decoded_img_info._original_audio_channels,
+                                _decoded_img_info._original_audio_sample_rates,
+                                _is_resample);
+            }
             if(load_status == LoaderModuleStatus::OK)
             {
                 _circ_buff.set_image_info(_decoded_img_info);
@@ -332,4 +357,11 @@ decoded_image_info AudioLoader::get_decode_image_info()
 crop_image_info AudioLoader::get_crop_image_info()
 {
     return _output_cropped_img_info;
+}
+
+void AudioLoader::renew_sample_dist_param() {
+    for(int i = 0; i < _batch_size; i++) {
+        _sample_dist_param->renew();
+        _sample_rate_values[i] = _sample_dist_param->get();
+    }
 }

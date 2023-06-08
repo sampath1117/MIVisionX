@@ -30,6 +30,7 @@ THE SOFTWARE.
 #include "timing_debug.h"
 #include "loader_module.h"
 #include "audio_decoder.h"
+#include "parameter_vx.h"
 
 class AudioReadAndDecode
 {
@@ -57,7 +58,10 @@ public:
             std::vector<uint32_t> &roi_channels,
             std::vector<uint32_t> &actual_samples,
             std::vector<uint32_t> &actual_channels,
-            std::vector<float> &actual_sample_rates);
+            std::vector<float> &actual_sample_rates,
+            bool resample = false,
+            std::vector<float> sample_rate_dist = {},
+            float sample_rate = 16000); // sampath check this
     size_t last_batch_padded_size();
     //! returns timing info or other status information
     Timing timing();
@@ -81,5 +85,7 @@ private:
     size_t _batch_size;
     DecoderConfig _decoder_config;
     std::string _input_path;
+    // ParameterVX<float> _sample_dist;
+    // constexpr static float RESAMPLE_RANGE [2] = {0.85, 1.15};
 };
 

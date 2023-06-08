@@ -88,7 +88,7 @@ void update_destination_roi(const vx_reference *parameters, SliceLocalData *data
                 data->roi_ptr_dst[i].xywhROI.xy.y = data->roi_ptr_src[i].xywhROI.xy.y;
             }
         }
-        
+
     }
 }
 
@@ -176,7 +176,6 @@ static vx_status VX_CALLBACK validateSlice(vx_node node, const vx_reference para
 static vx_status VX_CALLBACK processSlice(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
     //TODO: Swetha : To clean up the debug code
-    // std::cerr<<"\n processSlice";
     RppStatus rpp_status = RPP_SUCCESS;
     vx_status return_status = VX_SUCCESS;
     SliceLocalData *data = NULL;
@@ -200,7 +199,6 @@ static vx_status VX_CALLBACK processSlice(vx_node node, const vx_reference *para
 
 static vx_status VX_CALLBACK initializeSlice(vx_node node, const vx_reference *parameters, vx_uint32 num)
 {
-    std::cerr<<"\n static vx_status VX_CALLBACK initializeSlice ";
     SliceLocalData *data = new SliceLocalData;
     memset(data, 0, sizeof(*data));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[12], &data->deviceType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
@@ -232,11 +230,7 @@ static vx_status VX_CALLBACK initializeSlice(vx_node node, const vx_reference *p
     // source_description_ptr
     data->src_desc_ptr->n = data->in_tensor_dims[0];
     data->src_desc_ptr->h = data->in_tensor_dims[2];
-    data->src_desc_ptr->w = data->in_tensor_dims[1];
     data->src_desc_ptr->c = 1;
-    data->src_desc_ptr->strides.nStride = data->src_desc_ptr->c * data->src_desc_ptr->w * data->src_desc_ptr->h;
-    data->src_desc_ptr->strides.hStride = data->src_desc_ptr->c * data->src_desc_ptr->w;
-    data->src_desc_ptr->strides.wStride = data->src_desc_ptr->c;
     data->src_desc_ptr->strides.cStride = 1;
     data->numDims = data->src_desc_ptr->numDims - 1;
     data->src_desc_ptr->numDims = 4;
@@ -286,16 +280,6 @@ static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
     if (affinity.device_type == AGO_TARGET_AFFINITY_GPU)
         supported_target_affinity = AGO_TARGET_AFFINITY_GPU;
-    else
-        supported_target_affinity = AGO_TARGET_AFFINITY_CPU;
-
-    return VX_SUCCESS;
-}
-
-vx_status Slice_Register(vx_context context)
-{
-    vx_status status = VX_SUCCESS;
-    // Add kernel to the context with callbacks
     vx_kernel kernel = vxAddUserKernel(context, "org.rpp.Slice",
                                        VX_KERNEL_RPP_SLICE,
                                        processSlice,

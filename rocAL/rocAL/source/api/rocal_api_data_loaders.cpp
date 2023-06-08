@@ -45,12 +45,12 @@ namespace filesys = boost::filesystem;
 // #define MAX_ASPECT_RATIO 6.0f
 std::tuple<unsigned, unsigned>
 evaluate_audio_data_set(StorageType storage_type,
-                        DecoderType decoder_type, const std::string &source_path, const std::string &json_path)
+                        DecoderType decoder_type, const std::string &source_path, const std::string &json_path, float resample_factor = 1.0f)
 {
     AudioSourceEvaluator source_evaluator;
     if(source_evaluator.create(ReaderConfig(storage_type, source_path, json_path), DecoderConfig(decoder_type)) != AudioSourceEvaluatorStatus::OK)
         THROW("Initializing file source input evaluator failed ")
-    auto max_samples = source_evaluator.max_samples();
+    auto max_samples = std::ceil(source_evaluator.max_samples() * resample_factor);
     auto max_channels = source_evaluator.max_channels();
     if(max_samples == 0 ||max_channels  == 0)
         THROW("Cannot find size of the audio files or files cannot be accessed")
@@ -181,7 +181,6 @@ rocalJpegFileSourceSingleShard(
         info.set_tensor_layout(RocalTensorlayout::NHWC);
         info.set_max_shape();
         output = context->master_graph->create_loader_output_tensor(info);
-        std::cerr<<"\n Last batch policy :: "<<context->master_graph->last_batch_policy()<<"\t last batch padded:: "<<context->master_graph->last_batch_padded();
         context->master_graph->add_node<ImageLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path, "",
                                                                                         StorageType::FILE_SYSTEM,
@@ -265,7 +264,6 @@ rocalJpegFileSource(
         info.set_tensor_layout(RocalTensorlayout::NHWC);
         info.set_max_shape();
         output = context->master_graph->create_loader_output_tensor(info);
-        std::cerr<<"\n Last batch policy :: "<<context->master_graph->last_batch_policy()<<"\t last batch padded:: "<<context->master_graph->last_batch_padded();
         context->master_graph->add_node<ImageLoaderNode>({}, {output})->init(internal_shard_count,
                                                                           source_path, "",
                                                                           std::map<std::string, std::string>(),
@@ -701,11 +699,13 @@ rocalAudioFileSourceSingleShard(
         unsigned max_channels,
         unsigned storage_type,
         bool stick_to_shard,
-        signed shard_size)
+        signed shard_size,
+        bool resample,
+        float start_sample_rate_range,
+        float end_sample_rate_range)
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
-    std::cerr << "Inside the rocALAudioFileSourceSingleShard" ;
     try
     {
         if(shard_count < 1 )
@@ -713,14 +713,16 @@ rocalAudioFileSourceSingleShard(
 
         if(shard_id >= shard_count)
             THROW("Shard id should be smaller than shard count")
+
+        float resample_factor = 1.0f;
+        if(resample)
+            resample_factor = end_sample_rate_range;
         auto [max_frames, max_channels] = evaluate_audio_data_set(StorageType::FILE_SYSTEM, DecoderType::SNDFILE,
-                                                       source_path, "");
+                                                       source_path, "", resample_factor);
         std::cerr<<"\n Completed the evaluation of audio data set max_frame:: "<<max_frames<<"\t max_channels ::"<<max_channels;
         INFO("Internal buffer size for audio frames = "+ TOSTR(max_frames))
 
-        // RocalTensorlayout tensor_format = RocalTensorlayout::NONE;
         RocalTensorDataType tensor_data_type = RocalTensorDataType::FP32;
-        // RocalROIType roi_type = RocalROIType::XYWH;  // Letting the roi_type be default value since it isn't required for audio decoder
         unsigned num_of_dims = 3;
         std::vector<size_t> dims;
         dims.resize(num_of_dims);
@@ -736,6 +738,7 @@ rocalAudioFileSourceSingleShard(
         info.set_max_shape();
         output = context->master_graph->create_loader_output_tensor(info);
         output->reset_audio_sample_rate();
+        FloatParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_float_rand_param(start_sample_rate_range, end_sample_rate_range);
         context->master_graph->add_node<AudioLoaderSingleShardNode>({}, {output})->init(shard_id, shard_count,
                                                                                         source_path,
                                                                                         source_file_list_path,
@@ -749,8 +752,10 @@ rocalAudioFileSourceSingleShard(
                                                                                         context->master_graph->last_batch_policy(),
                                                                                         context->master_graph->last_batch_padded(),
                                                                                         stick_to_shard,
-                                                                                        shard_size
-                                                                                        );
+                                                                                        shard_size,
+                                                                                        resample,
+                                                                                        sample_rate_dist,
+                                                                                        sample_rate);
         context->master_graph->set_loop(loop);
         if(downmix)
         {
@@ -804,14 +809,21 @@ rocalAudioFileSource(
         float sample_rate,
         bool downmix,
         unsigned max_frames,
-        unsigned max_channels)
+        unsigned max_channels,
+        bool resample,
+        float start_sample_rate_range,
+        float end_sample_rate_range)
 {
     rocalTensor* output = nullptr;
     auto context = static_cast<Context*>(p_context);
     try
     {
+        // Audio tensor length is dependent on the longest audio sample present in a batch
+        float resample_factor = 1.0f;
+        if(resample)
+            resample_factor = end_sample_rate_range;
         auto [max_frames, max_channels] = evaluate_audio_data_set(StorageType::FILE_SYSTEM, DecoderType::SNDFILE,
-                                                       source_path, "");
+                                                       source_path, "", resample_factor);
         INFO("Internal buffer size for audio frames = "+ TOSTR(max_frames))
         RocalTensorDataType tensor_data_type = RocalTensorDataType::FP32;
         unsigned num_of_dims = 3;
@@ -827,6 +839,9 @@ rocalAudioFileSource(
                                 tensor_data_type);
         info.set_tensor_layout(RocalTensorlayout::NONE);
         output = context->master_graph->create_loader_output_tensor(info);
+        FloatParam* sample_rate_dist = ParameterFactory::instance()->create_uniform_float_rand_param(start_sample_rate_range, end_sample_rate_range);
+
+        // TODO: Add a loader module for loading audio files from filesystem
         context->master_graph->add_node<AudioLoaderNode>({}, {output})->init(internal_shard_count,
                                                                             source_path,
                                                                             StorageType::FILE_SYSTEM,
@@ -835,8 +850,10 @@ rocalAudioFileSource(
                                                                             loop,
                                                                             context->user_batch_size(),
                                                                             context->master_graph->mem_type(),
-                                                                            context->master_graph->meta_data_reader()
-                                                                            );
+                                                                            context->master_graph->meta_data_reader(),
+                                                                            resample,
+                                                                            sample_rate_dist,
+                                                                            sample_rate);
         context->master_graph->set_loop(loop);
         if(downmix)
         {
