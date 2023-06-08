@@ -167,7 +167,8 @@ void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
     // TODO add condition check to create sample dist only if _is_resample flag is set
     _sample_dist_param = ParameterFactory::instance()->create_uniform_rand_param<float>(0.85, 1.15); // TODO Harcoded for now, need to get params from user for the range
     _sample_rate_values.resize(_batch_size);
-
+    if(_is_resample)
+        renew_sample_dist_param();
     LOG("Loader module initialized");
 }
 
@@ -194,8 +195,7 @@ AudioLoader::load_routine()
         if (!_internal_thread_running)
             break;
 
-        if(_is_resample)
-            renew_sample_dist_param();
+
 
         auto load_status = LoaderModuleStatus::NO_MORE_DATA_TO_READ;
         {
@@ -256,7 +256,8 @@ AudioLoader::load_routine()
             _circ_buff.unblock_reader();
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-
+        if(_is_resample)
+            renew_sample_dist_param();
     }
     return LoaderModuleStatus::OK;
 }

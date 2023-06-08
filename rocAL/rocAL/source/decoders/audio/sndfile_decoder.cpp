@@ -42,7 +42,9 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
         }
     } else {
         // Allocate temporary memory for input
-        float *srcPtrTemp = (float *)malloc(_sfinfo.frames * sizeof(float));
+        std::vector<float> tempSrcArray;
+        tempSrcArray.resize(_sfinfo.frames);
+        float *srcPtrTemp = tempSrcArray.data();
 
         int readcount = 0;
         readcount = sf_readf_float(_sf_ptr, srcPtrTemp, _sfinfo.frames);
@@ -105,9 +107,6 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
                 dstPtrTemp[outPos] = f;
             }
         }
-
-        // free temporary allocated memory
-        free(srcPtrTemp);
     }
 
     AudioDecoder::Status status = Status::OK;
