@@ -174,6 +174,7 @@ namespace rocal
         timing_info.transfer_time = _convert_time.get_timing();
         std::cout<<"Load     time ::"<< timing_info.load_time <<std::endl;
         std::cout<<"Decode   time ::"<< timing_info.decode_time <<std::endl;
+        std::cout<<"Resample time ::"<< timing_info.resample_time <<std::endl;
         std::cout<<"Process  time ::"<< timing_info.process_time <<std::endl;
         std::cout<<"Transfer time ::"<< timing_info.transfer_time <<std::endl;
         std::cout<<"RB: Wait if empty time ::"<< timing_info.ring_buffer_wait_if_empty_time <<std::endl;
@@ -213,7 +214,8 @@ namespace rocal
             .def_readwrite("ring_buffer_wait_if_empty_time",&TimingInfo::ring_buffer_wait_if_empty_time)
             .def_readwrite("ring_buffer_wait_if_full_time",&TimingInfo::ring_buffer_wait_if_full_time)
             .def_readwrite("circular_buffer_wait_if_empty_time",&TimingInfo::circular_buffer_wait_if_empty_time)
-            .def_readwrite("circular_buffer_wait_if_full_time",&TimingInfo::circular_buffer_wait_if_full_time);
+            .def_readwrite("circular_buffer_wait_if_full_time",&TimingInfo::circular_buffer_wait_if_full_time)
+            .def_readwrite("resample_time",&TimingInfo::resample_time);
         py::class_<rocalTensor>(m, "rocalTensor")
                 .def(
                 "__add__",

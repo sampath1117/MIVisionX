@@ -81,7 +81,7 @@ private:
     std::vector<size_t> _original_channels;
     std::vector<float> _original_sample_rates;
     static const size_t MAX_COMPRESSED_SIZE = 1*1024*1024; // 1 Meg
-    TimingDBG _file_load_time, _decode_time;
+    TimingDBG _file_load_time, _decode_time, _resample_time;
     size_t _batch_size;
     DecoderConfig _decoder_config;
     // std::shared_ptr<RandomBBoxCrop_MetaDataReader> _randombboxcrop_meta_data_reader = nullptr;

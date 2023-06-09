@@ -32,6 +32,7 @@ AudioReadAndDecode::timing()
 {
     Timing t;
     t.audio_decode_time = _decode_time.get_timing();
+    t.audio_resample_time = _resample_time.get_timing();
     t.audio_read_time = _file_load_time.get_timing();
     t.shuffle_time = _reader->get_shuffle_time();
     return t;
@@ -39,7 +40,8 @@ AudioReadAndDecode::timing()
 
 AudioReadAndDecode::AudioReadAndDecode():
     _file_load_time("FileLoadTime", DBG_TIMING ),
-    _decode_time("DecodeTime", DBG_TIMING)
+    _decode_time("DecodeTime", DBG_TIMING),
+    _resample_time("ResampleTime", DBG_TIMING)
 {
 }
 
@@ -124,6 +126,12 @@ AudioReadAndDecode::load(float* buff,
     const size_t audio_size = max_decoded_samples * max_decoded_channels;
     _file_load_time.start();// Debug timing
 
+    long long unsigned malloc_time = 0;
+    long long unsigned window_load_time = 0;
+    long long unsigned input_load_time = 0;
+    long long unsigned shuffle_time = 0;
+    long long unsigned free_time = 0;
+
     // Intialize parameters w.r.t resampling
     float quality = 50.0f;
     int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
@@ -152,8 +160,7 @@ AudioReadAndDecode::load(float* buff,
         for (size_t i = 0; i < _batch_size; i++){
             _decompressed_buff_ptrs[i] = buff + (audio_size * i);
         }
-
-#pragma omp parallel for num_threads(8)  // default(none) TBD: option disabled in Ubuntu 20.04
+// #pragma omp parallel for num_threads(8)  // default(none) TBD: option disabled in Ubuntu 20.04
         for (size_t i = 0; i < _batch_size; i++)
         {
             float out_sample_rate = 16000.0f;
@@ -177,7 +184,7 @@ AudioReadAndDecode::load(float* buff,
             _original_samples[i] = original_samples;
             _original_sample_rates[i] = original_sample_rates;
 
-            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window, resample, out_sample_rate, sample_rate) != AudioDecoder::Status::OK) {
+            if (_decoder[i]->decode(_decompressed_buff_ptrs[i], window, resample, out_sample_rate, sample_rate, &(_decode_time), &(_resample_time), &malloc_time, &window_load_time, &input_load_time, &shuffle_time, &free_time) != AudioDecoder::Status::OK) {
                 THROW("Decoder failed for file: " + _audio_names[i].c_str())
             }
             _decoder[i]->release();
@@ -191,5 +198,10 @@ AudioReadAndDecode::load(float* buff,
         }
     }
     _decode_time.end();// Debug timing
+    std::cerr<<"malloc time: "<<malloc_time<<std::endl;
+    std::cerr<<"window load time: "<<window_load_time<<std::endl;
+    std::cerr<<"input load time: "<<input_load_time<<std::endl;
+    std::cerr<<"shuffle time: "<<shuffle_time<<std::endl;
+    std::cerr<<"free time: "<<free_time<<std::endl;
     return LoaderModuleStatus::OK;
 }

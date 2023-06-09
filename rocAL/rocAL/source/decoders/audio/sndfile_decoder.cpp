@@ -25,14 +25,18 @@ THE SOFTWARE.
 #include <commons.h>
 #include <tuple>
 #include "sndfile_decoder.h"
+#include <chrono>
+#include <utility>
 
 SndFileDecoder::SndFileDecoder(){};
 
-AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, float out_sample_rate, float sample_rate)
+AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, float out_sample_rate, float sample_rate, TimingDBG* decode_time, TimingDBG* resample_time, long long unsigned *malloc_time, long long unsigned *window_load_time, long long unsigned *input_load_time, long long unsigned *shuffle_time, long long unsigned *free_time)
 {
     if(!resample) {
         int readcount = 0;
+        // decode_time->start();
         readcount = sf_readf_float(_sf_ptr, buffer, _sfinfo.frames);
+        // decode_time->end();
         if(readcount != _sfinfo.frames)
         {
             printf("Not able to decode all frames. Only decoded %d frames\n", readcount);
@@ -41,11 +45,19 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
             return status;
         }
     } else {
+
         // Allocate temporary memory for input
+        std::chrono::high_resolution_clock::time_point m_before = std::chrono::high_resolution_clock::now();
         float *srcPtrTemp = (float *)malloc(_sfinfo.frames * sizeof(float));
+        std::chrono::high_resolution_clock::time_point m_after = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::micro> m_elapsed = m_after-m_before;
+        auto m_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(m_elapsed).count());
+        *malloc_time = *malloc_time +  m_dur;
 
         int readcount = 0;
+        // decode_time->start();
         readcount = sf_readf_float(_sf_ptr, srcPtrTemp, _sfinfo.frames);
+        // decode_time->end();
         // std::cerr<<"completed sf_readf_float"<<std::endl;
         if(readcount != _sfinfo.frames)
         {
@@ -55,6 +67,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
             return status;
         }
 
+        resample_time->start();
         float *dstPtrTemp = buffer;
         uint srcLength = _sfinfo.frames;
         float outRate = out_sample_rate;
@@ -86,15 +99,31 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
                 __m128 f4 = _mm_setzero_ps();
                 __m128 x4 = _mm_setr_ps(i - inPos, i + 1 - inPos, i + 2 - inPos, i + 3 - inPos);
                 for (; i + 3 < i1; i += 4) {
+                    m_before = std::chrono::high_resolution_clock::now();
                     __m128 w4 = window(x4);
+                    m_after = std::chrono::high_resolution_clock::now();
+                    m_elapsed = m_after-m_before;
+                    m_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(m_elapsed).count());
+                    *window_load_time = *window_load_time +  m_dur;
 
+                    m_before = std::chrono::high_resolution_clock::now();
                     f4 = _mm_add_ps(f4, _mm_mul_ps(_mm_loadu_ps(inBlockPtr + i), w4));
+                    m_after = std::chrono::high_resolution_clock::now();
+                    m_elapsed = m_after-m_before;
+                    m_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(m_elapsed).count());
+                    *input_load_time = *input_load_time +  m_dur;
+
                     x4 = _mm_add_ps(x4, _mm_set1_ps(4));
                 }
 
+                m_before = std::chrono::high_resolution_clock::now();
                 f4 = _mm_add_ps(f4, _mm_shuffle_ps(f4, f4, _MM_SHUFFLE(1, 0, 3, 2)));
                 f4 = _mm_add_ps(f4, _mm_shuffle_ps(f4, f4, _MM_SHUFFLE(0, 1, 0, 1)));
                 f = _mm_cvtss_f32(f4);
+                m_after = std::chrono::high_resolution_clock::now();
+                m_elapsed = m_after-m_before;
+                m_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(m_elapsed).count());
+                *shuffle_time = *shuffle_time +  m_dur;
 
                 float x = i - inPos;
                 for (; i < i1; i++, x++) {
@@ -107,7 +136,14 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
         }
 
         // free temporary allocated memory
+        m_before = std::chrono::high_resolution_clock::now();
         free(srcPtrTemp);
+        m_after = std::chrono::high_resolution_clock::now();
+        m_elapsed = m_after-m_before;
+        m_dur = static_cast<long long unsigned> (std::chrono::duration_cast<std::chrono::microseconds>(m_elapsed).count());
+        *free_time = *free_time +  m_dur;
+
+        resample_time->end();
     }
 
     AudioDecoder::Status status = Status::OK;

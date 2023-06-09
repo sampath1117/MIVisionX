@@ -54,6 +54,7 @@ struct TimingInfo
     long long unsigned ring_buffer_wait_if_full_time;
     long long unsigned circular_buffer_wait_if_empty_time;
     long long unsigned circular_buffer_wait_if_full_time;
+    long long unsigned resample_time;
 };
 enum RocalStatus
 {

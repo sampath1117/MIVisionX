@@ -27,6 +27,7 @@ THE SOFTWARE.
 #include <vector>
 #include <cmath>
 #include "sndfile.h"
+#include "timing_debug.h"
 #include <functional>
 
 #if _WIN32
@@ -136,7 +137,7 @@ public:
         NO_MEMORY
     };
     virtual AudioDecoder::Status initialize(const char *src_filename) = 0;
-    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, float out_sample_rate = 16000, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
+    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, float out_sample_rate = 16000, float sample_rate = 16000, TimingDBG* decode_time = NULL, TimingDBG* resample_time = NULL, long long unsigned *malloc_time = NULL, long long unsigned *window_load_time = NULL, long long unsigned *input_load_time = NULL, long long unsigned *shuffle_time = NULL, long long unsigned *free_time = NULL) = 0;
     virtual AudioDecoder::Status decode_info(int* samples, int* channels, float* sample_rates) = 0; //to decode info about the audio samples
     virtual void release() = 0;
     virtual ~AudioDecoder() = default;

@@ -92,7 +92,7 @@ unsigned char* CircularBuffer::get_read_buffer_host()
         THROW("Circular buffer not initialized")
     _cb_block_if_empty_time.start();
     block_if_empty();
-    _cb_block_if_empty_time.start();
+    _cb_block_if_empty_time.end();
 
     return _host_buffer_ptrs[_read_ptr];
 }
