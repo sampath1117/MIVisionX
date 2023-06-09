@@ -141,6 +141,8 @@ struct Timing
     long long unsigned audio_read_time = 0;
     long long unsigned audio_decode_time = 0;
     long long unsigned audio_process_time = 0;
-    long long unsigned wait_if_empty_time = 0;
-    long long unsigned wait_if_full_time = 0;
+    long long unsigned ring_buffer_wait_if_empty_time = 0;
+    long long unsigned ring_buffer_wait_if_full_time = 0;
+    long long unsigned circular_buffer_wait_if_empty_time = 0;
+    long long unsigned circular_buffer_wait_if_full_time = 0;
 };

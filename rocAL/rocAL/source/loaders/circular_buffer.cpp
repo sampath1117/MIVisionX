@@ -29,7 +29,9 @@ CircularBuffer::CircularBuffer(DeviceResources ocl):
         _device_id(ocl.device_id),
         _write_ptr(0),
         _read_ptr(0),
-        _level(0)
+        _level(0),
+        _cb_block_if_empty_time("Circular Buffer Block IF Empty Time"),
+        _cb_block_if_full_time("Circular Buffer Block IF Full Time")
 {
 
 }
@@ -40,7 +42,9 @@ CircularBuffer::CircularBuffer(DeviceResourcesHip hipres):
         _hip_canMapHostMemory(hipres.dev_prop.canMapHostMemory),
         _write_ptr(0),
         _read_ptr(0),
-        _level(0)
+        _level(0),
+        _cb_block_if_empty_time("Circular Buffer Block IF Empty Time"),
+        _cb_block_if_full_time("Circular Buffer Block IF Full Time")
 {
 }
 #endif
@@ -86,7 +90,10 @@ unsigned char* CircularBuffer::get_read_buffer_host()
 {
     if(!_initialized)
         THROW("Circular buffer not initialized")
+    _cb_block_if_empty_time.start();
     block_if_empty();
+    _cb_block_if_empty_time.end();
+
     return _host_buffer_ptrs[_read_ptr];
 }
 
@@ -94,7 +101,9 @@ unsigned char*  CircularBuffer::get_write_buffer()
 {
     if(!_initialized)
         THROW("Circular buffer not initialized")
+    _cb_block_if_full_time.start();
     block_if_full();
+    _cb_block_if_full_time.end();
     return(_host_buffer_ptrs[_write_ptr]);
 }
 
