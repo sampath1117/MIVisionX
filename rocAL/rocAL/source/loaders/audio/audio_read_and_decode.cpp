@@ -111,7 +111,8 @@ AudioReadAndDecode::load(float* buff,
                          std::vector<float> &actual_sample_rates,
                          bool resample,
                          std::vector<float> sample_rate_array,
-                         float sample_rate)
+                         float sample_rate,
+                         ResamplingWindow *window = NULL)
 {
     if(max_decoded_samples == 0 || max_decoded_channels == 0 )
         THROW("Zero audio dimension is not valid")
@@ -123,14 +124,6 @@ AudioReadAndDecode::load(float* buff,
     unsigned file_counter = 0;
     const size_t audio_size = max_decoded_samples * max_decoded_channels;
     _file_load_time.start();// Debug timing
-
-    // Intialize parameters w.r.t resampling
-    float quality = 50.0f;
-    int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
-    int lookupSize = lobes * 64 + 1;
-    ResamplingWindow window;
-    if(resample)
-        windowed_sinc(window, lookupSize, lobes);
 
     while ((file_counter != _batch_size) && _reader->count_items() > 0) {
         size_t fsize = _reader->open();

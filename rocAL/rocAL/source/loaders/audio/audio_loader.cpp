@@ -174,6 +174,15 @@ void AudioLoader::initialize(ReaderConfig reader_cfg, DecoderConfig decoder_cfg,
     _sample_dist_param = ParameterFactory::instance()->create_uniform_rand_param<float>(0.85, 1.15);
     _sample_rate_values.resize(_batch_size);
 
+    // Intialize parameters w.r.t resampling
+    float quality = 50.0f;
+    if(_is_resample)
+    {
+        int lobes = std::round(0.007 * quality * quality - 0.09 * quality + 3);
+        int lookupSize = lobes * 64 + 1;
+        windowed_sinc(_window, lookupSize, lobes);
+    }
+
     LOG("Loader module initialized");
 }
 
@@ -218,7 +227,8 @@ AudioLoader::load_routine()
                                     _decoded_img_info._original_audio_channels,
                                     _decoded_img_info._original_audio_sample_rates,
                                     _is_resample,
-                                    _sample_rate_values);
+                                    _sample_rate_values,
+                                    &_window)
             } else {
                 load_status = _audio_loader->load(data,
                                 _decoded_img_info._image_names,

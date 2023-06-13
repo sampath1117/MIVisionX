@@ -136,7 +136,7 @@ public:
         NO_MEMORY
     };
     virtual AudioDecoder::Status initialize(const char *src_filename) = 0;
-    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow &window, bool resample = false, float out_sample_rate = 16000, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
+    virtual AudioDecoder::Status decode(float* buffer, ResamplingWindow *window, bool resample = false, float out_sample_rate = 16000, float sample_rate = 16000) = 0; //to pass buffer & number of frames/samples to decode
     virtual AudioDecoder::Status decode_info(int* samples, int* channels, float* sample_rates) = 0; //to decode info about the audio samples
     virtual void release() = 0;
     virtual ~AudioDecoder() = default;

@@ -102,4 +102,5 @@ private:
     float _sample_rate = 16000.0f;
     Parameter<float> *_sample_dist_param;
     std::vector<float> _sample_rate_values;
+    ResamplingWindow _window;
 };

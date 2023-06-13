@@ -28,7 +28,7 @@ THE SOFTWARE.
 
 SndFileDecoder::SndFileDecoder(){};
 
-AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &window, bool resample, float out_sample_rate, float sample_rate)
+AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow *window, bool resample, float out_sample_rate, float sample_rate)
 {
     if(!resample) {
         int readcount = 0;
@@ -75,7 +75,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
 
             for (int64_t outPos = outBlock; outPos < blockEnd; outPos++, inPos += fscale) {
                 int i0, i1;
-                std::tie(i0, i1) = window.input_range(inPos);
+                std::tie(i0, i1) = window->input_range(inPos);
                 if (i0 + inBlockRounded < 0)
                     i0 = -inBlockRounded;
                 if (i1 + inBlockRounded > srcLength)
@@ -86,7 +86,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
                 __m128 f4 = _mm_setzero_ps();
                 __m128 x4 = _mm_setr_ps(i - inPos, i + 1 - inPos, i + 2 - inPos, i + 3 - inPos);
                 for (; i + 3 < i1; i += 4) {
-                    __m128 w4 = window(x4);
+                    __m128 w4 = *window(x4);
 
                     f4 = _mm_add_ps(f4, _mm_mul_ps(_mm_loadu_ps(inBlockPtr + i), w4));
                     x4 = _mm_add_ps(x4, _mm_set1_ps(4));
@@ -98,7 +98,7 @@ AudioDecoder::Status SndFileDecoder::decode(float* buffer, ResamplingWindow &win
 
                 float x = i - inPos;
                 for (; i < i1; i++, x++) {
-                    float w = window(x);
+                    float w = *window(x);
                     f += inBlockPtr[i] * w;
                 }
 
