@@ -59,10 +59,10 @@ public:
             std::vector<uint32_t> &actual_samples,
             std::vector<uint32_t> &actual_channels,
             std::vector<float> &actual_sample_rates,
+            ResamplingWindow &window,
             bool resample = false,
             std::vector<float> sample_rate_dist = {},
-            float sample_rate = 16000,
-            ResamplingWindow *window = NULL); // sampath check this
+            float sample_rate = 16000); // sampath check this
     size_t last_batch_padded_size();
     //! returns timing info or other status information
     Timing timing();

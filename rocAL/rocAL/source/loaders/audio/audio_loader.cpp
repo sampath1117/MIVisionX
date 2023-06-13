@@ -226,9 +226,9 @@ AudioLoader::load_routine()
                                     _decoded_img_info._original_audio_samples,
                                     _decoded_img_info._original_audio_channels,
                                     _decoded_img_info._original_audio_sample_rates,
+                                    _window,
                                     _is_resample,
-                                    _sample_rate_values,
-                                    &_window)
+                                    _sample_rate_values);
             } else {
                 load_status = _audio_loader->load(data,
                                 _decoded_img_info._image_names,
@@ -239,6 +239,7 @@ AudioLoader::load_routine()
                                 _decoded_img_info._original_audio_samples,
                                 _decoded_img_info._original_audio_channels,
                                 _decoded_img_info._original_audio_sample_rates,
+                                _window,
                                 _is_resample);
             }
             if(load_status == LoaderModuleStatus::OK)
