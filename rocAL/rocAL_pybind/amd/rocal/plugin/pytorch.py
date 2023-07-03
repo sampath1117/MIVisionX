@@ -7,7 +7,7 @@ import ctypes
 torch.set_printoptions(threshold=10_000, profile="full")
 
 class RALIGenericIterator(object):
-    def __init__(self, pipeline, tensor_layout = types.NCHW, reverse_channels = False, multiplier = [1.0,1.0,1.0], offset = [0.0, 0.0, 0.0], tensor_dtype=types.FLOAT, size = -1, auto_reset=False):
+    def __init__(self, pipeline, tensor_layout = types.NCHW, reverse_channels = False, multiplier = [1.0,1.0,1.0], offset = [0.0, 0.0, 0.0], tensor_dtype=types.FLOAT, size = -1, auto_reset=False, device_id = 0):
         self.loader = pipeline
         self.tensor_format =tensor_layout
         self.multiplier = multiplier
@@ -16,6 +16,7 @@ class RALIGenericIterator(object):
         self.tensor_dtype = tensor_dtype
         self.len = b.getRemainingImages(self.loader._handle)
         self.last_batch_policy = self.loader._last_batch_policy
+        self.device_id = device_id
         self.shard_size = size
         self.auto_reset = auto_reset
         self.batch_count = 0
@@ -72,6 +73,7 @@ class RALIGenericIterator(object):
             elif self.tensor_dtype == types.FLOAT16:
                 return (self.out.astype(np.float16)), self.labels_tensor
         elif self.num_of_dims == 3: #In case of an audio data
+            torch_gpu_device = torch.device('cuda', self.device_id)
             self.batch_size = self.output_tensor_list[0].batch_size() if self.batch_size is None else self.batch_size
             self.channels = self.output_tensor_list[0].batch_width() if self.channels is None else self.channels #Max Channels
             self.samples = self.output_tensor_list[0].batch_height() if self.samples is None else self.samples #Max Samples
@@ -81,7 +83,7 @@ class RALIGenericIterator(object):
             y1 = torch.tensor(roi[...,1:2])
             max_x1 = torch.max(x1)
             max_y1 = torch.max(y1)
-            self.output = torch.empty((self.batch_size, max_y1, max_x1,), dtype=torch.float32)
+            self.output = torch.empty((self.batch_size, max_y1, max_x1,), dtype=torch.float32, device = torch_gpu_device)
             # next
             self.labels = self.loader.rocalGetImageLabels()
             self.labels_tensor = torch.from_numpy(self.labels).type(torch.LongTensor)
@@ -171,10 +173,11 @@ class ROCALClassificationIterator(RALIGenericIterator):
                  auto_reset=False,
                  fill_last_batch=True,
                  dynamic_shape=False,
-                 last_batch_padded=False):
+                 last_batch_padded=False,
+                 device_id = 0):
         pipe = pipelines
         super(ROCALClassificationIterator, self).__init__(pipe, tensor_layout = pipe._tensor_layout, tensor_dtype = pipe._tensor_dtype,
-                                                            multiplier=pipe._multiplier, offset=pipe._offset, size = size, auto_reset = auto_reset)
+                                                            multiplier=pipe._multiplier, offset=pipe._offset, size = size, auto_reset = auto_reset, device_id = device_id)
 
 
 class ROCALAudioIterator(RALIGenericIterator):
@@ -241,8 +244,9 @@ class ROCALAudioIterator(RALIGenericIterator):
                  auto_reset=False,
                  fill_last_batch=True,
                  dynamic_shape=False,
-                 last_batch_padded=False):
+                 last_batch_padded=False,
+                 device_id = 0):
         pipe = pipelines
         super(ROCALAudioIterator, self).__init__(pipe, tensor_layout = pipe._tensor_layout, tensor_dtype = pipe._tensor_dtype,
-                                                            multiplier=pipe._multiplier, offset=pipe._offset, size = size, auto_reset = auto_reset)
+                                                            multiplier=pipe._multiplier, offset=pipe._offset, size = size, auto_reset = auto_reset, device_id = device_id)
 
