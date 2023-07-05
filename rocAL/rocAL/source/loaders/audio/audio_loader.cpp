@@ -307,6 +307,8 @@ Timing AudioLoader::timing()
     t.circular_buffer_wait_if_full_time = _circ_buff._cb_block_if_full_time.get_timing();
     t.wait_if_empty_time_counter = _circ_buff._cb_block_if_empty_time_counter;
     t.wait_if_full_time_counter = _circ_buff._cb_block_if_full_time_counter;
+    _circ_buff._cb_block_if_empty_time_counter = 0;
+    _circ_buff._cb_block_if_full_time_counter = 0;
     return t;
 }
 

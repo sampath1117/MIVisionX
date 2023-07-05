@@ -76,7 +76,7 @@ public:
     void block_if_empty();// blocks the caller if the buffer is empty
     void block_if_full();// blocks the caller if the buffer is full
     TimingDBG _cb_block_if_empty_time, _cb_block_if_full_time;
-    long long unsigned _cb_block_if_empty_time_counter, _cb_block_if_full_time_counter;
+    long long unsigned _cb_block_if_empty_time_counter = 0, _cb_block_if_full_time_counter = 0;
 private:
     void increment_read_ptr();
     void increment_write_ptr();

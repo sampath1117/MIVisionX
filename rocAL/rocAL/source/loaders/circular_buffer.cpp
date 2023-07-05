@@ -28,7 +28,9 @@ CircularBuffer::CircularBuffer(void* devres):
           _read_ptr(0),
           _level(0),
         _cb_block_if_empty_time("Circular Buffer Block IF Empty Time"),
-        _cb_block_if_full_time("Circular Buffer Block IF Full Time")
+        _cb_block_if_full_time("Circular Buffer Block IF Full Time"),
+        _cb_block_if_empty_time_counter(0),
+        _cb_block_if_full_time_counter(0)
 {
 #if ENABLE_OPENCL
     DeviceResources *ocl = static_cast<DeviceResources *> (devres);
