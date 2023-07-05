@@ -171,12 +171,8 @@ namespace rocal
         std::cout<<"RB: Wait if full time ::"<< timing_info.ring_buffer_wait_if_full_time <<std::endl;
         std::cout<<"CB: Wait if empty time ::"<< timing_info.circular_buffer_wait_if_empty_time <<std::endl;
         std::cout<<"CB: Wait if full time ::"<< timing_info.circular_buffer_wait_if_full_time <<std::endl;
-        // info_new.load_time = info.load_time;
-        // info_new.decode_time = info.decode_time;
-        // info_new.process_time = info.process_time;
-        // info_new.transfer_time = info.transfer_time;
-        // info_new.wait_if_empty_time = info.wait_if_empty_time;
-        // info_new.wait_if_full_time = info.wait_if_full_time;
+        std::cout<<"Wait if empty counter ::"<< timing_info.wait_if_empty_time_counter <<std::endl;
+        std::cout<<"Wait if full counter ::"<< timing_info.wait_if_full_time_counter <<std::endl;
         return py::cast<py::none>(Py_None);
     }
 
@@ -204,7 +200,9 @@ namespace rocal
             .def_readwrite("ring_buffer_wait_if_empty_time",&TimingInfo::ring_buffer_wait_if_empty_time)
             .def_readwrite("ring_buffer_wait_if_full_time",&TimingInfo::ring_buffer_wait_if_full_time)
             .def_readwrite("circular_buffer_wait_if_empty_time",&TimingInfo::circular_buffer_wait_if_empty_time)
-            .def_readwrite("circular_buffer_wait_if_full_time",&TimingInfo::circular_buffer_wait_if_full_time);
+            .def_readwrite("circular_buffer_wait_if_full_time",&TimingInfo::circular_buffer_wait_if_full_time)
+            .def_readwrite("wait_if_empty_time_counter",&TimingInfo::wait_if_empty_time_counter)
+            .def_readwrite("wait_if_full_time_counter",&TimingInfo::wait_if_full_time_counter);
         py::class_<rocalTensor>(m, "rocalTensor")
                 .def(
                 "__add__",

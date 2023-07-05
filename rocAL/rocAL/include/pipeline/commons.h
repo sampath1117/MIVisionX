@@ -145,4 +145,6 @@ struct Timing
     long long unsigned ring_buffer_wait_if_full_time = 0;
     long long unsigned circular_buffer_wait_if_empty_time = 0;
     long long unsigned circular_buffer_wait_if_full_time = 0;
+    long long unsigned wait_if_empty_time_counter = 0;
+    long long unsigned wait_if_full_time_counter = 0;
 };

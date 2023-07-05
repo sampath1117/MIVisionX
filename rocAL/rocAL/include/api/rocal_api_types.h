@@ -46,14 +46,16 @@ typedef rocalTensorList * RocalTensorList;
 
 struct TimingInfo
 {
-    long long unsigned load_time;
-    long long unsigned decode_time;
-    long long unsigned process_time;
-    long long unsigned transfer_time;
-    long long unsigned ring_buffer_wait_if_empty_time;
-    long long unsigned ring_buffer_wait_if_full_time;
-    long long unsigned circular_buffer_wait_if_empty_time;
-    long long unsigned circular_buffer_wait_if_full_time;
+    long long unsigned load_time = 0;
+    long long unsigned decode_time = 0;
+    long long unsigned process_time = 0;
+    long long unsigned transfer_time = 0;
+    long long unsigned ring_buffer_wait_if_empty_time = 0;
+    long long unsigned ring_buffer_wait_if_full_time = 0;
+    long long unsigned circular_buffer_wait_if_empty_time = 0;
+    long long unsigned circular_buffer_wait_if_full_time = 0;
+    long long unsigned wait_if_empty_time_counter = 0;
+    long long unsigned wait_if_full_time_counter = 0;
 };
 enum RocalStatus
 {

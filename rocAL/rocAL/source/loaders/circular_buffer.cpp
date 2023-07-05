@@ -126,7 +126,7 @@ void CircularBuffer::sync()
             THROW("clEnqueueUnmapMemObject of size "+ TOSTR(_output_mem_size) + " failed " + TOSTR(err));
 
     #endif
-    } 
+    }
     else {
 #elif ENABLE_HIP
     if (_output_mem_type== RocalMemType::HIP){
@@ -303,7 +303,7 @@ void CircularBuffer::release()
         else {
 #else
           free(_host_buffer_ptrs[buffIdx]);
-#endif        
+#endif
 #if ENABLE_HIP || ENABLE_OPENCL
           free(_host_buffer_ptrs[buffIdx]);
         }
@@ -367,6 +367,7 @@ void CircularBuffer::block_if_empty()
     std::unique_lock<std::mutex> lock(_lock);
     if(empty())
     { // if the current read buffer is being written wait on it
+        _cb_block_if_empty_time_counter++;
         _wait_for_load.wait(lock);
     }
 }
@@ -377,6 +378,7 @@ void CircularBuffer:: block_if_full()
     // Write the whole buffer except for the last spot which is being read by the reader thread
     if(full())
     {
+        _cb_block_if_full_time_counter++;
         _wait_for_unload.wait(lock);
     }
 }

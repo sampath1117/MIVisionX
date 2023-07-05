@@ -303,6 +303,10 @@ Timing AudioLoader::timing()
 {
     auto t = _audio_loader->timing();
     t.audio_process_time = _swap_handle_time.get_timing();
+    t.circular_buffer_wait_if_empty_time = _circ_buff._cb_block_if_empty_time.get_timing();
+    t.circular_buffer_wait_if_full_time = _circ_buff._cb_block_if_full_time.get_timing();
+    t.wait_if_empty_time_counter = _circ_buff._cb_block_if_empty_time_counter;
+    t.wait_if_full_time_counter = _circ_buff._cb_block_if_full_time_counter;
     return t;
 }
 
