@@ -24,6 +24,16 @@ THE SOFTWARE.
 #include "vx_ext_amd.h"
 #define NUM_OF_DIMS 5
 
+inline void hann_window(Rpp32f *output, Rpp32s windowSize)
+{
+    Rpp64f a = (2.0 * M_PI) / windowSize;
+    for (Rpp32s t = 0; t < windowSize; t++)
+    {
+        Rpp64f phase = a * (t + 0.5);
+        output[t] = (0.5 * (1.0 - std::cos(phase)));
+    }
+}
+
 struct SpectrogramLocalData
 {
     RPPCommonHandle handle;
@@ -263,7 +273,7 @@ static vx_status VX_CALLBACK initializeSpectrogram(vx_node node, const vx_refere
 
     data->sampleLength = (unsigned int *)calloc(data->src_desc_ptr->n, sizeof(unsigned int));
     data->windowFn = (float *)calloc(data->windowLength, sizeof(float));
-
+    hann_window(data->windowFn, data->windowLength);
 
 // #if ENABLE_HIP
 //     if (data->deviceType == AGO_TARGET_AFFINITY_GPU)

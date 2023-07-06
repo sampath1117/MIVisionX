@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 #include "internal_publishKernels.h"
 #include "vx_ext_amd.h"
+#include <vector>
 #define NUM_OF_DIMS 5
 
 struct ResampleLocalData
@@ -33,6 +34,7 @@ struct ResampleLocalData
     RppPtr_t pSrc;
     RppPtr_t pDst;
     float quality;
+    ResamplingWindow window;
     uint maxDstWidth;
     RpptDescPtr src_desc_ptr;
     RpptDesc srcDesc;
@@ -201,7 +203,7 @@ static vx_status VX_CALLBACK processResample(vx_node node, const vx_reference *p
         // }
         rpp_status = rppt_resample_host((float *)data->pSrc, data->src_desc_ptr, (float *)data->pDst, data->dst_desc_ptr,
                                        (float *)data->inRateTensor,(float *)data->outRateTensor, data->sampleArray, data->sampleChannels,
-                                        data->quality);
+                                        data->quality, data->window);
         // std::cerr << "Out of RPP call";
 
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
@@ -268,6 +270,9 @@ static vx_status VX_CALLBACK initializeResample(vx_node node, const vx_reference
     data->sampleChannels = (signed int *)calloc(data->src_desc_ptr->n, sizeof(signed int));
     data->inRateTensor = (float *)calloc(data->src_desc_ptr->n, sizeof(float));
 
+    Rpp32s lobes = std::round(0.007 * data->quality *  data->quality - 0.09 *  data->quality + 3);
+    Rpp32s lookupSize = lobes * 64 + 1;
+    windowed_sinc(data->window, lookupSize, lobes);
 
     refreshResample(node, parameters, num, data);
 #if ENABLE_OPENCL
