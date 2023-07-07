@@ -43,6 +43,200 @@ THE SOFTWARE.
 #include <immintrin.h>
 #endif
 
+const __m128 xmm_p0 = _mm_set1_ps(0.0f);
+const __m128 xmm_p3 = _mm_set1_ps(3.0f);
+
+void compute_diff_square_sum(float &output, float *input, int inputStride, int numElements, float mean)
+{
+    const int stride = 1;
+    if (numElements > 32)
+    {
+        int currElements = numElements >> 1;
+        float tmp1 = 0, tmp2 = 0;
+
+        // reduce first half and accumulate
+        compute_diff_square_sum(tmp1, input, stride, currElements, mean);
+
+        // reduce second half and accumulate
+        compute_diff_square_sum(tmp2, input + currElements * stride, stride, numElements - currElements, mean);
+
+        tmp1 += tmp2;
+        output += tmp1;
+    }
+    else
+    {
+        // reduce to a temporary
+        float tmp = 0;
+        for (int i = 0; i < numElements; i++)
+        {
+            float curr = (input[i * stride] - mean);
+            auto curnew = curr * curr;
+            tmp += curnew;
+        }
+
+        // accumulate in target value
+        output += tmp;
+    }
+}
+
+void compute_sum(float &output, float *input, int inputStride, int numElements)
+{
+    const int stride = 1;
+    if (numElements > 32)
+    {
+        int currElements = numElements >> 1;
+        float tmp1 = 0, tmp2 = 0;
+
+        // reduce first half and accumulate
+        compute_sum(tmp1, input, stride, currElements);
+
+        // reduce second half and accumulate
+        compute_sum(tmp2, input + currElements * stride, stride, numElements - currElements);
+
+        tmp1 += tmp2;
+        output += tmp1;
+    }
+    else
+    {
+        // reduce to a temporary
+        float tmp = 0;
+        for (int i = 0; i < numElements; i++)
+            tmp += input[i * stride];
+
+        // accumulate in target value
+        output += tmp;
+    }
+}
+
+float rpp_rsqrt(float x)
+{
+    // Use SSE intrinsic and one Newton-Raphson refinement step
+    // - faster and less hacky than the hack below.
+    __m128 X = _mm_set_ss(x);
+    __m128 tmp = _mm_rsqrt_ss(X);
+    float y = _mm_cvtss_f32(tmp);
+    return y * (1.5f - x * 0.5f * y * y);
+}
+
+static void rpp_rsqrt_sse(float *input, int numElements, float eps, float rdiv, float mul)
+{
+    int i = 0;
+    __m128 rdivx4 = _mm_set1_ps(rdiv);
+    __m128 mulx4 = _mm_set1_ps(mul * 0.5f);
+    if (eps) // epsilon is present - no need for masking, but we need to add it
+    {
+        __m128 epsx4 = _mm_set1_ps(eps);
+        for (; i + 4 <= numElements; i += 4)
+        {
+            __m128 x = _mm_loadu_ps(&input[i]);
+            x = _mm_mul_ps(x, rdivx4);
+            x = _mm_add_ps(x, epsx4);
+            __m128 y = _mm_rsqrt_ps(x);
+            __m128 y2 = _mm_mul_ps(y, y);
+            __m128 xy2 = _mm_mul_ps(x, y2);
+            __m128 three_minus_xy2 = _mm_sub_ps(xmm_p3, xy2);
+            y = _mm_mul_ps(y, three_minus_xy2);
+            y = _mm_mul_ps(y, mulx4);
+            _mm_storeu_ps(&input[i], y);
+        }
+    }
+    else
+    {
+        for (; i + 4 <= numElements; i += 4)
+        {
+            __m128 x = _mm_loadu_ps(&input[i]);
+            x = _mm_mul_ps(x, rdivx4);
+            __m128 mask = _mm_cmpneq_ps(x, xmm_p0);
+            __m128 y = _mm_rsqrt_ps(x);
+            y = _mm_and_ps(y, mask);
+            __m128 y2 = _mm_mul_ps(y, y);
+            __m128 xy2 = _mm_mul_ps(x, y2);
+            __m128 three_minus_xy2 = _mm_sub_ps(xmm_p3, xy2);
+            y = _mm_mul_ps(y, three_minus_xy2);
+            y = _mm_mul_ps(y, mulx4);
+            _mm_storeu_ps(&input[i], y);
+        }
+    }
+    if (eps)
+    {
+        for (; i < numElements; i++)
+            input[i] = rpp_rsqrt(input[i] * rdiv + eps) * mul;
+    }
+    else
+    {
+        for (; i < numElements; i++)
+        {
+            float x = input[i] * rdiv;
+            input[i] = x ? rpp_rsqrt(x) * mul : 0;
+        }
+    }
+}
+
+void compute_2D_mean(float *srcPtr, float *meanPtr, uint *dims, uint *stride)
+{
+    float *srcPtrTemp = srcPtr;
+    float normFactor = 1.0 / dims[1];
+    for(uint i = 0; i < dims[0]; i++)
+    {
+        meanPtr[i] = 0;
+        compute_sum(meanPtr[i], srcPtrTemp, 1, dims[1]);
+        srcPtrTemp += stride[1];
+        meanPtr[i] = meanPtr[i] * normFactor;
+    }
+}
+
+void compute_2D_inv_std_dev(float *srcPtr, float *meanPtr, float *stdDevPtr, uint *dims, uint *stride) {
+
+    float *srcPtrTemp = srcPtr;
+    float normFactor = (float)(1.0 / dims[1]);
+    for(uint i = 0; i < dims[0]; i++)
+    {
+        stdDevPtr[i] = 0;
+        compute_diff_square_sum(stdDevPtr[i], srcPtrTemp, 1, dims[1], meanPtr[i]);
+        srcPtrTemp += stride[1];
+    }
+    rpp_rsqrt_sse(stdDevPtr, (long int)dims[0], 0, normFactor, 1);
+}
+
+void normalize_2D_tensor_avx_axis2(float *srcPtr, uint srcStride, float *dstPtr, uint dstStride,
+                                   float *meanPtr, float *invStdDevPtr, float shift, uint *dims, uint *paramStride)
+{
+    float *srcPtrTemp = srcPtr;
+    float *dstPtrTemp = dstPtr;
+    int paramIdx = 0;
+    uint vectorIncrement = 8;
+    uint bufferLength = dims[1];
+    uint alignedLength = (bufferLength / 8) * 8;
+    uint numRows = dims[0];
+
+    __m256 pShift = _mm256_set1_ps(shift);
+    for(uint i = 0; i < numRows; i++)
+    {
+        float *srcPtrTempRow = srcPtrTemp + i * srcStride;
+        float *dstPtrTempRow = dstPtrTemp + i * dstStride;
+
+        // set mean and stddev
+        float mean = meanPtr[i];
+        float invStdDev = invStdDevPtr[i];
+        __m256 pMean, pInvStdDev;
+        pMean = _mm256_set1_ps(mean);
+        pInvStdDev = _mm256_set1_ps(invStdDev);
+
+        uint vectorLoopCount = 0;
+        for(; vectorLoopCount < alignedLength ; vectorLoopCount += 8)
+        {
+            __m256 pSrc = _mm256_loadu_ps(srcPtrTempRow);
+            __m256 pDst = _mm256_add_ps(_mm256_mul_ps(_mm256_sub_ps(pSrc, pMean), pInvStdDev), pShift);
+            _mm256_storeu_ps(dstPtrTempRow, pDst);
+            srcPtrTempRow += 8;
+            dstPtrTempRow += 8;
+        }
+        for(; vectorLoopCount < dims[1] ; vectorLoopCount += 8)
+             *dstPtrTempRow++ = (*srcPtrTempRow++ - mean) * invStdDev + shift;
+    }
+}
+
+
 vx_enum vx_mem_type(RocalMemType mem) {
     switch (mem) {
         case RocalMemType::OCL:
@@ -385,20 +579,37 @@ unsigned rocalTensor::copy_data(void *user_buffer) {
 unsigned rocalTensor::copy_data(void *user_buffer, uint max_y1, uint max_x1) {
     if (_info._type != rocalTensorInfo::Type::HANDLE) return 0;
 
-    //TODO : Handle this case for HIP buffer
-    ssize_t datatype_stride = _info.data_type_size();
+    size_t datatype_stride = _info.data_type_size();
     auto src_stride = (_info.max_dims().at(0) * _info.max_dims().at(1) * datatype_stride);
     auto dst_stride = (max_y1 * max_x1 * datatype_stride);
-    for (uint i = 0; i < _info._batch_size; i++) {
-        auto temp_src_ptr = static_cast<unsigned char *>(_mem_handle) + i * src_stride;
-        auto temp_dst_ptr = static_cast<unsigned char *>(user_buffer) + i * dst_stride;
-        for (uint height = 0; height < max_y1; height++) {
-            memcpy(temp_dst_ptr, temp_src_ptr, max_x1 * datatype_stride);
-            temp_src_ptr += _info.max_dims().at(0) * datatype_stride;
-            temp_dst_ptr += max_x1 * datatype_stride;
-        }
+
+    omp_set_dynamic(0);
+#pragma omp parallel for num_threads(8)
+	for(int batchCount = 0; batchCount < _info._batch_size; batchCount++)
+	{
+        float *srcPtrTemp = static_cast<float *>(_mem_handle) + batchCount * src_stride;
+		float *dstPtrTemp = static_cast<float *>(user_buffer) + batchCount * dst_stride;
+
+        uint srcAudioDims[2], srcReductionDims[2], srcStride[2], paramStride[2];
+        srcAudioDims[0] = _info.get_roi()[batchCount].y2;
+        srcAudioDims[1] = _info.get_roi()[batchCount].x2;
+
+        srcStride[0] = 1;
+        srcStride[1] = _info.max_dims().at(0);
+        srcReductionDims[0] = srcAudioDims[0];
+        srcReductionDims[1] = srcAudioDims[1];
+        paramStride[0] = 0;
+        paramStride[1] = 1;
+
+        float* meanTensor = (float *)calloc(srcReductionDims[0], sizeof(float));
+        float* stdDevTensor = (float *)calloc(srcReductionDims[0], sizeof(float));
+
+        meanTensor[0] = 0.0;
+        stdDevTensor[0] = 1.0;
+        compute_2D_mean(srcPtrTemp, meanTensor, srcReductionDims, srcStride);
+        compute_2D_inv_std_dev(srcPtrTemp, meanTensor, stdDevTensor, srcReductionDims, srcStride);
+        normalize_2D_tensor_avx_axis2(srcPtrTemp, _info.max_dims().at(0), dstPtrTemp, max_x1, meanTensor, stdDevTensor, 0, srcAudioDims, paramStride);
     }
-    return 0;
 }
 
 unsigned rocalTensor::copy_data(void *user_buffer, uint last_batch_size) {
