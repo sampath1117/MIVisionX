@@ -51,8 +51,8 @@ public:
             std::vector<std::string>& names,
             const size_t  max_decoded_samples,
             const size_t max_decoded_channels,
-            std::vector<uint32_t> &roi_samples,
-            std::vector<uint32_t> &roi_channels,
+            std::vector<uint32_t> &actual_samples,
+            std::vector<uint32_t> &actual_channels,
             std::vector<float> &actual_sample_rates);
     //! returns timing info or other status information
     Timing timing();
@@ -72,4 +72,3 @@ private:
     DecoderConfig _decoder_config;
     std::string _input_path;
 };
-

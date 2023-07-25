@@ -169,8 +169,8 @@ AudioLoader::load_routine() {
                                             _decoded_audio_info._sample_names,
                                             _max_decoded_samples,
                                             _max_decoded_channels,
-                                            _decoded_audio_info._roi_audio_samples,
-                                            _decoded_audio_info._roi_audio_channels,
+                                            _decoded_audio_info._original_audio_samples,
+                                            _decoded_audio_info._original_audio_channels,
                                             _decoded_audio_info._original_audio_sample_rates);
 
             if(load_status == LoaderModuleStatus::OK) {
@@ -239,7 +239,7 @@ AudioLoader::update_output_audio() {
         return LoaderModuleStatus::OK;
     _output_decoded_audio_info = _circ_buff.get_sample_info();
     _output_names = _output_decoded_audio_info._sample_names;
-    _output_tensor->update_tensor_roi(_output_decoded_audio_info._roi_audio_samples, _output_decoded_audio_info._roi_audio_channels);
+    _output_tensor->update_tensor_roi(_output_decoded_audio_info._original_audio_samples, _output_decoded_audio_info._original_audio_channels);
     _output_tensor->update_audio_tensor_sample_rate(_output_decoded_audio_info._original_audio_sample_rates);
     _circ_buff.pop();
     if (!_loop)

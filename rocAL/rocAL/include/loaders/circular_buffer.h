@@ -37,8 +37,6 @@ struct decoded_sample_info
     std::vector<uint32_t> _roi_height;
     std::vector<uint32_t> _original_width;
     std::vector<uint32_t> _original_height;
-    std::vector<uint32_t> _roi_audio_samples;
-    std::vector<uint32_t> _roi_audio_channels;
     std::vector<uint32_t> _original_audio_samples;
     std::vector<uint32_t> _original_audio_channels;
     std::vector<float> _original_audio_sample_rates;

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 - 2023 Advanced Micro Devices, Inc. All rights reserved.
+Copyright (c) 2019 - 2022 Advanced Micro Devices, Inc. All rights reserved.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -55,7 +55,8 @@ public:
     //! Returns the name of the latest file opened
     std::string id() override { return _last_id;};
 
-    std::string file_path() override { return _last_file_name; };
+    std::string file_path() override {return _last_file_path; };
+
 
     unsigned count_items() override;
 
@@ -96,6 +97,7 @@ private:
     int release();
     size_t get_file_shard_id();
     void incremenet_file_id() { _file_id++; }
+    std::shared_ptr<MetaDataReader> _meta_data_reader = nullptr;
     void replicate_last_image_to_fill_last_shard();
     void replicate_last_batch_to_pad_partial_shard();
 };

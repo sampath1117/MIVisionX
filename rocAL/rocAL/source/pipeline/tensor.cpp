@@ -276,12 +276,9 @@ Tensor::~Tensor() {
     if (_vx_handle) vxReleaseTensor(&_vx_handle);
 }
 
-Tensor::Tensor(const TensorInfo &tensor_info)
-    : _info(tensor_info) {
-    std::cerr << "Before the Tensor::Tensor (const TensorInfo &)";
+Tensor::Tensor(const TensorInfo &tensor_info) : _info(tensor_info) {
     _info._type = TensorInfo::Type::UNKNOWN;
     _mem_handle = nullptr;
-    std::cerr << "After the Tensor::Tensor (const TensorInfo &)";
 }
 
 int Tensor::create_virtual(vx_context context, vx_graph graph) {
