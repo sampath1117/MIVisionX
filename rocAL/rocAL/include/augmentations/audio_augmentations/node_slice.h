@@ -23,18 +23,27 @@ THE SOFTWARE.
 #pragma once
 #include "node.h"
 #include "graph.h"
+#include "rocal_api_types.h"
+#include "parameter_factory.h"
+#include "parameter_vx.h"
 
-class NonSilentRegionNode : public Node {
+class SliceNode : public Node {
 public:
-    NonSilentRegionNode(const std::vector<Tensor *> &inputs, const std::vector<Tensor *> &outputs);
-    NonSilentRegionNode() = delete;
-    void init(float cutoff_db, float reference_power, int reset_interval, int window_length);
+    SliceNode(const std::vector<Tensor *> &inputs, const std::vector<Tensor *> &outputs);
+    SliceNode() = delete;
+    void init(Tensor anchor_param, Tensor shape_param, std::vector<float> &fill_values_param, std::vector<unsigned> &axes,
+              bool normalized_anchor, bool normalized_shape, RocalOutOfBoundsPolicy policy);
 protected:
     void create_node() override;
     void update_node() override;
 private:
-    float _cutoff_db = -60.0;
-    float _reference_power = 0.0;
-    int _window_length = 2048;
-    int _reset_interval = 8192;
+    vx_array  _fill_values_array;
+    float * _anchor_array , *_shape_array;
+    Tensor _anchor, _shape;
+    std::vector<unsigned int> _output_width_vector, _output_height_vector;
+    std::vector<float> _fill_values, _fill_values_vec, _anchor_vec, _shape_vec;
+    bool _normalized_anchor = false, _normalized_shape = false;
+    RocalOutOfBoundsPolicy _policy = RocalOutOfBoundsPolicy::ERROR;
+    unsigned _number_of_dims, _total_dims;
+    int _axis_mask = 0;
 };

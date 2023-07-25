@@ -158,6 +158,7 @@ list(APPEND SOURCES
         source/tensor/Saturation.cpp
         source/tensor/SequenceRearrange.cpp
         source/tensor/Snow.cpp
+        source/tensor/Slice.cpp
         source/tensor/Vignette.cpp
         source/tensor/WarpAffine.cpp
         source/kernel_rpp.cpp

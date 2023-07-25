@@ -147,7 +147,7 @@ enum RocalOutputMemType
     ROCAL_MEMCPY_PINNED = 2
 };
 
-// rocal external memcpy flags 
+// rocal external memcpy flags
 #define    ROCAL_MEMCPY_TO_HOST      1      // force copy to user provided host memory
 #define    ROCAL_MEMCPY_TO_DEVICE    2      // force copy to user provided device memory (gpu)
 #define    ROCAL_MEMCPY_IS_PINNED    4      // for future use
@@ -186,4 +186,12 @@ enum class RocalROICordsType {
 typedef struct {
     unsigned x1, y1, x2, y2;
 } RocalROICords;
+
+enum RocalOutOfBoundsPolicy
+{
+    PAD = 0,
+    TRIMTOSHAPE,
+    ERROR
+};
+
 #endif //MIVISIONX_ROCAL_API_TYPES_H

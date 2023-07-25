@@ -165,6 +165,7 @@ extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppNoise(vx_graph graph, vx_tenso
 extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppResizeCrop(vx_graph graph, vx_tensor pSrc, vx_tensor pSrcRoi,vx_tensor pCropTensor, vx_tensor pDst, vx_array pDstBatchWidth, vx_array pDstBatchHeight, vx_scalar inputLayout, vx_scalar outputLayout, vx_scalar roiType);
 extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppSequenceRearrange(vx_graph graph,vx_tensor pSrc,vx_tensor pDst, vx_array pNewOrder, vx_scalar layout);
 extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppNonSilentRegion(vx_graph graph, vx_tensor pSrc, vx_tensor pSrcRoi, vx_tensor pDst1, vx_tensor pDst2, vx_scalar cutOffDB, vx_scalar referencePower, vx_scalar windowLength, vx_scalar resetInterval);
+extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppSlice(vx_graph graph, vx_tensor pSrc, vx_tensor srcDims, vx_tensor pDst, vx_tensor dstDims, vx_tensor anchor, vx_tensor shape, vx_array fillValue, vx_scalar axes, vx_scalar normalizedAnchor, vx_scalar normalizedShape, vx_scalar policy);
 
 #ifdef __cplusplus
 }
