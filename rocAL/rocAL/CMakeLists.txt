@@ -185,10 +185,10 @@ if(${BUILD_ROCAL})
                 ../../amd_openvx_extensions/amd_rpp/include/
                 ../../amd_openvx_extensions/amd_media/include/
                 ./include/api/
+                ./include/augmentations/audio_augmentations/
                 ./include/augmentations/color_augmentations/
                 ./include/augmentations/effects_augmentations/
                 ./include/augmentations/geometry_augmentations/
-                ./include/augmentations/audio_augmentations/
                 ./include/augmentations/
                 ./include/decoders/audio/
                 ./include/decoders/image/
