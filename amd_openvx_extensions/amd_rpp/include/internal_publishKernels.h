@@ -132,6 +132,7 @@ vx_status Flip_Register(vx_context);
 vx_status Fog_Register(vx_context);
 vx_status GammaCorrection_Register(vx_context);
 vx_status Hue_Register(vx_context);
+vx_status MelFilterBank_Register(vx_context);
 vx_status Nop_Register(vx_context);
 vx_status NonSilenceRegion_Register(vx_context);
 vx_status Resize_Register(vx_context);

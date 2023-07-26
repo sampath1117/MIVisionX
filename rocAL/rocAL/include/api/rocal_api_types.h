@@ -185,6 +185,11 @@ enum RocalSpectrogramLayout {
     TF
 };
 
+enum RocalMelScaleFormula {
+    SLANEY = 0,
+    HTK,
+};
+
 /*! \brief Tensor ROI type
  *
  * currently supports following formats

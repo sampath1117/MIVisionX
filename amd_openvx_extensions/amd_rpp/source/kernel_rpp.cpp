@@ -2610,8 +2610,8 @@ VX_API_ENTRY vx_node VX_API_CALL vxRppSlice(vx_graph graph, vx_tensor pSrc, vx_t
     return node;
 }
 
-VX_API_ENTRY vx_node VX_API_CALL vxExtrppNode_Spectrogram(vx_graph graph, vx_tensor pSrc, vx_tensor pSrcLength, vx_tensor pDst, vx_tensor pDstDims, vx_array windowFn, vx_scalar centerWindows, vx_scalar reflectPadding, vx_scalar spectrogramLayout,
-                                                          vx_scalar power, vx_scalar nfft, vx_scalar windowLength, vx_scalar windowStep)
+VX_API_ENTRY vx_node VX_API_CALL vxRppSpectrogram(vx_graph graph, vx_tensor pSrc, vx_tensor pSrcLength, vx_tensor pDst, vx_tensor pDstDims, vx_array windowFn, vx_scalar centerWindows, vx_scalar reflectPadding, vx_scalar spectrogramLayout,
+                                                  vx_scalar power, vx_scalar nfft, vx_scalar windowLength, vx_scalar windowStep)
 {
     vx_node node = NULL;
     vx_context context = vxGetContext((vx_reference)graph);
@@ -2634,6 +2634,32 @@ VX_API_ENTRY vx_node VX_API_CALL vxExtrppNode_Spectrogram(vx_graph graph, vx_ten
             (vx_reference)windowStep,
             (vx_reference)deviceType};
         node = createNode(graph, VX_KERNEL_RPP_SPECTROGRAM, params, 13);
+    }
+    return node;
+}
+
+VX_API_ENTRY vx_node VX_API_CALL vxRppMelFilterBank(vx_graph graph, vx_tensor pSrc, vx_tensor pSrcDims, vx_tensor pDst, vx_tensor pDstDims, vx_scalar freqHigh, vx_scalar freqLow, vx_scalar melFormula,
+                                                    vx_scalar nfilter, vx_scalar normalize, vx_scalar sampleRate)
+{
+    vx_node node = NULL;
+    vx_context context = vxGetContext((vx_reference)graph);
+    if (vxGetStatus((vx_reference)context) == VX_SUCCESS)
+    {
+        vx_uint32 devtype = getGraphAffinity(graph);
+        vx_scalar deviceType = vxCreateScalar(vxGetContext((vx_reference)graph), VX_TYPE_UINT32, &devtype);
+        vx_reference params[] = {
+            (vx_reference)pSrc,
+            (vx_reference)pSrcDims,
+            (vx_reference)pDst,
+            (vx_reference)pDstDims,
+            (vx_reference)freqHigh,
+            (vx_reference)freqLow,
+            (vx_reference)melFormula,
+            (vx_reference)nfilter,
+            (vx_reference)normalize,
+            (vx_reference)sampleRate,
+            (vx_reference)deviceType};
+        node = createNode(graph, VX_KERNEL_RPP_MELFILTERBANK, params, 11);
     }
     return node;
 }
