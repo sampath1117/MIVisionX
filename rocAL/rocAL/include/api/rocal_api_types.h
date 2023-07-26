@@ -174,6 +174,17 @@ enum RocalTensorBackend {
     ROCAL_GPU = 1
 };
 
+enum RocalOutOfBoundsPolicy {
+    PAD = 0,
+    TRIMTOSHAPE,
+    ERROR
+};
+
+enum RocalSpectrogramLayout {
+    FT = 0,
+    TF
+};
+
 /*! \brief Tensor ROI type
  *
  * currently supports following formats
@@ -186,12 +197,5 @@ enum class RocalROICordsType {
 typedef struct {
     unsigned x1, y1, x2, y2;
 } RocalROICords;
-
-enum RocalOutOfBoundsPolicy
-{
-    PAD = 0,
-    TRIMTOSHAPE,
-    ERROR
-};
 
 #endif //MIVISIONX_ROCAL_API_TYPES_H

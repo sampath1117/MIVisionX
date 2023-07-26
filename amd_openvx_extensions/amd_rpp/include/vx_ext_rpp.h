@@ -166,6 +166,8 @@ extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppResizeCrop(vx_graph graph, vx_
 extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppSequenceRearrange(vx_graph graph,vx_tensor pSrc,vx_tensor pDst, vx_array pNewOrder, vx_scalar layout);
 extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppNonSilentRegion(vx_graph graph, vx_tensor pSrc, vx_tensor pSrcRoi, vx_tensor pDst1, vx_tensor pDst2, vx_scalar cutOffDB, vx_scalar referencePower, vx_scalar windowLength, vx_scalar resetInterval);
 extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppSlice(vx_graph graph, vx_tensor pSrc, vx_tensor srcDims, vx_tensor pDst, vx_tensor dstDims, vx_tensor anchor, vx_tensor shape, vx_array fillValue, vx_scalar axes, vx_scalar normalizedAnchor, vx_scalar normalizedShape, vx_scalar policy);
+extern "C" SHARED_PUBLIC vx_node VX_API_CALL vxRppSpectrogram(vx_graph graph, vx_tensor pSrc, vx_tensor pSrcLength, vx_tensor pDst, vx_tensor pDstDims, vx_array windowFn, vx_scalar centerWindow, vx_scalar reflectPadding, vx_scalar spectrogramLayout,
+                                                              vx_scalar power, vx_scalar nfft, vx_scalar windowLength, vx_scalar windowStep);
 
 #ifdef __cplusplus
 }
