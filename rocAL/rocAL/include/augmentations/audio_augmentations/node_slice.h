@@ -31,7 +31,7 @@ class SliceNode : public Node {
 public:
     SliceNode(const std::vector<Tensor *> &inputs, const std::vector<Tensor *> &outputs);
     SliceNode() = delete;
-    void init(Tensor anchor_param, Tensor shape_param, std::vector<float> &fill_values_param, std::vector<unsigned> &axes,
+    void init(Tensor *anchor_param, Tensor *shape_param, std::vector<float> &fill_values_param, std::vector<unsigned> &axes,
               bool normalized_anchor, bool normalized_shape, RocalOutOfBoundsPolicy policy);
 protected:
     void create_node() override;
@@ -39,7 +39,7 @@ protected:
 private:
     vx_array  _fill_values_array;
     float * _anchor_array , *_shape_array;
-    Tensor _anchor, _shape;
+    Tensor *_anchor, *_shape;
     std::vector<unsigned int> _output_width_vector, _output_height_vector;
     std::vector<float> _fill_values, _fill_values_vec, _anchor_vec, _shape_vec;
     bool _normalized_anchor = false, _normalized_shape = false;

@@ -2439,25 +2439,27 @@ rocalSlice(
         bool normalized_anchor,
         bool normalized_shape,
         RocalOutOfBoundsPolicy policy,
-        RocalTensorOutputType rocal_tensor_output_type) {
+        RocalTensorOutputType rocal_tensor_output_datatype) {
     Tensor* output = nullptr;
-    // if ((p_context == nullptr) || (p_input == nullptr))
-    //     ERR("Invalid ROCAL context or invalid input tensor")
-    // auto context = static_cast<Context*>(p_context);
-    // auto input = static_cast<rocalTensor*>(p_input);
-    // try {
-    //     RocalTensorDataType op_tensor_data_type = (RocalTensorDataType)rocal_tensor_output_datatype;
-    //     TensorInfo output_info = input->info();
-    //     output_info.set_tensor_layout(RocalTensorlayout::NONE);
-    //     output_info.set_data_type(op_tensor_data_type);
-    //     output = context->master_graph->create_tensor(output_info, is_output);
-    //     output->reset_tensor_roi();
-    //     context->master_graph->add_node<SliceNode>({input}, {output})->init(anchor_tensor, shape_tensor, fill_values,
-    //                                                                         axes, normalized_anchor, normalized_shape, policy);
-    // } catch(const std::exception& e) {
-    //     context->capture_error(e.what());
-    //     ERR(e.what())
-    // }
+    if ((p_context == nullptr) || (p_input == nullptr))
+        ERR("Invalid ROCAL context or invalid input tensor")
+    auto context = static_cast<Context*>(p_context);
+    auto input = static_cast<Tensor*>(p_input);
+    auto anchor = static_cast<Tensor*>(anchor_tensor);
+    auto shape = static_cast<Tensor*>(shape_tensor);
+    try {
+        RocalTensorDataType op_tensor_data_type = (RocalTensorDataType)rocal_tensor_output_datatype;
+        TensorInfo output_info = input->info();
+        output_info.set_tensor_layout(RocalTensorlayout::NONE);
+        output_info.set_data_type(op_tensor_data_type);
+        output = context->master_graph->create_tensor(output_info, is_output);
+        output->reset_tensor_roi();
+        context->master_graph->add_node<SliceNode>({input}, {output})->init(anchor, shape, fill_values,
+                                                                            axes, normalized_anchor, normalized_shape, policy);
+    } catch(const std::exception& e) {
+        context->capture_error(e.what());
+        ERR(e.what())
+    }
     return output;
 }
 
