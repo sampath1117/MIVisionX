@@ -2402,7 +2402,6 @@ rocalNonSilentRegion(RocalContext p_context,
     Tensor* output2 = nullptr;
     if ((p_context == nullptr) || (p_input == nullptr))
         ERR("Invalid ROCAL context or invalid input tensor")
-
     TensorList output_tensors;
     auto context = static_cast<Context*>(p_context);
     auto input = static_cast<Tensor*>(p_input);
@@ -2420,11 +2419,146 @@ rocalNonSilentRegion(RocalContext p_context,
         output_tensors.push_back(output1);
         output_tensors.push_back(output2);
         context->master_graph->add_node<NonSilentRegionNode>({input}, {output1, output2})->init(cutoff_db, reference_power, window_length, reset_interval);
-    }
-    catch(const std::exception& e) {
+    } catch(const std::exception& e) {
         context->capture_error(e.what());
         ERR(e.what())
     }
 
     return std::make_pair(output_tensors.at(0), output_tensors.at(1));
+}
+
+RocalTensor ROCAL_API_CALL
+rocalSlice(
+        RocalContext p_context,
+        RocalTensor p_input,
+        bool is_output,
+        RocalTensor anchor_tensor,
+        RocalTensor shape_tensor,
+        std::vector<float> fill_values,
+        std::vector<unsigned> axes,
+        bool normalized_anchor,
+        bool normalized_shape,
+        RocalOutOfBoundsPolicy policy,
+        RocalTensorOutputType rocal_tensor_output_type) {
+    Tensor* output = nullptr;
+    // if ((p_context == nullptr) || (p_input == nullptr))
+    //     ERR("Invalid ROCAL context or invalid input tensor")
+    // auto context = static_cast<Context*>(p_context);
+    // auto input = static_cast<rocalTensor*>(p_input);
+    // try {
+    //     RocalTensorDataType op_tensor_data_type = (RocalTensorDataType)rocal_tensor_output_datatype;
+    //     TensorInfo output_info = input->info();
+    //     output_info.set_tensor_layout(RocalTensorlayout::NONE);
+    //     output_info.set_data_type(op_tensor_data_type);
+    //     output = context->master_graph->create_tensor(output_info, is_output);
+    //     output->reset_tensor_roi();
+    //     context->master_graph->add_node<SliceNode>({input}, {output})->init(anchor_tensor, shape_tensor, fill_values,
+    //                                                                         axes, normalized_anchor, normalized_shape, policy);
+    // } catch(const std::exception& e) {
+    //     context->capture_error(e.what());
+    //     ERR(e.what())
+    // }
+    return output;
+}
+
+RocalTensor ROCAL_API_CALL
+rocalSpectrogram(
+        RocalContext p_context,
+        RocalTensor p_input,
+        bool is_output,
+        std::vector<float> &window_fn,
+        bool center_windows,
+        bool reflect_padding,
+        RocalSpectrogramLayout spectrogram_layout,
+        int power,
+        int nfft,
+        int window_length,
+        int window_step,
+        RocalTensorOutputType rocal_tensor_output_datatype) {
+    Tensor* output = nullptr;
+    if ((p_context == nullptr) || (p_input == nullptr)) {
+        ERR("Invalid ROCAL context or invalid input tensor")
+        return output;
+    }
+    auto context = static_cast<Context*>(p_context);
+    auto input = static_cast<Tensor*>(p_input);
+    RocalTensorDataType op_tensorDataType;
+    try {
+        int layout = 0;
+        RocalTensorDataType op_tensor_data_type = (RocalTensorDataType)rocal_tensor_output_datatype;
+        std::vector<size_t> max_dims = input->info().max_shape();
+        TensorInfo output_info = input->info();
+        int window_offset = 0;
+        if(!center_windows)
+            window_offset = window_length;
+        int max_frame = (((max_dims[0] - window_offset) / window_step) + 1);
+        max_frame = std::max(0, max_frame);
+        int bins = std::max(0, (nfft / 2) + 1);
+        std::vector<size_t> dims = output_info.dims();
+        if(spectrogram_layout == RocalSpectrogramLayout::FT) {
+            dims[1] = max_frame;
+            dims[2] = bins;
+        } else {
+            dims[1] = bins;
+            dims[2] = max_frame;
+        }
+        output_info.set_dims(dims);
+        output_info.set_tensor_layout(RocalTensorlayout::NONE);
+        output_info.set_data_type(op_tensor_data_type);
+        if(power != 1 || power != 2) {
+            WRN("rocalSpectrogram power value can be 1 or 2 setting it to default 2")
+            power = 2;
+        }
+
+        output = context->master_graph->create_tensor(output_info, is_output);
+        output->reset_tensor_roi();
+        context->master_graph->add_node<SpectrogramNode>({input}, {output})->init(center_windows, reflect_padding, spectrogram_layout,
+                                                                                  power, nfft, window_length,
+                                                                                  window_step, window_fn);
+    } catch(const std::exception& e) {
+        context->capture_error(e.what());
+        ERR(e.what())
+    }
+    return output;
+}
+
+RocalTensor ROCAL_API_CALL
+rocalMelFilterBank(
+        RocalContext p_context,
+        RocalTensor p_input,
+        bool is_output,
+        float freq_high,
+        float freq_low,
+        RocalMelScaleFormula mel_formula,
+        int nfilter,
+        bool normalize,
+        float sample_rate,
+        RocalTensorOutputType rocal_tensor_output_datatype) {
+    Tensor* output = nullptr;
+    if ((p_context == nullptr) || (p_input == nullptr)) {
+        ERR("Invalid ROCAL context or invalid input tensor")
+        return output;
+    }
+    auto context = static_cast<Context*>(p_context);
+    auto input = static_cast<Tensor*>(p_input);
+    try {
+        RocalTensorDataType op_tensor_data_type = (RocalTensorDataType)rocal_tensor_output_datatype;
+        TensorInfo output_info = input->info();
+        std::vector<size_t> max_dims = output_info.max_shape();
+        int max_frame = max_dims[0];
+        max_frame = std::max(0, max_frame);
+        std::vector<size_t> dims = output_info.dims();
+        dims[1] = max_frame;
+        dims[2] = nfilter;
+        output_info.set_dims(dims);
+        output_info.set_tensor_layout(RocalTensorlayout::NONE);
+        output_info.set_data_type(op_tensor_data_type);
+        output = context->master_graph->create_tensor(output_info, is_output);
+        context->master_graph->add_node<MelFilterBankNode>({input}, {output})->init(freq_high, freq_low, mel_formula,
+                                                                                    nfilter, normalize, sample_rate);
+    } catch(const std::exception& e) {
+        context->capture_error(e.what());
+        ERR(e.what())
+    }
+    return output;
 }

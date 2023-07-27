@@ -823,4 +823,52 @@ extern "C" std::pair<RocalTensor, RocalTensor> ROCAL_API_CALL rocalNonSilentRegi
                                                                                    int reset_interval,
                                                                                    int window_length);
 
+/// Accepts F32 audio buffers
+/// \param context
+/// \param input
+
+extern "C" RocalTensor ROCAL_API_CALL rocalSlice(RocalContext p_context,
+                                                 RocalTensor p_input,
+                                                 bool is_output,
+                                                 RocalTensor anchor_tensor,
+                                                 RocalTensor shape_tensor,
+                                                 std::vector<float> fill_values,
+                                                 std::vector<unsigned> axes,
+                                                 bool normalized_anchor,
+                                                 bool normalized_shape,
+                                                 RocalOutOfBoundsPolicy policy,
+                                                 RocalTensorOutputType rocal_tensor_output_type);
+
+/// Accepts F32 audio buffers
+/// \param context
+/// \param input
+
+extern "C" RocalTensor ROCAL_API_CALL rocalSpectrogram(RocalContext p_context,
+                                                       RocalTensor p_input,
+                                                       bool is_output,
+                                                       std::vector<float> &window_fn,
+                                                       bool center_windows,
+                                                       bool reflect_padding,
+                                                       RocalSpectrogramLayout spectrogram_layout,
+                                                       int power,
+                                                       int nfft,
+                                                       int window_length,
+                                                       int window_step,
+                                                       RocalTensorOutputType rocal_tensor_output_type);
+
+/// Accepts F32 audio buffers
+/// \param context
+/// \param input
+
+extern "C"  RocalTensor ROCAL_API_CALL rocalMelFilterBank(RocalContext p_context,
+                                                          RocalTensor p_input,
+                                                          bool is_output,
+                                                          float freq_high,
+                                                          float freq_low,
+                                                          RocalMelScaleFormula mel_formula,
+                                                          int nfilter,
+                                                          bool normalize,
+                                                          float sample_rate,
+                                                          RocalTensorOutputType rocal_tensor_output_datatype);
+
 #endif //MIVISIONX_ROCAL_API_AUGMENTATION_H

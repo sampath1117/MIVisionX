@@ -90,7 +90,7 @@ namespace rocal{
         float16 *ptr = (float16 *)array;
         output_tensor.copy_data((void *)ptr, RocalOutputMemType::ROCAL_MEMCPY_GPU);
     }
-    
+
     py::object wrapper_image_name_length(RocalContext context, py::array_t<int> array)
     {
         auto buf = array.request();
@@ -114,7 +114,7 @@ namespace rocal{
     }
 
     /*
-    // Commenting out the block as we no more use wrappers. Will remove this block in the upcoming PRs 
+    // Commenting out the block as we no more use wrappers. Will remove this block in the upcoming PRs
     py::object wrapper_copy_to_output(RocalContext context, py::array_t<unsigned char> array)
     {
         auto buf = array.request();
@@ -412,7 +412,7 @@ namespace rocal{
                 if(output_tensor.data_type() == RocalTensorOutputType::ROCAL_FP16)
                     copy_data_cupy_wrapper_f16(output_tensor, array);
                 if(output_tensor.data_type() == RocalTensorOutputType::ROCAL_UINT8)
-                    copy_data_cupy_wrapper_u8(output_tensor, array);                
+                    copy_data_cupy_wrapper_u8(output_tensor, array);
             }, py::return_value_policy::reference)
             .def(
                 "at",
@@ -622,7 +622,7 @@ namespace rocal{
             unsigned int size_of_tensor_list = tl->size();
             for (uint i = 0; i < size_of_tensor_list; i++)
                 list.append(tl->at(i));
-            return list; 
+            return list;
         });
         m.def("getBoundingBoxCount", &rocalGetBoundingBoxCount);
         m.def("getImageLabels", [](RocalContext context) {
@@ -749,7 +749,7 @@ namespace rocal{
         // rocal_api_augmentation.h
         // m.def("SSDRandomCrop",&rocalSSDRandomCrop,
         //     py::return_value_policy::reference);
-        m.def("Resize",&rocalResize, 
+        m.def("Resize",&rocalResize,
             py::return_value_policy::reference);
         m.def("ResizeMirrorNormalize", &rocalResizeMirrorNormalize,
             py::return_value_policy::reference);
@@ -818,6 +818,14 @@ namespace rocal{
         m.def("ColorTemp",&rocalColorTemp,
             py::return_value_policy::reference);
         m.def("LensCorrection",&rocalLensCorrection,
+            py::return_value_policy::reference);
+        m.def("NonSilentRegion", &rocalNonSilentRegion,"Performs leading and trailing silence detection in an audio buffer",
+            py::return_value_policy::reference);
+        m.def("audioSlice", &rocalSlice,"The slice can be specified by proving the start and end coordinates, or start coordinates and shape of the slice. Both coordinates and shapes can be provided in absolute or relative terms",
+            py::return_value_policy::reference);
+        m.def("Spectrogram", &rocalSpectrogram, "Produces a spectrogram from a 1D signal (for example, audio)",
+            py::return_value_policy::reference);
+        m.def("MelFilterBank", &rocalMelFilterBank, "Converts a spectrogram to a mel spectrogram by applying a bank of triangular filters",
             py::return_value_policy::reference);
     }
 }
