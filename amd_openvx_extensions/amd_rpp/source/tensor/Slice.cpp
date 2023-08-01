@@ -47,8 +47,7 @@ struct SliceLocalData {
     Rpp32u numDims;
 };
 
-void copy_src_dims_and_update_dst_roi(const vx_reference *parameters, SliceLocalData *data)
-{
+void copy_src_dims_and_update_dst_roi(const vx_reference *parameters, SliceLocalData *data) {
     int RPP_MAX_TENSOR_DIMS_shapes_anchors;
     int dimsTotal = 1;
     data->roi_ptr_dst = (RpptROI *)data->roi_tensor_ptr_dst;
@@ -77,14 +76,12 @@ void copy_src_dims_and_update_dst_roi(const vx_reference *parameters, SliceLocal
     }
 }
 
-static vx_status VX_CALLBACK refreshSlice(vx_node node, const vx_reference *parameters, vx_uint32 num, SliceLocalData *data)
-{
+static vx_status VX_CALLBACK refreshSlice(vx_node node, const vx_reference *parameters, vx_uint32 num, SliceLocalData *data) {
     vx_status status = VX_SUCCESS;
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[4], VX_TENSOR_BUFFER_HOST, &data->pAnchor, sizeof(data->pAnchor)));
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[5], VX_TENSOR_BUFFER_HOST, &data->pShape, sizeof(data->pShape)));
     STATUS_ERROR_CHECK(vxCopyArrayRange((vx_array)parameters[6], 0, data->numDims, sizeof(float), data->pFillValues, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    if (data->deviceType == AGO_TARGET_AFFINITY_GPU)
-    {
+    if (data->deviceType == AGO_TARGET_AFFINITY_GPU) {
 #if ENABLE_OPENCL
         return VX_ERROR_NOT_IMPLEMENTED;
 #elif ENABLE_HIP
@@ -114,8 +111,7 @@ static vx_status VX_CALLBACK refreshSlice(vx_node node, const vx_reference *para
     return status;
 }
 
-static vx_status VX_CALLBACK validateSlice(vx_node node, const vx_reference parameters[], vx_uint32 num, vx_meta_format metas[])
-{
+static vx_status VX_CALLBACK validateSlice(vx_node node, const vx_reference parameters[], vx_uint32 num, vx_meta_format metas[]) {
     vx_status status = VX_SUCCESS;
     vx_enum scalar_type;
     STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[7], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
@@ -153,42 +149,36 @@ static vx_status VX_CALLBACK validateSlice(vx_node node, const vx_reference para
     return status;
 }
 
-static vx_status VX_CALLBACK processSlice(vx_node node, const vx_reference *parameters, vx_uint32 num)
-{
-    //TODO: Swetha : To clean up the debug code
-    // std::cerr<<"\n processSlice";
+static vx_status VX_CALLBACK processSlice(vx_node node, const vx_reference *parameters, vx_uint32 num) {
     RppStatus rpp_status = RPP_SUCCESS;
     vx_status return_status = VX_SUCCESS;
     SliceLocalData *data = NULL;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-    if (data->deviceType == AGO_TARGET_AFFINITY_GPU)
-    {
+    refreshSlice(node, parameters, num, data);
+    if (data->deviceType == AGO_TARGET_AFFINITY_GPU) {
 #if ENABLE_HIP
         refreshSlice(node, parameters, num, data);
-        // rpp_status = rppt_Slice_gpu((void *)data->hip_pSrc, data->pSrcDesc, (void *)data->hip_pDst, data->pSrcDesc,  data->alpha, data->beta, data->hip_roi_tensor_ptr, data->roiType, data->handle->rppHandle);
+        // rpp_status = rppt_slice_gpu(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->srcDims, data->pAnchor, data->pShape, data->pFillValues, data->handle->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #endif
-    }
-    if (data->deviceType == AGO_TARGET_AFFINITY_CPU)
-    {
-    refreshSlice(node, parameters, num, data);
-    rpp_status = rppt_slice_host(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->srcDims, data->pAnchor, data->pShape, data->pFillValues, data->handle->rppHandle);
+    } else if (data->deviceType == AGO_TARGET_AFFINITY_CPU) {
+        rpp_status = rppt_slice_host(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->srcDims, data->pAnchor, data->pShape, data->pFillValues, data->handle->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     return return_status;
 }
 
-static vx_status VX_CALLBACK initializeSlice(vx_node node, const vx_reference *parameters, vx_uint32 num)
-{
+static vx_status VX_CALLBACK initializeSlice(vx_node node, const vx_reference *parameters, vx_uint32 num) {
     SliceLocalData *data = new SliceLocalData;
     memset(data, 0, sizeof(*data));
+
+    vx_enum input_tensor_datatype, output_tensor_datatype;
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[7], &data->axes));
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[8], &data->normalizedAnchor));
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[9], &data->normalizedShape));
     data->normalizedShape = data->normalizedAnchor;
     STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[10], &data->policy));
     STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[11], &data->deviceType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
-    vx_enum input_tensor_datatype, output_tensor_datatype;
 
     // Querying for input tensor
     data->pSrcDesc = new RpptDesc;
@@ -238,8 +228,7 @@ static vx_status VX_CALLBACK initializeSlice(vx_node node, const vx_reference *p
     return VX_SUCCESS;
 }
 
-static vx_status VX_CALLBACK uninitializeSlice(vx_node node, const vx_reference *parameters, vx_uint32 num)
-{
+static vx_status VX_CALLBACK uninitializeSlice(vx_node node, const vx_reference *parameters, vx_uint32 num) {
     SliceLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
     STATUS_ERROR_CHECK(releaseRPPHandle(node, data->handle, data->deviceType));
@@ -256,8 +245,7 @@ static vx_status VX_CALLBACK uninitializeSlice(vx_node node, const vx_reference 
 static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
                                                   vx_bool use_opencl_1_2,              // [input]  false: OpenCL driver is 2.0+; true: OpenCL driver is 1.2
                                                   vx_uint32 &supported_target_affinity // [output] must be set to AGO_TARGET_AFFINITY_CPU or AGO_TARGET_AFFINITY_GPU or (AGO_TARGET_AFFINITY_CPU | AGO_TARGET_AFFINITY_GPU)
-)
-{
+) {
     vx_context context = vxGetContext((vx_reference)graph);
     AgoTargetAffinityInfo affinity;
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
@@ -269,8 +257,7 @@ static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
     return VX_SUCCESS;
 }
 
-vx_status Slice_Register(vx_context context)
-{
+vx_status Slice_Register(vx_context context) {
     vx_status status = VX_SUCCESS;
     // Add kernel to the context with callbacks
     vx_kernel kernel = vxAddUserKernel(context, "org.rpp.Slice",
@@ -283,8 +270,7 @@ vx_status Slice_Register(vx_context context)
     ERROR_CHECK_OBJECT(kernel);
     AgoTargetAffinityInfo affinity;
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
-#if ENABLE_OPENCL || ENABLE_HIP
-    // enable OpenCL buffer access since the kernel_f callback uses OpenCL buffers instead of host accessible buffers
+#if ENABLE_HIP
     vx_bool enableBufferAccess = vx_true_e;
     if (affinity.device_type == AGO_TARGET_AFFINITY_GPU)
         STATUS_ERROR_CHECK(vxSetKernelAttribute(kernel, VX_KERNEL_ATTRIBUTE_AMD_GPU_BUFFER_ACCESS_ENABLE, &enableBufferAccess, sizeof(enableBufferAccess)));
@@ -293,13 +279,12 @@ vx_status Slice_Register(vx_context context)
 #endif
     amd_kernel_query_target_support_f query_target_support_f = query_target_support;
 
-    if (kernel)
-    {
+    if (kernel) {
         STATUS_ERROR_CHECK(vxSetKernelAttribute(kernel, VX_KERNEL_ATTRIBUTE_AMD_QUERY_TARGET_SUPPORT, &query_target_support_f, sizeof(query_target_support_f)));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 0, VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
-        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 1, VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
-        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 2, VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
-        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 3, VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED)); // New - 3
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 1, VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 2, VX_OUTPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 3, VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 4, VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 5, VX_INPUT, VX_TYPE_TENSOR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 6, VX_INPUT, VX_TYPE_ARRAY, VX_PARAMETER_STATE_REQUIRED));
@@ -310,8 +295,7 @@ vx_status Slice_Register(vx_context context)
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 11, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxFinalizeKernel(kernel));
     }
-    if (status != VX_SUCCESS)
-    {
+    if (status != VX_SUCCESS) {
     exit:
         vxRemoveKernel(kernel);
         return VX_FAILURE;

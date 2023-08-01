@@ -275,5 +275,11 @@ vx_status ResizeCrop_Register(vx_context);
 #define VX_KERNEL_RPP_COLORTEMPERATURE_NAME                     "org.rpp.ColorTemperature"
 #define VX_KERNEL_RPP_GLITCH_NAME                               "org.rpp.Glitch"
 #define VX_KERNEL_RPP_RESIZECROP_NAME                           "org.rpp.ResizeCrop"
+#define VX_KERNEL_RPP_NONSILENTREGION_NAME                      "org.rpp.NonSilentRegion"
+#define VX_KERNEL_RPP_SLICE_NAME                                "org.rpp.Slice"
+#define VX_KERNEL_RPP_SPECTROGRAM_NAME                          "org.rpp.Spectrogram"
+#define VX_KERNEL_RPP_MELFILTERBANK_NAME                        "org.rpp.MelFilterBank"
+#define VX_KERNEL_RPP_TODECIBELS_NAME                           "org.rpp.ToDecibels"
+#define VX_KERNEL_RPP_NORMALIZE_NAME                            "org.rpp.Normalize"
 
 #endif //_AMDVX_EXT__PUBLISH_KERNELS_H_
