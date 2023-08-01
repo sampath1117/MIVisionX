@@ -25,21 +25,22 @@ void FlipMetaNode::initialize()
 {
     _src_height_val.resize(_batch_size);
     _src_width_val.resize(_batch_size);
-    _flip_axis_val.resize(_batch_size);
+    _h_flag_val.resize(_batch_size);
+    _v_flag_val.resize(_batch_size);
 }
 void FlipMetaNode::update_parameters(pMetaDataBatch input_meta_data, pMetaDataBatch output_meta_data)
 {
+    std::cerr<<"check flip.cpp\n ";
     initialize();
     if(_batch_size != input_meta_data->size())
     {
         _batch_size = input_meta_data->size();
     }
-    _src_width = _node->get_src_width();
-    _src_height = _node->get_src_height();
-    _flip_axis = _node->get_flip_axis();
-    vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint),_src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint),_src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyArrayRange((vx_array)_flip_axis, 0, _batch_size, sizeof(int),_flip_axis_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    auto input_roi = _node->get_src_roi();
+    _h_flag = _node->get_horizontal_axis();
+    _v_flag = _node->get_vertical_axis();
+    vxCopyArrayRange((vx_array)_h_flag, 0, _batch_size, sizeof(int),_h_flag_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
+    vxCopyArrayRange((vx_array)_v_flag, 0, _batch_size, sizeof(int),_v_flag_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     for(int i = 0; i < _batch_size; i++)
     {
         auto bb_count = input_meta_data->get_labels_batch()[i].size();
@@ -48,17 +49,35 @@ void FlipMetaNode::update_parameters(pMetaDataBatch input_meta_data, pMetaDataBa
         BoundingBoxCords bb_coords;
         for (uint j = 0; j < bb_count; j++)
         {
-            if(_flip_axis_val[i] == 0)
+            if(_h_flag_val[i])
             {
-                float l = 1 - coords_buf[j].r;
-                coords_buf[j].r = 1 - coords_buf[j].l;
-                coords_buf[j].l = l;     
+                // float l = _src_width_val[i] - coords_buf[j].r;
+                // coords_buf[j].r = _src_width_val[i] - coords_buf[j].l;
+                // coords_buf[j].l = l; 
+                // std::cerr<<"coords_buf[j].l "<<coords_buf[j].l<<" "<<coords_buf[j].r<<"  "<<_src_width_val[i]<<"\n ";
+                auto l = coords_buf[j].l;
+                auto r = coords_buf[j].r;
+                coords_buf[j].l = input_roi[i].x2 - r;
+                coords_buf[j].r = input_roi[i].x2 - l;    
+                // std::cerr<<"\n after coords_buf[j].l "<<coords_buf[j].l<<" "<<coords_buf[j].r<<" \n";
+
             }
-            else if(_flip_axis_val[i] == 1)
+            if(_v_flag_val[i])
             {
-                float t = 1 - coords_buf[j].b;
-                coords_buf[j].b = 1 - coords_buf[j].t;
-                coords_buf[j].t = t;
+                // float t = 1 - coords_buf[j].b;
+                // coords_buf[j].b = 1 - coords_buf[j].t;
+                // coords_buf[j].t = t;
+                // float t = input_roi[i].y2 - coords_buf[j].b;
+                // coords_buf[j].b = input_roi[i].y2 - coords_buf[j].t;
+                // coords_buf[j].t = t;
+                std::cerr<<"coords_buf[j].l "<<coords_buf[j].t<<" "<<coords_buf[j].b<<"  "<<_src_width_val[i]<<"\n ";
+
+                auto t = coords_buf[j].t;
+                auto b = coords_buf[j].b;
+                coords_buf[j].t = input_roi[i].y2 - b;
+                coords_buf[j].b = input_roi[i].y2 - t; 
+                std::cerr<<"after coords_buf[j].l "<<coords_buf[j].t<<" "<<coords_buf[j].b<<"  "<<_src_width_val[i]<<"\n ";
+
             }
             
             bb_coords.push_back(coords_buf[j]);

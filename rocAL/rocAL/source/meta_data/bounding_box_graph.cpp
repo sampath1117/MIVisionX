@@ -29,7 +29,36 @@ void BoundingBoxGraph::process(pMetaDataBatch input_meta_data, pMetaDataBatch ou
     }
 }
 
-//update_meta_data is not required since the bbox are normalized in the very beggining -> removed the call in master graph also except for MaskRCNN
+void BoundingBoxGraph::update_meta_data(pMetaDataBatch input_meta_data, decoded_sample_info decode_image_info)
+{
+    std::vector<uint32_t> original_height = decode_image_info._original_height;
+    std::vector<uint32_t> original_width = decode_image_info._original_width;
+    std::vector<uint32_t> roi_width = decode_image_info._roi_width;
+    std::vector<uint32_t> roi_height = decode_image_info._roi_height;
+    for (int i = 0; i < input_meta_data->size(); i++)
+    {
+        float _dst_to_src_width_ratio = roi_width[i] / float(original_width[i]);
+        float _dst_to_src_height_ratio = roi_height[i] / float(original_height[i]);
+        unsigned bb_count = input_meta_data->get_labels_batch()[i].size();
+        BoundingBoxCords coords_buf = input_meta_data->get_bb_cords_batch()[i];
+        BoundingBoxCords bb_coords;
+        BoundingBoxCord temp_box;
+        temp_box.l = temp_box.t = temp_box.r = temp_box.b = 0;
+        for (uint j = 0; j < bb_count; j++)
+        {
+            coords_buf[j].l *= _dst_to_src_width_ratio;
+            coords_buf[j].t *= _dst_to_src_height_ratio;
+            coords_buf[j].r *= _dst_to_src_width_ratio;
+            coords_buf[j].b *= _dst_to_src_height_ratio;
+            bb_coords.push_back(coords_buf[j]);
+        }
+        if (bb_coords.size() == 0)
+        {
+            bb_coords.push_back(temp_box);
+        }
+        input_meta_data->get_bb_cords_batch()[i] = bb_coords;
+    }
+}
 
 inline float ssd_BBoxIntersectionOverUnion(const BoundingBoxCord &box1, const float &box1_area, const BoundingBoxCordf &box2)
 {

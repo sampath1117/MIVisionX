@@ -380,14 +380,14 @@ void MasterGraph::release()
 
     if(_graph != nullptr)
         _graph->release();
-    if(_context && (status = vxReleaseContext(&_context)) != VX_SUCCESS)
-        LOG ("Failed to call vxReleaseContext " + TOSTR(status))
     if(_meta_data_reader != nullptr)
         _meta_data_reader->release();
 
     _augmented_meta_data = nullptr;
     _meta_data_graph = nullptr;
     _meta_data_reader = nullptr;
+    if(_context && (status = vxReleaseContext(&_context)) != VX_SUCCESS)
+        LOG ("Failed to call vxReleaseContext " + TOSTR(status))
 }
 
 MasterGraph::Status
@@ -1006,6 +1006,10 @@ void MasterGraph::output_routine()
                     if(_is_random_bbox_crop)
                     {
                         _meta_data_graph->update_random_bbox_meta_data(_augmented_meta_data, output_meta_data, decode_sample_info, crop_image_info);
+                    }
+                    else
+                    {
+                        _meta_data_graph->update_meta_data(_augmented_meta_data, decode_sample_info);
                     }
                     _meta_data_graph->process(_augmented_meta_data, output_meta_data);
                 }

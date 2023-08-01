@@ -22,15 +22,15 @@ import cupy as cp
 import numpy as np
 import rocal_pybind as b
 import amd.rocal.types as types
-import ctypes
+
 
 class ROCALGenericIterator(object):
-    def __init__(self, pipeline, tensor_layout = types.NCHW, reverse_channels = False, multiplier = [1.0,1.0,1.0], offset = [0.0, 0.0, 0.0], tensor_dtype=types.FLOAT, display=False, device="cpu", device_id =0):
+    def __init__(self, pipeline, tensor_layout=types.NCHW, reverse_channels=False, multiplier=[1.0, 1.0, 1.0], offset=[0.0, 0.0, 0.0], tensor_dtype=types.FLOAT, display=False, device="cpu", device_id=0):
         self.loader = pipeline
         self.tensor_format = tensor_layout
         self.multiplier = multiplier
         self.offset = offset
-        self.device= device
+        self.device = device
         self.device_id = device_id
         self.reverse_channels = reverse_channels
         self.tensor_dtype = tensor_dtype
@@ -41,31 +41,31 @@ class ROCALGenericIterator(object):
         self.labels_size = ((self.batch_size * self.loader._num_classes) if self.loader._one_hot_encoding else self.batch_size)
         self.output_list = self.dimensions = self.dtype = None
         self.labels_tensor = None
-        self.len = b.getRemainingImages(self.loader._handle) // self.batch_size # iteration length
+        self.len = b.getRemainingImages(self.loader._handle) // self.batch_size  # iteration length
 
     def next(self):
         return self.__next__()
 
     def __next__(self):
-        
+
         if self.loader.rocalRun() != 0:
             raise StopIteration
         else:
             self.output_tensor_list = self.loader.getOutputTensors()
 
-        if self.output_list is None:
+        if self.output_list is None:  # Checking if output_list is empty and initializing the buffers
             self.output_list = []
             for i in range(len(self.output_tensor_list)):
                 self.dimensions = self.output_tensor_list[i].dimensions()
                 if self.device == "cpu":
                     self.dtype = self.output_tensor_list[i].dtype()
-                    self.output = np.empty(self.dimensions, dtype = self.dtype)
-                    self.labels = np.empty(self.labels_size, dtype = self.dtype)
+                    self.output = np.empty(self.dimensions, dtype=self.dtype)
+                    self.labels = np.empty(self.labels_size, dtype=self.dtype)
                 else:
                     self.dtype = self.output_tensor_list[i].dtype()
-                    with cp.cuda.Device(device = self.device_id):
-                        self.output = cp.empty(self.dimensions, dtype = self.dtype)
-                        self.labels = cp.empty(self.labels_size, dtype = self.dtype)
+                    with cp.cuda.Device(device=self.device_id):
+                        self.output = cp.empty(self.dimensions, dtype=self.dtype)
+                        self.labels = cp.empty(self.labels_size, dtype=self.dtype)
 
                 if self.device == "cpu":
                     self.output_tensor_list[i].copy_data_numpy(self.output)
@@ -78,9 +78,9 @@ class ROCALGenericIterator(object):
                     self.output_tensor_list[i].copy_data_numpy(self.output_list[i])
                 else:
                     self.output_tensor_list[i].copy_data_cupy(self.output_list[i].data.ptr)
-                
-        if(self.loader._name == "labelReader"):
-            if(self.loader._one_hot_encoding == True):
+
+        if (self.loader._name == "labelReader"):
+            if (self.loader._one_hot_encoding == True):
                 self.loader.getOneHotEncodedLabels(self.labels, self.device)
                 self.labels_tensor = self.labels.reshape(-1, self.batch_size, self.loader._num_classes)
             else:
@@ -90,10 +90,10 @@ class ROCALGenericIterator(object):
                             draw_patches(output[i], i, 0)
                 self.labels = self.loader.getImageLabels()
                 if self.device == "cpu":
-                    self.labels_tensor = self.labels.astype(dtype = np.int_)
+                    self.labels_tensor = self.labels.astype(dtype=np.int_)
                 else:
-                    with cp.cuda.Device(device = self.device_id):
-                        self.labels_tensor = self.labels.astype(dtype = cp.int_)
+                    with cp.cuda.Device(device=self.device_id):
+                        self.labels_tensor = self.labels.astype(dtype=cp.int_)
 
         return self.output_list, self.labels_tensor
 
@@ -168,26 +168,28 @@ class ROCALClassificationIterator(ROCALGenericIterator):
     fill_last_batch = True, last_batch_padded = True   -> last batch = [7, 7], next iteration will return [1, 2]
     fill_last_batch = True, last_batch_padded = False  -> last batch = [7, 1], next iteration will return [2, 3]
     """
+
     def __init__(self,
                  pipelines,
-                 size = 0,
+                 size=0,
                  auto_reset=False,
                  fill_last_batch=True,
                  dynamic_shape=False,
                  last_batch_padded=False,
                  display=False,
                  device="cpu",
-                 device_id =0):
+                 device_id=0):
         pipe = pipelines
-        super(ROCALClassificationIterator, self).__init__(pipe, tensor_layout = pipe._tensor_layout, tensor_dtype = pipe._tensor_dtype,
-                                                            multiplier = pipe._multiplier, offset = pipe._offset,display = display, device = device, device_id = device_id)
+        super(ROCALClassificationIterator, self).__init__(pipe, tensor_layout=pipe._tensor_layout, tensor_dtype=pipe._tensor_dtype,
+                                                          multiplier=pipe._multiplier, offset=pipe._offset, display=display, device=device, device_id=device_id)
 
-def draw_patches(img,idx, bboxes):
-    #image is expected as a tensor, bboxes as numpy
+
+def draw_patches(img, idx, bboxes):
+    # image is expected as a tensor, bboxes as numpy
     import cv2
     img = img.cpu()
     image = img.detach().numpy()
-    image = image.transpose([1,2,0])
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR )
+    image = image.transpose([1, 2, 0])
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     image = cv2.UMat(image).get()
     cv2.imwrite(str(idx)+"_"+"train"+".png", image)

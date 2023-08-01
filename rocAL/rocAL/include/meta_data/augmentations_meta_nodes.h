@@ -29,3 +29,6 @@ THE SOFTWARE.
 #include "meta_node_rotate.h"
 #include "meta_node_ssd_random_crop.h"
 #include "meta_node_flip.h"
+#include "meta_node_resize_mirror_normalize.h"
+#include "meta_node_resize.h"
+

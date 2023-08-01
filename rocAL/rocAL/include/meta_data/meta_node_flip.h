@@ -40,6 +40,7 @@ class FlipMetaNode:public MetaNode
         void initialize();
         vx_array _src_width, _src_height;
         std::vector<uint> _src_width_val, _src_height_val;
-        vx_array _flip_axis;
-        std::vector<int> _flip_axis_val;
+        vx_array _h_flag, _v_flag;
+        
+        std::vector<int> _h_flag_val, _v_flag_val;
 };

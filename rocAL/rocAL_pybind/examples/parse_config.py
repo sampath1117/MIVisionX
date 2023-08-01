@@ -87,7 +87,7 @@ def parse_args():
                         help='Reader used for reading and decoding the images')
     python_unit_test.add_argument('--augmentation-name', '-aug_name', type=str, default="resize",
                         help='refer python unit test for all augmentation names ')
-    python_unit_test.add_argument('--file-name', '-f', type=str, default="",
+    python_unit_test.add_argument('--output-file-name', '-f', type=str, default="",
                         help='file name to save the augmentation outputs')
     python_unit_test.add_argument('--interpolation-type', '-i', type=int, default=1,
                         help='interpolation type used for resize and crop')

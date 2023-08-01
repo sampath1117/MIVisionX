@@ -2593,7 +2593,6 @@ rocalAudioFileSourceSingleShard(
                                                                                         context->master_graph->mem_type(),
                                                                                         context->master_graph->meta_data_reader()
                                                                                         );
-        std::cerr << "Out of the Audio Single Shard Node";
         context->master_graph->set_loop(loop);
 
         if(is_output)

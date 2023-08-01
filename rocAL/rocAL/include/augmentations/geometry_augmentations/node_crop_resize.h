@@ -33,8 +33,12 @@ public:
     ~CropResizeNode();
     void init(float area, float aspect_ratio, float x_center_drift, float y_center_drift);
     void init(FloatParam* area, FloatParam *aspect_ratio, FloatParam * x_drift_factor, FloatParam * y_drift_factor);
-    unsigned int get_dst_width() { return _outputs[0]->info().max_shape()[0]; }
-    unsigned int get_dst_height() { return _outputs[0]->info().max_shape()[1]; }
+    // unsigned int get_dst_width() { return _outputs[0]->info().max_shape()[0]; }
+    // unsigned int get_dst_height() { return _outputs[0]->info().max_shape()[1]; }
+    // vx_array get_dst_width() { return _dst_roi_width; }
+    // vx_array get_dst_height() { return _dst_roi_height;}
+    RocalROI *get_src_roi() { return _inputs[0]->info().get_roi();}
+    RocalROI *get_dst_roi() { return _outputs[0]->info().get_roi();}
     std::shared_ptr<RocalRandomCropParam> get_crop_param() { return _crop_param; }
 protected:
     void create_node() override;

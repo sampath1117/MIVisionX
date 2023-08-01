@@ -34,13 +34,12 @@ void RotateMetaNode::update_parameters(pMetaDataBatch input_meta_data, pMetaData
     {
         _batch_size = input_meta_data->size();
     }
+    auto input_roi = _node->get_src_roi();
     _src_width = _node->get_src_width();
     _src_height = _node->get_src_height();
     _dst_width = _node->get_dst_width();
     _dst_height = _node->get_dst_height();
     _angle = _node->get_angle();
-    vxCopyArrayRange((vx_array)_src_width, 0, _batch_size, sizeof(uint),_src_width_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
-    vxCopyArrayRange((vx_array)_src_height, 0, _batch_size, sizeof(uint),_src_height_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     vxCopyArrayRange((vx_array)_angle, 0, _batch_size, sizeof(float),_angle_val.data(), VX_READ_ONLY, VX_MEMORY_TYPE_HOST);
     BoundingBoxCord temp_box = {0, 0, 1, 1};
     for(int i = 0; i < _batch_size; i++)
@@ -59,7 +58,7 @@ void RotateMetaNode::update_parameters(pMetaDataBatch input_meta_data, pMetaData
             BoundingBoxCord box;
             float src_bb_x, src_bb_y, bb_w, bb_h;
             float dest_cx, dest_cy, src_cx, src_cy;
-            float x1, y1, x2, y2, x3, y3, x4, y4, min_x, min_y;
+            float x1, y1, x2, y2, x3, y3, x4, y4, min_x, min_y, max_x, max_y;
             float rotate[4];
             float radian = RAD(_angle_val[i]);
             rotate[0] = rotate[3] = cos(radian);
@@ -67,12 +66,13 @@ void RotateMetaNode::update_parameters(pMetaDataBatch input_meta_data, pMetaData
             rotate[2] = -1 * rotate[1];
             dest_cx = _dst_width / 2;
             dest_cy = _dst_height / 2;
-            src_cx = _src_width_val[i]/2;
-            src_cy = _src_height_val[i]/2;
+
+            src_cx =float(input_roi[i].x2)/2;
+            src_cy =float(input_roi[i].y2)/2;
             src_bb_x = coords_buf[j].l;
             src_bb_y = coords_buf[j].t;
-            bb_w = coords_buf[j].r;
-            bb_h = coords_buf[j].b;
+            bb_w = coords_buf[j].r - coords_buf[j].l;
+            bb_h = coords_buf[j].b - coords_buf[j].t;
             x1 = (rotate[0] * (src_bb_x - src_cx)) + (rotate[1] * (src_bb_y - src_cy)) + dest_cx;
             y1 = (rotate[2] * (src_bb_x - src_cx)) + (rotate[3] * (src_bb_y - src_cy)) + dest_cy;
             x2 = (rotate[0] * ((src_bb_x + bb_w) - src_cx))+( rotate[1] * (src_bb_y - src_cy)) + dest_cx;
@@ -83,16 +83,22 @@ void RotateMetaNode::update_parameters(pMetaDataBatch input_meta_data, pMetaData
             y4 = (rotate[2] * ((src_bb_x + bb_w) - src_cx))+( rotate[3] * ((src_bb_y + bb_h) - src_cy)) + dest_cy;
             min_x = std::min(x1, std::min(x2, std::min(x3, x4)));
             min_y = std::min(y1, std::min(y2, std::min(y3, y4)));
-            box.l = std::max(min_x, 0.0f);
-            box.t = std::max(min_y, 0.0f);
-            box.r = std::max(x1, std::max(x2, std::max(x3, x4))); ;
-            box.b = std::max(y1, std::max(y2, std::max(y3, y4)));
+            max_x = std::max(x1, std::max(x2, std::max(x3, x4)));
+            max_y = std::max(y1, std::max(y2, std::max(y3, y4)));
+            box.l = (min_x > 0) ? min_x : 0;
+            box.t = (min_y > 0) ? min_y : 0;
+            box.r = max_x;
+            box.b = max_y;
             if (BBoxIntersectionOverUnion(box, dest_image) >= _iou_threshold)
             {
-                box.l = std::max(dest_image.l, box.l);
-                box.t = std::max(dest_image.t, box.t);
-                box.r = std::min(dest_image.r, box.r);
-                box.b = std::min(dest_image.b, box.b);
+                float xA = std::max(dest_image.l, box.l);
+                float yA = std::max(dest_image.t, box.t);
+                float xB = std::min(dest_image.r, box.r);
+                float yB = std::min(dest_image.b, box.b);
+                box.l = xA;
+                box.t = yA;
+                box.r = xB;
+                box.b = yB;
                 bb_coords.push_back(box);
                 bb_labels.push_back(labels_buf[j]);
             }
