@@ -147,6 +147,7 @@ vx_status SequenceRearrange_Register(vx_context);
 vx_status Snow_Register(vx_context);
 vx_status Slice_Register(vx_context);
 vx_status Spectrogram_Register(vx_context);
+vx_status ToDecibels_Register(vx_context);
 vx_status Pixelate_Register(vx_context);
 vx_status Vignette_Register(vx_context);
 vx_status Jitter_Register(vx_context);

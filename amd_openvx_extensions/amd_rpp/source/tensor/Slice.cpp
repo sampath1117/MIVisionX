@@ -47,7 +47,7 @@ struct SliceLocalData {
     Rpp32u numDims;
 };
 
-void update_destination_roi(const vx_reference *parameters, SliceLocalData *data)
+void copy_src_dims_and_update_dst_roi(const vx_reference *parameters, SliceLocalData *data)
 {
     int RPP_MAX_TENSOR_DIMS_shapes_anchors;
     int dimsTotal = 1;
@@ -110,7 +110,7 @@ static vx_status VX_CALLBACK refreshSlice(vx_node node, const vx_reference *para
     // Get the dimensions of the shapes / anchors tensor
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[5], VX_TENSOR_NUMBER_OF_DIMS, &data->pDstDesc->numDims, sizeof(data->pDstDesc->numDims)));
     STATUS_ERROR_CHECK(vxQueryTensor((vx_tensor)parameters[5], VX_TENSOR_DIMS, &data->outputTensorDims, sizeof(vx_size) * data->pDstDesc->numDims));
-    update_destination_roi(parameters, data);
+    copy_src_dims_and_update_dst_roi(parameters, data);
     return status;
 }
 

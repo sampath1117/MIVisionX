@@ -161,6 +161,7 @@ list(APPEND SOURCES
         source/tensor/Snow.cpp
         source/tensor/Slice.cpp
         source/tensor/Spectrogram.cpp
+        source/tensor/ToDecibels.cpp
         source/tensor/Vignette.cpp
         source/tensor/WarpAffine.cpp
         source/kernel_rpp.cpp
