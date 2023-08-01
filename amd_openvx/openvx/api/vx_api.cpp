@@ -10168,7 +10168,7 @@ VX_API_ENTRY vx_tensor VX_API_CALL vxCreateTensorFromHandle(vx_context context, 
         if (memory_type == VX_MEMORY_TYPE_HOST) {
             char dimStr[256] = "";
             for (vx_size i = 0; i < number_of_dims; i++)
-                sprintf(dimStr + strlen(dimStr), "%s%u", i ? "," : "", (vx_uint32)dims[i]);
+                snprintf(dimStr + strlen(dimStr), sizeof(dimStr), "%s%u", i ? "," : "", (vx_uint32)dims[i]);
             char desc[512];
             sprintf(desc, "tensor:%u,{%s},%s,%d", (vx_uint32)number_of_dims, dimStr, agoEnum2Name(data_type), fixed_point_position);
             data = agoCreateDataFromDescription(context, NULL, desc, true);
@@ -10191,7 +10191,7 @@ VX_API_ENTRY vx_tensor VX_API_CALL vxCreateTensorFromHandle(vx_context context, 
         else if (memory_type == VX_MEMORY_TYPE_OPENCL) {
             char dimStr[256] = "";
             for (vx_size i = 0; i < number_of_dims; i++)
-                sprintf(dimStr + strlen(dimStr), "%s%u", i ? "," : "", (vx_uint32)dims[i]);
+                snprintf(dimStr + strlen(dimStr), sizeof(dimStr), "%s%u", i ? "," : "", (vx_uint32)dims[i]);
             char desc[512];
             sprintf(desc, "tensor:%u,{%s},%s,%d", (vx_uint32)number_of_dims, dimStr, agoEnum2Name(data_type), fixed_point_position);
             data = agoCreateDataFromDescription(context, NULL, desc, true);
@@ -10214,7 +10214,7 @@ VX_API_ENTRY vx_tensor VX_API_CALL vxCreateTensorFromHandle(vx_context context, 
         else if (memory_type == VX_MEMORY_TYPE_HIP) {
             char dimStr[256] = "";
             for (vx_size i = 0; i < number_of_dims; i++)
-                sprintf(dimStr + strlen(dimStr), "%s%u", i ? "," : "", (vx_uint32)dims[i]);
+                snprintf(dimStr + strlen(dimStr), sizeof(dimStr), "%s%u", i ? "," : "", (vx_uint32)dims[i]);
             char desc[512];
             sprintf(desc, "tensor:%u,{%s},%s,%d", (vx_uint32)number_of_dims, dimStr, agoEnum2Name(data_type), fixed_point_position);
             data = agoCreateDataFromDescription(context, NULL, desc, true);

@@ -190,6 +190,12 @@ enum RocalMelScaleFormula {
     HTK,
 };
 
+enum RocalAudioBorderType {
+    ZERO = 0,
+    CLAMP,
+    REFLECT
+};
+
 /*! \brief Tensor ROI type
  *
  * currently supports following formats

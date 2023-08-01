@@ -180,10 +180,10 @@ void Caffe2MetaDataReaderDetection::read_lmdb_record(std::string file_name, uint
                 {
                     // Parsing the bounding box points using Iterator
                     // && Normalizing the box Co-ordinates
-                    box.l = boundingBox_proto.dims(boundIter) / img_size.w;
-                    box.t = boundingBox_proto.dims(boundIter + 1) / img_size.h;
-                    box.r = boundingBox_proto.dims(boundIter + 2) / img_size.w;
-                    box.b = boundingBox_proto.dims(boundIter + 3) / img_size.h;
+                    box.l = boundingBox_proto.dims(boundIter);
+                    box.t = boundingBox_proto.dims(boundIter + 1);
+                    box.r = box.l + boundingBox_proto.dims(boundIter + 2);
+                    box.b = box.t +boundingBox_proto.dims(boundIter + 3);
 
                     boundIter += 4;
 

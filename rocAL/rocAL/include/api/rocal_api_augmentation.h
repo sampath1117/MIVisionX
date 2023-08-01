@@ -789,6 +789,7 @@ extern "C" RocalTensor ROCAL_API_CALL rocalRandomCrop(RocalContext context, Roca
 /// \param IOU_threshold
 /// \param num_of_attmpts
 /// \return
+
 extern "C" RocalTensor ROCAL_API_CALL rocalSSDRandomCrop(  RocalContext context, RocalTensor input,
                                                     bool is_output,
                                                     RocalFloatParam threshold = NULL,
@@ -799,17 +800,17 @@ extern "C" RocalTensor ROCAL_API_CALL rocalSSDRandomCrop(  RocalContext context,
                                                     int num_of_attempts = 20,
                                                     RocalTensorLayout rocal_tensor_output_layout = ROCAL_NHWC,
                                                     RocalTensorOutputType rocal_tensor_output_type = ROCAL_UINT8);
-// /// Accepts U8 and RGB24 input. The output image dimension can be set to new values allowing the rotated image to fit,
-// /// otherwise; the image is cropped to fit the result.
-// /// \param context Rocal context
-// /// \param input Input Rocal Image
-// /// \param is_output True: the output image is needed by user and will be copied to output buffers using the data
-// /// transfer API calls. False: the output image is just an intermediate image, user is not interested in
-// /// using it directly. This option allows certain optimizations to be achieved.
-// /// \param angle Rocal parameter defining the rotation angle value in degrees.
-// /// \param dest_width The output width
-// /// \param dest_height The output height
-// /// \return Returns a new image that keeps the result.
+
+/// Accepts F32 audio buffers
+/// \param context
+/// \param input
+
+extern "C" RocalTensor ROCAL_API_CALL rocalPreEmphasisFilter(RocalContext p_context,
+                                                             RocalTensor p_input,
+                                                             RocalTensorOutputType rocal_tensor_output_type,
+                                                             bool is_output,
+                                                             RocalFloatParam p_preemph_coeff = NULL,
+                                                             RocalAudioBorderType preemph_border_type = RocalAudioBorderType::CLAMP);
 
 /// Accepts F32 audio buffers and returns start index and length of non silent region in audio buffer
 /// \param context

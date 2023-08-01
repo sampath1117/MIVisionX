@@ -187,7 +187,7 @@ class Pipeline(object):
                 return b.getOneHotEncodedLabels(self._handle, ctypes.c_void_p(array.data_ptr()), self._num_classes, 1)
 
     def setOutputs(self, *output_list):
-        b.setOutputImages(self._handle, len(output_list), output_list)
+        b.setOutputs(self._handle, len(output_list), output_list)
 
     def __enter__(self):
         Pipeline._current_pipeline = self

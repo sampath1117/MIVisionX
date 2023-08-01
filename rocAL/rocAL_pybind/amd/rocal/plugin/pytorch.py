@@ -25,7 +25,7 @@ import amd.rocal.types as types
 import ctypes
 
 class ROCALGenericIterator(object):
-    def __init__(self, pipeline, tensor_layout = types.NCHW, reverse_channels = False, multiplier = [1.0,1.0,1.0], offset = [0.0, 0.0, 0.0], tensor_dtype = types.FLOAT, device = "cpu", device_id = 0, display = False):
+    def __init__(self, pipeline, tensor_layout=types.NCHW, reverse_channels=False, multiplier=[1.0, 1.0, 1.0], offset=[0.0, 0.0, 0.0], tensor_dtype=types.FLOAT, device="cpu", device_id=0, display=False):
         self.loader = pipeline
         self.tensor_format = tensor_layout
         self.multiplier = multiplier
@@ -35,7 +35,9 @@ class ROCALGenericIterator(object):
         self.device = device
         self.device_id = device_id
         self.batch_size = self.loader._batch_size
-        self.output = self.dimensions = self.torch_dtype = None
+        self.labels_size = ((self.batch_size * self.loader._num_classes) if self.loader._one_hot_encoding else self.batch_size)
+        self.output_list = self.dimensions = self.torch_dtype = None
+        self.output_memory_type = self.loader._output_memory_type
         self.len = b.getRemainingImages(self.loader._handle)
         self.display = display
 
@@ -43,22 +45,34 @@ class ROCALGenericIterator(object):
         return self.__next__()
 
     def __next__(self):
-        if(b.isEmpty(self.loader._handle)):
+        if self.loader.rocalRun() != 0:
             raise StopIteration
         else:
             self.output_tensor_list = self.loader.getOutputTensors()
+        if self.output_list is None:
+            self.output_list = []
+            for i in range(len(self.output_tensor_list)):
+                self.dimensions = self.output_tensor_list[i].dimensions()
+                print("self.dimesnions",self.dimensions)
+                if self.device == "cpu":
+                    self.torch_dtype = self.output_tensor_list[i].dtype()
+                    self.output = torch.empty(self.dimensions, dtype = getattr(torch, self.torch_dtype))
+                    self.labels_tensor = torch.empty(self.labels_size, dtype = getattr(torch, self.torch_dtype))
+                else:
+                    torch_gpu_device = torch.device('cuda', self.device_id)
+                    self.torch_dtype = self.output_tensor_list[i].dtype()
+                    self.output = torch.empty(self.dimensions, dtype = getattr(torch, self.torch_dtype), device=torch_gpu_device)
+                    self.labels_tensor = torch.empty(self.labels_size, dtype = getattr(torch, self.torch_dtype), device=torch_gpu_device)
 
-        if self.output is None:
-            self.dimensions = self.output_tensor_list[0].dimensions()
-            torch_gpu_device = torch.device('cuda', self.device_id)
-            self.torch_dtype = self.output_tensor_list[0].dtype()
-            self.output = torch.empty((self.dimensions[0], self.dimensions[1], self.dimensions[2], self.dimensions[3],), dtype = getattr(torch, self.torch_dtype), device = torch_gpu_device)
-            self.labels_tensor = torch.empty(self.dimensions[0], dtype = torch.int32, device = torch_gpu_device)
-
-        self.output_tensor_list[0].copy_data(ctypes.c_void_p(self.output.data_ptr()))
-        if((self.loader._name == "Caffe2ReaderDetection") or (self.loader._name == "CaffeReaderDetection")):
-            self.lis = []  # Empty list for bboxes
-            self.lis_lab = []  # Empty list of labels
+                self.output_tensor_list[i].copy_data(ctypes.c_void_p(self.output.data_ptr()), self.output_memory_type)
+                self.output_list.append(self.output)
+        else:
+            for i in range(len(self.output_tensor_list)):
+                self.output_tensor_list[i].copy_data(ctypes.c_void_p(self.output_list[i].data_ptr()), self.output_memory_type)
+        
+        if ((self.loader._name == "Caffe2ReaderDetection") or (self.loader._name == "CaffeReaderDetection")):
+            self.bbox_list = []  # Empty list for bboxes
+            self.labels_list = []  # Empty list of labels
 
             # Count of labels/ bboxes in a batch
             self.bboxes_label_count = np.zeros(self.bs, dtype="int32")
@@ -67,58 +81,57 @@ class ROCALGenericIterator(object):
             self.labels = self.loader.rocalGetBoundingBoxLabels()
             # 1D bboxes array in a batch
             self.bboxes = self.loader.rocalGetBoundingBoxCords()
-            #Image sizes of a batch
-            self.img_size = np.zeros((self.bs * 2),dtype = "int32")
+            # Image sizes of a batch
+            self.img_size = np.zeros((self.bs * 2), dtype="int32")
             self.loader.getImgSizes(self.img_size)
 
-            count =0
-            sum_count=0
+            count = 0
+            sum_count = 0
             for i in range(self.bs):
                 count = self.bboxes_label_count[i]
 
-                self.label_2d_numpy = (self.labels[sum_count : sum_count+count])
+                self.label_2d_numpy = (self.labels[sum_count : sum_count + count])
                 self.label_2d_numpy = np.reshape(self.label_2d_numpy, (-1, 1)).tolist()
-                self.bb_2d_numpy = (self.bboxes[sum_count*4 : (sum_count+count)*4])
+                self.bb_2d_numpy = (self.bboxes[sum_count * 4 : (sum_count + count) * 4])
                 self.bb_2d_numpy = np.reshape(self.bb_2d_numpy, (-1, 4)).tolist()
 
-                self.lis_lab.append(self.label_2d_numpy)
-                self.lis.append(self.bb_2d_numpy)
+                self.labels_list.append(self.label_2d_numpy)
+                self.bbox_list.append(self.bb_2d_numpy)
 
                 if self.display:
-                    img = (self.output)
-                    draw_patches(img[i], i, self.bb_2d_numpy)
+                    for output in self.output_list:
+                        img = (output)
+                        draw_patches(img[i], i, self.bb_2d_numpy)
 
                 sum_count = sum_count + count
 
-            self.target = self.lis
-            self.target1 = self.lis_lab
-            max_cols = max([len(row) for batch in self.target for row in batch])
-            max_rows = max([len(batch) for batch in self.target])
-            self.bb_padded = [batch + [[0] * (max_cols)] * (max_rows - len(batch)) for batch in self.target]
+            max_cols = max([len(row) for batch in self.bbox_list for row in batch])
+            max_rows = max([len(batch) for batch in self.bbox_list])
+            self.bb_padded = [batch + [[0] * (max_cols)] * (max_rows - len(batch)) for batch in self.bbox_list]
             self.bb_padded = torch.FloatTensor([row + [0] * (max_cols - len(row)) for batch in self.bb_padded for row in batch])
             self.bb_padded = self.bb_padded.view(-1, max_rows, max_cols)
 
-            max_cols1 = max([len(row) for batch in self.target1 for row in batch])
-            max_rows1 = max([len(batch) for batch in self.target1])
-            self.labels_padded = [batch + [[0] * (max_cols1)] * (max_rows1 - len(batch)) for batch in self.target1]
+            max_cols1 = max([len(row) for batch in self.labels_list for row in batch])
+            max_rows1 = max([len(batch) for batch in self.labels_list])
+            self.labels_padded = [batch + [[0] * (max_cols1)] * (max_rows1 - len(batch)) for batch in self.labels_list]
             self.labels_padded = torch.LongTensor([row + [0] * (max_cols1 - len(row)) for batch in self.labels_padded for row in batch])
             self.labels_padded = self.labels_padded.view(-1, max_rows1, max_cols1)
 
-            return self.output, self.bb_padded, self.labels_padded
+            return self.output_list, self.bb_padded, self.labels_padded
 
         else:
-            if(self.loader._one_hot_encoding == True):
-                self.loader.getOneHotEncodedLabels(self.labels, self.device)
-                self.labels_tensor = self.labels.reshape(-1, self.bs, self.loader._num_classes)
+            if self.loader._one_hot_encoding:
+                self.loader.getOneHotEncodedLabels(self.labels_tensor, self.device)
+                self.labels_tensor = self.labels_tensor.reshape(-1, self.batch_size, self.loader._num_classes)
             else:
                 if self.display:
                     for i in range(self.bs):
                         img = (self.output)
                         draw_patches(img[i], i, 0)
-                self.labels = self.loader.getImageLabels()
-                self.labels_tensor = self.labels_tensor.copy_(torch.from_numpy(self.labels)).long()
-
-            return self.output, self.labels_tensor
+                # self.labels = self.loader.getImageLabels() # TODO: To uncomment it when meta-data support is added for audio
+                # self.labels_tensor = self.labels_tensor.copy_(torch.from_numpy(self.labels)).long()
+            print(self.output_list)
+            return self.output_list, self.labels_tensor
 
     def reset(self):
         b.rocalResetLoaders(self.loader._handle)
@@ -130,6 +143,7 @@ class ROCALGenericIterator(object):
         return self.len
 
     def __del__(self):
+        print("In rocALRelease")
         b.rocalRelease(self.loader._handle)
 
 
@@ -191,9 +205,10 @@ class ROCALClassificationIterator(ROCALGenericIterator):
     fill_last_batch = True, last_batch_padded = True   -> last batch = [7, 7], next iteration will return [1, 2]
     fill_last_batch = True, last_batch_padded = False  -> last batch = [7, 1], next iteration will return [2, 3]
     """
+
     def __init__(self,
                  pipelines,
-                 size = 0,
+                 size=0,
                  auto_reset=False,
                  fill_last_batch=True,
                  dynamic_shape=False,
@@ -202,18 +217,17 @@ class ROCALClassificationIterator(ROCALGenericIterator):
                  device="cpu",
                  device_id=0,):
         pipe = pipelines
-        super(ROCALClassificationIterator, self).__init__(pipe, tensor_layout = pipe._tensor_layout, tensor_dtype = pipe._tensor_dtype,
-                                                          multiplier = pipe._multiplier, offset = pipe._offset, display = display, device = device, device_id = device_id)
+        super(ROCALClassificationIterator, self).__init__(pipe, tensor_layout=pipe._tensor_layout, tensor_dtype=pipe._tensor_dtype,
+                                                          multiplier=pipe._multiplier, offset=pipe._offset, display=display, device=device, device_id=device_id)
 
 
-
-def draw_patches(img,idx,bboxes):
-    #image is expected as a tensor
+def draw_patches(img, idx, bboxes):
+    # image is expected as a tensor
     import cv2
     img = img.cpu()
     image = img.detach().numpy()
-    image = image.transpose([1,2,0])
-    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR )
+    image = image.transpose([1, 2, 0])
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
     image = cv2.UMat(image).get()
     cv2.imwrite(str(idx)+"_"+"train"+".png", image)
     try:
@@ -232,6 +246,6 @@ def draw_patches(img,idx,bboxes):
             image = cv2.UMat(image).get()
             image = cv2.rectangle(image, (int(loc_[0]), int(loc_[1])), (int(
                 (loc_[2])), int((loc_[3]))), color, thickness)
-            cv2.imwrite("OUTPUT_IMAGES_PYTHON/PYTORCH/" + str(idx)+"_"+"train"+".png", image * 255)
+            cv2.imwrite("OUTPUT_IMAGES_PYTHON/PYTORCH/" + str(idx) + "_" + "train" + ".png", image * 255)
     else:
-        cv2.imwrite("OUTPUT_IMAGES_PYTHON/PYTORCH/" + str(idx)+"_"+"train"+".png", image * 255)
+        cv2.imwrite("OUTPUT_IMAGES_PYTHON/PYTORCH/" + str(idx) + "_" + "train" + ".png", image * 255)

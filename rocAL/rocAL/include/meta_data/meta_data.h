@@ -38,9 +38,9 @@ THE SOFTWARE.
 #define SCALE_CONSTANT_HALF_BODY 1.5
 typedef struct BoundingBoxCord_
 {
-  double l; double t; double r; double b;
+  float l; float t; float r; float b;
   BoundingBoxCord_() {}
-  BoundingBoxCord_(double l_, double t_, double r_, double b_): l(l_), t(t_), r(r_), b(b_) {}   // constructor
+  BoundingBoxCord_(float l_, float t_, float r_, float b_): l(l_), t(t_), r(r_), b(b_) {}   // constructor
   BoundingBoxCord_(const BoundingBoxCord_& cord) : l(cord.l), t(cord.t), r(cord.r), b(cord.b) {}  //copy constructor
 } BoundingBoxCord;
 
@@ -394,8 +394,7 @@ public:
         {
             memcpy(labels_buffer, _label_ids[i].data(), _label_ids[i].size() * sizeof(int));
             if(_bbox_output_type == BoundingBoxType::XYWH) convert_ltrb_to_xywh(_bb_cords[i]);
-            std::transform((double *)_bb_cords[i].data(), (double *)_bb_cords[i].data() + _label_ids[i].size() * 4,
-                            bbox_buffer, [](double d) -> float { return static_cast<float>(d); });
+            memcpy(bbox_buffer, _bb_cords[i].data(), _label_ids[i].size() * 4 * sizeof(float));
             labels_buffer += _label_ids[i].size();
             bbox_buffer += (_label_ids[i].size() * 4);
         }
@@ -474,8 +473,7 @@ public:
         {
             mempcpy(labels_buffer, _label_ids[i].data(), _label_ids[i].size() * sizeof(int));
             if(_bbox_output_type == BoundingBoxType::XYWH) convert_ltrb_to_xywh(_bb_cords[i]);
-            std::transform((double *)_bb_cords[i].data(), (double *)_bb_cords[i].data() + _label_ids[i].size() * 4,
-                            bbox_buffer, [](double d) -> float { return static_cast<float>(d); });
+            memcpy(bbox_buffer, _bb_cords[i].data(), _label_ids[i].size() * 4 * sizeof(float));
             memcpy(mask_buffer, _mask_cords[i].data(), _mask_cords[i].size() * sizeof(float));
             labels_buffer += _label_ids[i].size();
             bbox_buffer += (_label_ids[i].size() * 4);
