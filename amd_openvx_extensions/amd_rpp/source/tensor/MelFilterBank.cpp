@@ -40,7 +40,7 @@ struct MelFilterBankLocalData {
     size_t outputTensorDims[RPP_MAX_TENSOR_DIMS];
 };
 
-void update_destination_roi(MelFilterBankLocalData *data, RpptROI *src_roi, RpptROI *dst_roi) {
+void copy_src_dims_and_update_dst_roi(MelFilterBankLocalData *data, RpptROI *src_roi, RpptROI *dst_roi) {
     for (unsigned i = 0; i < data->inputTensorDims[0]; i++) {
        dst_roi[i].xywhROI.xy.x = src_roi[i].xywhROI.xy.x;
        dst_roi[i].xywhROI.xy.y = data->nfilter;
@@ -69,7 +69,7 @@ static vx_status VX_CALLBACK refreshMelFilterBank(vx_node node, const vx_referen
     }
     RpptROI *src_roi = reinterpret_cast<RpptROI *>(roi_tensor_ptr_src);
     RpptROI *dst_roi = reinterpret_cast<RpptROI *>(roi_tensor_ptr_dst);
-    update_destination_roi(data, src_roi, dst_roi);
+    copy_src_dims_and_update_dst_roi(data, src_roi, dst_roi);
     return status;
 }
 
