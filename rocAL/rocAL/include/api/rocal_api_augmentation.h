@@ -871,4 +871,30 @@ extern "C"  RocalTensor ROCAL_API_CALL rocalMelFilterBank(RocalContext p_context
                                                           float sample_rate,
                                                           RocalTensorOutputType rocal_tensor_output_datatype);
 
+/// Accepts F32 audio buffers
+/// \param context
+/// \param input
+
+extern "C" RocalTensor ROCAL_API_CALL rocalToDecibels(RocalContext p_context,
+                                                      RocalTensor p_input,
+                                                      bool is_output,
+                                                      float cutoff_db,
+                                                      float multiplier,
+                                                      float reference_magnitude,
+                                                      RocalTensorOutputType rocal_tensor_output_type);
+
+/// Accepts F32 audio buffers
+/// \param context
+/// \param input
+
+extern "C" RocalTensor ROCAL_API_CALL rocalNormalize(RocalContext p_context,
+                                                     RocalTensor p_input,
+                                                     bool is_output,
+                                                     bool batch,
+                                                     std::vector<int> axes,
+                                                     float mean, float std_dev,
+                                                     float scale, float shift,
+                                                     int ddof, float epsilon,
+                                                     RocalTensorOutputType rocal_tensor_output_type);
+
 #endif //MIVISIONX_ROCAL_API_AUGMENTATION_H

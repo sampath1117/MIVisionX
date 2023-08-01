@@ -823,9 +823,13 @@ namespace rocal{
             py::return_value_policy::reference);
         m.def("audioSlice", &rocalSlice,"The slice can be specified by proving the start and end coordinates, or start coordinates and shape of the slice. Both coordinates and shapes can be provided in absolute or relative terms",
             py::return_value_policy::reference);
+        m.def("audioNormalize", &rocalNormalize,"Normalizes the input by removing the mean and dividing by the standard deviation",
+            py::return_value_policy::reference);
         m.def("Spectrogram", &rocalSpectrogram, "Produces a spectrogram from a 1D signal (for example, audio)",
             py::return_value_policy::reference);
         m.def("MelFilterBank", &rocalMelFilterBank, "Converts a spectrogram to a mel spectrogram by applying a bank of triangular filters",
+            py::return_value_policy::reference);
+        m.def("ToDecibels", &rocalToDecibels, "Converts to Decibels",
             py::return_value_policy::reference);
     }
 }
