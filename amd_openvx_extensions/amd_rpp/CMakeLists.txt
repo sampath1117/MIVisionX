@@ -149,6 +149,7 @@ list(APPEND SOURCES
         source/tensor/Noise.cpp
         source/tensor/NonSilentRegion.cpp
         source/tensor/Nop.cpp
+        source/tensor/Normalize.cpp
         source/tensor/Rotate.cpp
         source/tensor/Pixelate.cpp
         source/tensor/Rain.cpp

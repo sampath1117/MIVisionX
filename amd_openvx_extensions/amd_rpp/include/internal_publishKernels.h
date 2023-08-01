@@ -155,6 +155,7 @@ vx_status ColorTemperature_Register(vx_context);
 vx_status Glitch_Register(vx_context);
 vx_status WarpAffine_Register(vx_context);
 vx_status Noise_Register(vx_context);
+vx_status Normalize_Register(vx_context);
 vx_status ResizeCrop_Register(vx_context);
 
 // kernel names

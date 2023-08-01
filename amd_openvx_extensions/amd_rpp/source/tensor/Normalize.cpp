@@ -22,30 +22,36 @@ THE SOFTWARE.
 
 #include "internal_publishKernels.h"
 
-struct ToDecibelsLocalData {
+struct NormalizeLocalData {
     vxRppHandle *handle;
     Rpp32u deviceType;
     RppPtr_t pSrc;
     RppPtr_t pDst;
-    Rpp32f cutOffDB;
-    Rpp32f multiplier;
-    Rpp32f referenceMagnitude;
+    Rpp32s axisMask;
+    Rpp32f mean;
+    Rpp32f stdDev;
+    Rpp32f scale;
+    Rpp32f shift;
+    Rpp32f epsilon;
+    Rpp32s ddof;
+    Rpp32u numOfDims;
     RpptDescPtr pSrcDesc;
     RpptDescPtr pDstDesc;
-    RpptImagePatch *pSrcDims;
+    Rpp32s *pSamples;
+    Rpp32s *pChannels;
     size_t inputTensorDims[RPP_MAX_TENSOR_DIMS];
     size_t outputTensorDims[RPP_MAX_TENSOR_DIMS];
 };
 
-void copy_src_dims_and_update_dst_roi(ToDecibelsLocalData *data, RpptROI *src_roi, RpptROI *dst_roi) {
+void copy_src_dims_and_update_dst_roi(NormalizeLocalData *data, RpptROI *src_roi, RpptROI *dst_roi) {
     memcpy(dst_roi, src_roi, data->pSrcDesc->n * sizeof(RpptROI));
     for (unsigned i = 0; i < data->inputTensorDims[0]; i++) {
-       data->pSrcDims[i].width = src_roi[i].xywhROI.xy.x;
-       data->pSrcDims[i].height = src_roi[i].xywhROI.xy.y;
+        data->pSamples[i] = src_roi[i].xywhROI.xy.y;
+        data->pChannels[i] = src_roi[i].xywhROI.xy.x;
     }
 }
 
-static vx_status VX_CALLBACK refreshToDecibels(vx_node node, const vx_reference *parameters, vx_uint32 num, ToDecibelsLocalData *data) {
+static vx_status VX_CALLBACK refreshNormalize(vx_node node, const vx_reference *parameters, vx_uint32 num, NormalizeLocalData *data) {
     vx_status status = VX_SUCCESS;
     void *roi_tensor_ptr_src, *roi_tensor_ptr_dst;
     if (data->deviceType == AGO_TARGET_AFFINITY_GPU) {
@@ -69,11 +75,11 @@ static vx_status VX_CALLBACK refreshToDecibels(vx_node node, const vx_reference 
     return status;
 }
 
-static vx_status VX_CALLBACK validateToDecibels(vx_node node, const vx_reference parameters[], vx_uint32 num, vx_meta_format metas[]) {
+static vx_status VX_CALLBACK validateNormalize(vx_node node, const vx_reference parameters[], vx_uint32 num, vx_meta_format metas[]) {
     vx_status status = VX_SUCCESS;
     vx_enum scalar_type;
     STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[4], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
-    if (scalar_type != VX_TYPE_FLOAT32)
+    if (scalar_type != VX_TYPE_INT32)
         return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #4 type=%d (must be size)\n", scalar_type);
     STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[5], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
     if (scalar_type != VX_TYPE_FLOAT32)
@@ -81,6 +87,15 @@ static vx_status VX_CALLBACK validateToDecibels(vx_node node, const vx_reference
     STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[6], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
     if (scalar_type != VX_TYPE_FLOAT32)
         return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #6 type=%d (must be size)\n", scalar_type);
+    STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[7], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
+    if (scalar_type != VX_TYPE_FLOAT32)
+        return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #7 type=%d (must be size)\n", scalar_type);
+    STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[8], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
+    if (scalar_type != VX_TYPE_FLOAT32)
+        return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #8 type=%d (must be size)\n", scalar_type);
+    STATUS_ERROR_CHECK(vxQueryScalar((vx_scalar)parameters[9], VX_SCALAR_TYPE, &scalar_type, sizeof(scalar_type)));
+    if (scalar_type != VX_TYPE_FLOAT32)
+        return ERRMSG(VX_ERROR_INVALID_TYPE, "validate: Paramter: #9 type=%d (must be size)\n", scalar_type);
 
     // Check for input parameters
     size_t num_tensor_dims;
@@ -104,33 +119,41 @@ static vx_status VX_CALLBACK validateToDecibels(vx_node node, const vx_reference
     return status;
 }
 
-static vx_status VX_CALLBACK processToDecibels(vx_node node, const vx_reference *parameters, vx_uint32 num) {
+static vx_status VX_CALLBACK processNormalize(vx_node node, const vx_reference *parameters, vx_uint32 num) {
     RppStatus rpp_status = RPP_SUCCESS;
     vx_status return_status = VX_SUCCESS;
-    ToDecibelsLocalData *data = NULL;
+    NormalizeLocalData *data = NULL;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
-    refreshToDecibels(node, parameters, num, data);
+    refreshNormalize(node, parameters, num, data);
     if (data->deviceType == AGO_TARGET_AFFINITY_GPU) {
 #if ENABLE_HIP
-        // rpp_status = rppt_to_decibels_gpu(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->pSrcDims, data->cutOffDB, data->multiplier, data->referenceMagnitude, data->handle->rppHandle);
+        // rpp_status = rppt_normalize_audio_gpu(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->pSamples, data->pChannels, data->axisMask, data->mean,
+        //                                       data->stdDev, data->scale, data->shift, data->epsilon, data->ddof, data->numOfDims, data->handle->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
 #endif
     } else if (data->deviceType == AGO_TARGET_AFFINITY_CPU) {
-        rpp_status = rppt_to_decibels_host(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->pSrcDims, data->cutOffDB, data->multiplier, data->referenceMagnitude, data->handle->rppHandle);
+        refreshNormalize(node, parameters, num, data);
+        rpp_status = rppt_normalize_audio_host(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->pSamples, data->pChannels, data->axisMask, data->mean,
+                                               data->stdDev, data->scale, data->shift, data->epsilon, data->ddof, data->numOfDims, data->handle->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
     return return_status;
 }
 
-static vx_status VX_CALLBACK initializeToDecibels(vx_node node, const vx_reference *parameters, vx_uint32 num) {
-    ToDecibelsLocalData *data = new ToDecibelsLocalData;
+static vx_status VX_CALLBACK initializeNormalize(vx_node node, const vx_reference *parameters, vx_uint32 num) {
+    NormalizeLocalData *data = new NormalizeLocalData;
     memset(data, 0, sizeof(*data));
 
     vx_enum input_tensor_datatype, output_tensor_datatype;
-    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[4], &data->cutOffDB));
-    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[5], &data->multiplier));
-    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[6], &data->referenceMagnitude));
-    STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[7], &data->deviceType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[4], &data->axisMask));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[5], &data->mean));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[6], &data->stdDev));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[7], &data->scale));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[8], &data->shift));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[9], &data->epsilon));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[10], &data->ddof));
+    STATUS_ERROR_CHECK(vxReadScalarValue((vx_scalar)parameters[11], &data->numOfDims));
+    STATUS_ERROR_CHECK(vxCopyScalar((vx_scalar)parameters[12], &data->deviceType, VX_READ_ONLY, VX_MEMORY_TYPE_HOST));
 
     // Querying for input tensor
     data->pSrcDesc = new RpptDesc;
@@ -170,18 +193,20 @@ static vx_status VX_CALLBACK initializeToDecibels(vx_node node, const vx_referen
     data->pDstDesc->strides.cStride = 1;
     data->pDstDesc->numDims = 4;
 
-    data->pSrcDims = static_cast<RpptImagePatch *>(calloc(data->pSrcDesc->n, sizeof(RpptImagePatch)));
-    refreshToDecibels(node, parameters, num, data);
+    data->pSamples = static_cast<int *>(calloc(data->pSrcDesc->n, sizeof(int)));
+    data->pChannels = static_cast<int *>(calloc(data->pSrcDesc->n, sizeof(int)));
+    refreshNormalize(node, parameters, num, data);
     STATUS_ERROR_CHECK(createRPPHandle(node, &data->handle, data->pSrcDesc->n, data->deviceType));
     STATUS_ERROR_CHECK(vxSetNodeAttribute(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
     return VX_SUCCESS;
 }
 
-static vx_status VX_CALLBACK uninitializeToDecibels(vx_node node, const vx_reference *parameters, vx_uint32 num) {
-    ToDecibelsLocalData *data;
+static vx_status VX_CALLBACK uninitializeNormalize(vx_node node, const vx_reference *parameters, vx_uint32 num) {
+    NormalizeLocalData *data;
     STATUS_ERROR_CHECK(vxQueryNode(node, VX_NODE_LOCAL_DATA_PTR, &data, sizeof(data)));
     STATUS_ERROR_CHECK(releaseRPPHandle(node, data->handle, data->deviceType));
-    free(data->pSrcDims);
+    free(data->pSamples);
+    free(data->pChannels);
     delete(data->pSrcDesc);
     delete(data->pDstDesc);
     delete(data);
@@ -205,16 +230,17 @@ static vx_status VX_CALLBACK query_target_support(vx_graph graph, vx_node node,
     return VX_SUCCESS;
 }
 
-vx_status ToDecibels_Register(vx_context context) {
+vx_status Normalize_Register(vx_context context)
+{
     vx_status status = VX_SUCCESS;
     // Add kernel to the context with callbacks
-    vx_kernel kernel = vxAddUserKernel(context, "org.rpp.ToDecibels",
-                                       VX_KERNEL_RPP_TODECIBELS,
-                                       processToDecibels,
-                                       8,
-                                       validateToDecibels,
-                                       initializeToDecibels,
-                                       uninitializeToDecibels);
+    vx_kernel kernel = vxAddUserKernel(context, "org.rpp.Normalize",
+                                       VX_KERNEL_RPP_NORMALIZE,
+                                       processNormalize,
+                                       12,
+                                       validateNormalize,
+                                       initializeNormalize,
+                                       uninitializeNormalize);
     ERROR_CHECK_OBJECT(kernel);
     AgoTargetAffinityInfo affinity;
     vxQueryContext(context, VX_CONTEXT_ATTRIBUTE_AMD_AFFINITY, &affinity, sizeof(affinity));
@@ -237,6 +263,10 @@ vx_status ToDecibels_Register(vx_context context) {
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 5, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 6, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 7, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 8, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 9, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 10, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
+        PARAM_ERROR_CHECK(vxAddParameterToKernel(kernel, 11, VX_INPUT, VX_TYPE_SCALAR, VX_PARAMETER_STATE_REQUIRED));
         PARAM_ERROR_CHECK(vxFinalizeKernel(kernel));
     }
     if (status != VX_SUCCESS) {
