@@ -134,7 +134,7 @@ vx_status GammaCorrection_Register(vx_context);
 vx_status Hue_Register(vx_context);
 vx_status MelFilterBank_Register(vx_context);
 vx_status Nop_Register(vx_context);
-vx_status NonSilenceRegion_Register(vx_context);
+vx_status NonSilentRegion_Register(vx_context);
 vx_status Resize_Register(vx_context);
 vx_status ResizeCropMirror_Register(vx_context);
 vx_status ResizeMirrorNormalize_Register(vx_context);

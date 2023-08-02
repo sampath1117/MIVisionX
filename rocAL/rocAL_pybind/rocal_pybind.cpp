@@ -560,6 +560,24 @@ namespace rocal{
             .value("DECODER_VIDEO_FFMPEG_SW", ROCAL_DECODER_VIDEO_FFMPEG_SW)
             .value("DECODER_VIDEO_FFMPEG_HW", ROCAL_DECODER_VIDEO_FFMPEG_HW)
             .export_values();
+        py::enum_<RocalAudioBorderType>(types_m,"RocalAudioBorderType", "Rocal Audio Border Type")
+            .value("ZERO",ZERO)
+            .value("CLAMP",CLAMP)
+            .value("REFLECT",REFLECT)
+            .export_values();
+        py::enum_<RocalSpectrogramLayout>(types_m,"RocalSpectrogramLayout", "Rocal Audio Spectrogram Layout")
+            .value("FT",FT)
+            .value("TF",TF)
+            .export_values();
+        py::enum_<RocalMelScaleFormula>(types_m,"RocalMelScaleFormula", "Rocal Audio Mel Formula")
+            .value("SLANEY",SLANEY)
+            .value("HTK",HTK)
+            .export_values();
+        py::enum_<RocalOutOfBoundsPolicy>(types_m,"RocalOutOfBoundsPolicy", "Rocal Audio Out Of Bounds Policy")
+            .value("PAD",PAD)
+            .value("TRIMTOSHAPE",TRIMTOSHAPE)
+            .value("ERROR",ERROR)
+            .export_values();
         // rocal_api_info.h
         m.def("getRemainingImages", &rocalGetRemainingImages);
         m.def("getImageName", &wrapper_image_name);

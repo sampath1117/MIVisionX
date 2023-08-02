@@ -14,12 +14,10 @@ import amd.rocal.types as types
 import math
 # import rocal_pybind.tensor
 import sys
-import cv2
 import matplotlib.pyplot as plt
 import os
 def draw_patches(img, idx, device):
     #image is expected as a tensor, bboxes as numpy
-    import cv2
     image = img.detach().numpy()
     audio_data = image.flatten()
     label = idx
