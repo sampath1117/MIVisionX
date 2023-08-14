@@ -326,6 +326,7 @@ class ROCALAudioIterator(object):
             self.channels = self.max_shape[0]
             self.samples = self.max_shape[1]
             roi = self.output_tensor_list[0].get_rois().reshape(self.batch_size, 4)
+            print("roi in pytorch.py: ", roi)
             max_x1 = np.max(roi[..., 0:1])
             max_y1 = np.max(roi[..., 1:2])
             self.output = torch.empty((self.batch_size, max_y1, max_x1), dtype=torch.float32)
