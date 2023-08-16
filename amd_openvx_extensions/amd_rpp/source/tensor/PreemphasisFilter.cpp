@@ -50,10 +50,7 @@ struct PreemphasisFilterLocalData
 };
 
 void update_destination_roi(const vx_reference *parameters, PreemphasisFilterLocalData *data, RpptROI *src_roi, RpptROI *dst_roi) {
-    for (uint i=0; i < data->pSrcDesc->n; i++) {
-        dst_roi->xywhROI.xy.x = src_roi->xywhROI.xy.x;
-        dst_roi->xywhROI.xy.y = src_roi->xywhROI.xy.y;
-    }
+    memcpy(dst_roi, src_roi, data->pSrcDesc->n * sizeof(RpptROI));
 }
 
 static vx_status VX_CALLBACK refreshPreemphasisFilter(vx_node node, const vx_reference *parameters, vx_uint32 num, PreemphasisFilterLocalData *data) {
