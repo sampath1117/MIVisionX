@@ -13,24 +13,23 @@ import matplotlib.pyplot as plt
 import os
 import numpy as np
 
-def compare_output(output, roi, augmentation_name, file_name):
+def compare_output(output, roi, augmentation_name, idx):
     reference_path = os.getcwd() + "/REFERENCE_OUTPUTS_AUDIO/" + augmentation_name + "/"
-    reference_file = reference_path + augmentation_name + "_ref_" + file_name.replace(".wav", ".txt")
-    # print("reference_file: ", reference_file)
+    reference_file = reference_path + augmentation_name + "_ref_" + str(idx) + ".txt"
     fn = open(reference_file, "r")
-    for row in range(roi[0]):
-        for col in range(roi[1]):
+    buffer_size = roi[0] * roi[1] 
+    match_cnt = 0
+    for row in range(roi[1]):
+        for col in range(roi[0]):
             ref_data = float((fn.readline()).strip())
-            out_data = output[col][row]
-            # print("ref_data, out_data: %f, %f:" % (ref_data, out_data))
-        
-def draw_patches(img, idx, device):
-    #image is expected as a tensor, bboxes as numpy
-    image = img.detach().numpy()
-    audio_data = image.flatten()
-    # label = idx
-    label = idx.cpu().detach().numpy() #TODO: Uncomment after the meta-data is enabled
-    print("label: ", label)
+            out_data = output[row][col]
+            if abs(out_data - ref_data) < 1e-20:
+                match_cnt += 1
+    is_match = (match_cnt == buffer_size)
+    return is_match
+                 
+def draw_patches(audio, label, device):
+    audio_data = audio.flatten()
     # Saving the array in a text file
     file = open("results/rocal_data_new"+str(label)+".txt", "w+")
     content = str(audio_data)
@@ -61,11 +60,13 @@ def main():
     batch_size = int(sys.argv[4])
     case_number = int(sys.argv[5])
     qa_mode = int(sys.argv[6])
+    if qa_mode:
+        batch_size = 8
     num_threads = 1
     device_id = 0
     random_seed = random.SystemRandom().randint(0, 2**32 - 1)
     print("*********************************************************************")
-    augmentation_list = {0:"pre_emphasis_filter", 1:"slice", 2:"spectrogram", 3:"mel_filter_bank", 4:"to_decibels", 5:"normalize"}
+    augmentation_list = {0: "pre_emphasis_filter", 1: "slice", 2: "spectrogram", 3: "mel_filter_bank", 4: "to_decibels", 5: "normalize"}
     print("RUNNING ", augmentation_list[case_number])
     audio_pipeline = Pipeline(batch_size=batch_size, num_threads=num_threads, device_id=device_id, seed=random_seed, rocal_cpu=_rocal_cpu)
     with audio_pipeline:
@@ -120,8 +121,7 @@ def main():
     audio_pipeline.build()
     audioIteratorPipeline = ROCALAudioIterator(audio_pipeline, auto_reset=True, device=device_type)
     augmentation_name = augmentation_list[case_number]
-    ref_file_list = ["237-126133-0020.wav", "237-134500-0001.wav", "237-134500-0004.wav", "2830-3979-0005.wav", 
-                     "2830-3980-0059.wav", "6829-68769-0045.wav", "6829-68769-0047.wav", "6829-68771-0017.wav"]
+    match_cnt = 0
     for e in range(1):
         print("Epoch :: ", e)
         cnt = 0
@@ -129,16 +129,24 @@ def main():
         for i , it in enumerate(audioIteratorPipeline):
             print("************************************** i *************************************", i)
             for audio, label, roi in zip(it[0], it[1], it[2]):
-                print("label: ", label)
-                print("roi: ", roi)
                 audio = audio.cpu().detach().numpy()
                 roi = roi.cpu().detach().numpy()
+                label = label.cpu().detach().numpy()
                 if qa_mode == 0:
+                    print("label: ", label)
+                    print("roi: ", roi)
                     print("audio: ", audio)
                 elif qa_mode == 1 and cnt < 8:
-                    compare_output(audio, roi, augmentation_name, ref_file_list[cnt])
+                    match = compare_output(audio, roi, augmentation_name, label)
+                    match_cnt += 1
                 cnt = cnt + 1
-                # draw_patches(audio, label, "cpu")
         print("EPOCH DONE", e)
+        
+        if qa_mode:
+            if match_cnt == batch_size:
+                print("PASSED!")
+            else:
+                print("FAILED! {%d / %d} matching with reference outputs".format(match_cnt, batch_size))
+
 if __name__ == '__main__':
     main()
