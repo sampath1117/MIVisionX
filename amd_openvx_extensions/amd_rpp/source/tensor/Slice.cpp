@@ -145,6 +145,9 @@ static vx_status VX_CALLBACK processSlice(vx_node node, const vx_reference *para
         return_status = VX_ERROR_NOT_IMPLEMENTED;
 #endif
     } else if (data->deviceType == AGO_TARGET_AFFINITY_CPU) {
+        std::cerr<<"printing anchor values"<<std::endl;
+        for(int i = 0; i < data->pSrcDesc->n; i++)
+            std::cerr<<data->pAnchor[i]<<std::endl;
         rpp_status = rppt_slice_host(data->pSrc, data->pSrcDesc, data->pDst, data->pDstDesc, data->pSrcDims, data->pAnchor, data->pShape, data->pFillValues, data->handle->rppHandle);
         return_status = (rpp_status == RPP_SUCCESS) ? VX_SUCCESS : VX_FAILURE;
     }
@@ -181,7 +184,7 @@ static vx_status VX_CALLBACK initializeSlice(vx_node node, const vx_reference *p
     data->pDstDesc->offsetInBytes = 0;
     fillAudioDescriptionPtrFromDims(data->pDstDesc, data->outputTensorDims);
 
-    data->pSrcDims = new int[data->pSrcDesc->n * 2]; 
+    data->pSrcDims = new int[data->pSrcDesc->n * 2];
     data->pFillValues = new float[data->pSrcDesc->n * data->dimsStride];
 
     refreshSlice(node, parameters, num, data);

@@ -418,3 +418,6 @@ def pipeline_def(fn=None, **pipeline_kwargs):
         return create_pipeline
 
     return actual_decorator(fn) if fn else actual_decorator
+
+def get_roi_random_crop_values(self):
+    return b.rocalGetROIRandomCropValues(self._handle)

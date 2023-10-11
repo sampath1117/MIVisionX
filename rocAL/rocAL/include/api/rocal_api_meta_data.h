@@ -195,14 +195,37 @@ extern "C" void ROCAL_API_CALL rocalCopyEncodedBoxesAndLables(RocalContext p_con
 /// \param labels_buf  user's buffer that will be filled with encoded labels . Its needs to be at least of size batch_size.
 extern "C" RocalMetaData ROCAL_API_CALL rocalGetEncodedBoxesAndLables(RocalContext p_context, int num_encoded_boxes);
 
-///
-/// \param rocal_context
-/// \param buf The user's buffer that will be filled with image id info for the images in the output batch.
-extern "C" void ROCAL_API_CALL rocalGetImageId(RocalContext p_context,  int* buf);
+/*! \brief get image id
+ * \ingroup group_rocal_meta_data
+ * \param rocal_context rocal context
+ * \param buf The user's buffer that will be filled with image id info for the images in the output batch.
+ */
+extern "C" void ROCAL_API_CALL rocalGetImageId(RocalContext p_context, int* buf);
 
-///
-/// \param rocal_context
-/// \param joints_data The user's RocalJointsData pointer that will be pointed to JointsDataBatch pointer
-extern "C" void ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context, RocalJointsData **joints_data);
+/*! \brief get joints data pointer
+ * \ingroup group_rocal_meta_data
+ * \param [in] rocal_context rocal context
+ * \param [out] joints_data The user's RocalJointsData pointer that will be pointed to JointsDataBatch pointer
+ */
+extern "C" void ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context, RocalJointsData** joints_data);
 
-#endif //MIVISIONX_ROCAL_API_META_DATA_H
+/*! \brief initialize the values required for ROI Random crop
+ * \ingroup group_rocal_meta_data
+ * \param [in] rocal_context rocal context
+ * \param [in] crop_shape_batch
+ * \param [in] roi_begin_batch
+ * \param [in] input_shape_batch
+ * \param [in] roi_end_batch
+ */
+extern "C" void ROCAL_API_CALL rocalROIRandomCrop(RocalContext p_context, RocalTensor p_input, int *crop_shape);
+
+/*! \brief get the ROI Random crop values
+ * \ingroup group_rocal_meta_data
+ * \param [in] rocal_context rocal context
+ * \param [in] crop_shape_batch
+ * \param [in] roi_begin_batch
+ * \param [in] input_shape_batch
+ * \param [in] roi_end_batch
+ */
+extern "C" RocalTensor ROCAL_API_CALL rocalGetROIRandomCropValues(RocalContext p_context);
+#endif  // MIVISIONX_ROCAL_API_META_DATA_H

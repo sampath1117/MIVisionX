@@ -499,3 +499,23 @@ ROCAL_API_CALL rocalGetJointsDataPtr(RocalContext p_context, RocalJointsData **j
     *joints_data = (RocalJointsData *)(&(meta_data.second->get_joints_data_batch()));
 }
 
+void
+    ROCAL_API_CALL
+    rocalROIRandomCrop(RocalContext p_context, RocalTensor p_input, int *crop_shape) {
+     if ((p_context == nullptr) || (p_input == nullptr)) {
+        ERR("Invalid ROCAL context or invalid input tensor")
+    }
+    auto context = static_cast<Context*>(p_context);
+    auto input = static_cast<Tensor*>(p_input);
+    context->master_graph->roi_random_crop(input, crop_shape);
+}
+
+RocalTensor
+    ROCAL_API_CALL
+    rocalGetROIRandomCropValues(RocalContext p_context) {
+     if (p_context == nullptr) {
+        ERR("Invalid ROCAL context or invalid input tensor")
+    }
+    auto context = static_cast<Context*>(p_context);
+    return context->master_graph->get_roi_random_crop_values();
+}

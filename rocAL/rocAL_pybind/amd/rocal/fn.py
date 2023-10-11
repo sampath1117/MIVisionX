@@ -1094,3 +1094,8 @@ def mel_filter_bank(*inputs, bytes_per_sample_hint = [0], freq_high = 0.0, freq_
     mel_filter_bank_output = b.MelFilterBank(Pipeline._current_pipeline._handle, *(kwargs_pybind.values()))
     return mel_filter_bank_output
 
+def roi_random_crop(*inputs, crop_shape=None):
+
+    # pybind call arguments
+    kwargs_pybind = {"crop_shape": crop_shape}
+    roi_random_crop = b.roiRandomCrop(Pipeline._current_pipeline._handle, *(kwargs_pybind.values()))

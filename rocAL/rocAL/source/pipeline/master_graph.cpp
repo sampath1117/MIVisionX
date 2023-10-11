@@ -117,7 +117,7 @@ MasterGraph::MasterGraph(size_t batch_size, RocalAffinity affinity, size_t cpu_t
         _mem_type ((_affinity == RocalAffinity::GPU) ? RocalMemType::OCL : RocalMemType::HOST),
 #else
         _mem_type (RocalMemType::HOST),
-#endif        
+#endif
         _first_run(true),
         _processing(false),
         _prefetch_queue_depth(prefetch_queue_depth),
@@ -368,7 +368,7 @@ void MasterGraph::release()
 #endif
         _output_tensor_buffer = nullptr;
     }
-    
+
     // release all openvx resources.
     vx_status status;
     for(auto& tensor: _internal_tensors)
@@ -495,10 +495,10 @@ MasterGraph::to_tensor(void *out_ptr, RocalTensorlayout format, float multiplier
 {
     if(no_more_processed_data())
         return MasterGraph::Status::NO_MORE_DATA;
-    
+
     if(_output_tensor_list.size() != 1)
         THROW("Cannot copy, Multiple output tensors present in the list")
-    
+
     auto output_tensor_info = _output_tensor_list[0]->info();
     if(output_tensor_info.data_type() != RocalTensorDataType::UINT8)
         THROW("The output tensor is not of UINT8 type")
@@ -545,7 +545,7 @@ MasterGraph::to_tensor(void *out_ptr, RocalTensorlayout format, float multiplier
 
             _output_tensor_buffer = clImgFloat;
         }
-        
+
         for( auto&& out_tensor: output_buffers)
         {
             int argIdx = 0;
@@ -619,14 +619,14 @@ MasterGraph::to_tensor(void *out_ptr, RocalTensorlayout format, float multiplier
 
             auto output_buffers = _ring_buffer.get_read_buffers().first;
             unsigned dest_buf_offset = 0;
-            
+
             if(_output_tensor_buffer == nullptr) {
                 size_t size = output_tensor_info.data_size() * (output_data_type == RocalTensorDataType::FP32 ? sizeof(float) : sizeof(half));
                 hipError_t status = hipMalloc(&_output_tensor_buffer, size);
                 if ((status != hipSuccess) || !_output_tensor_buffer)
                     THROW("ROCAL::hipMalloc of size " + TOSTR(size) + " failed " + TOSTR(status))
             }
-            
+
             // copy hip buffer to out_ptr
             // todo:: add callback routing to exchange memory pointer to avoid extra copy
             for( auto&& out_tensor: output_buffers)
@@ -772,7 +772,7 @@ MasterGraph::to_tensor(void *out_ptr, RocalTensorlayout format, float multiplier
         #endif
                             }
                         }
-                        else if(output_data_type == RocalTensorDataType::FP16) 
+                        else if(output_data_type == RocalTensorDataType::FP16)
                         {
                             half *output_tensor_16 = static_cast<half *>(out_ptr);
                             if(c != 3) {
@@ -861,7 +861,7 @@ MasterGraph::copy_output(unsigned char *out_ptr, size_t out_size_in_bytes)
 
     if(_output_tensor_list.size() != 1)
         THROW("Cannot copy, Multiple output tensors present in the list")
-    
+
     auto output_tensor_info = _output_tensor_list[0]->info();
     // Copies to the output context given by the user
     size_t size = output_tensor_info.data_size();
@@ -874,7 +874,7 @@ MasterGraph::copy_output(unsigned char *out_ptr, size_t out_size_in_bytes)
     if(output_tensor_info.mem_type() == RocalMemType::OCL)
     {
         size_t dest_buf_offset = 0;
-        //NOTE: the CL_TRUE flag is only used on the last buffer read 
+        //NOTE: the CL_TRUE flag is only used on the last buffer read
         // to avoid unnecessary sequence of synchronizations
 
         // get_read_buffers() calls block_if_empty() internally and blocks if buffers are empty until a new batch is processed
@@ -925,7 +925,7 @@ MasterGraph::copy_output(unsigned char *out_ptr, size_t out_size_in_bytes)
         memcpy(out_ptr, output_buffer, size);
 #if ENABLE_OPENCL || ENABLE_HIP
     }
-#endif    
+#endif
     _convert_time.end();
     return Status::OK;
 }
@@ -1019,6 +1019,28 @@ void MasterGraph::output_routine()
                     _meta_data_graph->process(_augmented_meta_data, output_meta_data);
                 }
             }
+
+            if(_is_roi_random_crop)
+            {
+                // get the roi_begin and roi_end values from random_object_bbox
+                int *roi_begin_batch = new int[_user_batch_size * _input_dims];
+                int *roi_end_batch = new int[_user_batch_size * _input_dims];
+                for(uint i = 0; i < _user_batch_size; i++)
+                {
+                    int sample_idx = i * _input_dims;
+                    int *roi_begin = &roi_begin_batch[sample_idx];
+                    int *roi_end = &roi_end_batch[sample_idx];
+                    for(uint j = 0; j < _input_dims; j++)
+                    {
+                        roi_begin[j] = std::rand() % (_input_dims * 5);
+                        roi_end[j] = roi_begin[j] + (std::rand() % (_input_dims * 5));
+                    }
+                }
+                update_roi_random_crop(_crop_shape_batch, roi_begin_batch, roi_end_batch);
+                delete[] roi_begin_batch;
+                delete[] roi_end_batch;
+            }
+
             _process_time.start();
             _graph->process();
             _process_time.end();
@@ -1517,6 +1539,119 @@ TensorList * MasterGraph::mask_meta_data()
     }
 
     return &_mask_tensor_list;
+}
+class BatchRNGUniform {
+ public:
+  /**
+   * @brief Used to keep batch of RNGs, so Operators can be immune to order of sample processing
+   * while using randomness
+   *
+   * @param seed Used to generate seed_seq to initialize batch of RNGs
+   * @param batch_size How many RNGs to store
+   * @param state_size How many seed are used to initialize one RNG. Used to lower probablity of
+   * collisions between seeds used to initialize RNGs in different operators.
+   */
+  BatchRNGUniform(int64_t seed, int batch_size, int state_size = 4)
+  : seed_(seed) {
+    std::seed_seq seq{seed_};
+    std::vector<uint32_t> seeds(batch_size * state_size);
+    seq.generate(seeds.begin(), seeds.end());
+    rngs_.reserve(batch_size);
+    for (int i = 0; i < batch_size * state_size; i += state_size) {
+      std::seed_seq s(seeds.begin() + i, seeds.begin() + i + state_size);
+      rngs_.emplace_back(s);
+    }
+  }
+
+
+  /**
+   * Returns engine corresponding to given sample ID
+   */
+  std::mt19937 &operator[](int sample) noexcept {
+    return rngs_[sample];
+  }
+
+ private:
+  int64_t seed_;
+  std::vector<std::mt19937> rngs_;
+};
+
+void MasterGraph::roi_random_crop(Tensor *input, int *crop_shape)
+{
+    _is_roi_random_crop = true;
+    _input_dims = input->num_of_dims() - 2;
+    std::cerr<<"input->num_of_dims(): "<< input->num_of_dims()<<std::endl;
+    _crop_shape_batch = new int[_input_dims * _user_batch_size]; // TODO handle this case later when different crop_shape is given for each tensor
+
+    // replicate crop_shape values for all samples in a batch
+    for(uint i = 0; i < _user_batch_size; i++)
+    {
+        int sample_idx = i * _input_dims;
+        memcpy(&(_crop_shape_batch[sample_idx]), crop_shape, _input_dims * sizeof(int));
+    }
+
+    // create new instance of tensor class
+    std::vector<size_t> dims = {1};
+    auto info = TensorInfo(std::move(dims), RocalMemType::HOST, RocalTensorDataType::INT32);
+    info.set_metadata();
+    _roi_random_crop_tensor = new Tensor(info);
+
+    // allocate memory for the raw buffer pointer in tensor object
+    _roi_random_crop_buf = new int[_user_batch_size * _input_dims];
+    _roi_random_crop_tensor->set_mem_handle(_roi_random_crop_buf);
+
+    // compute vx_tensor dims and strides and create vx_tensor
+    std::vector<size_t> vx_tensor_dims = {_user_batch_size * _input_dims};
+    vx_size vx_tensor_strides[1] = {sizeof(vx_uint32)};
+    _roi_random_crop_vx_tensor = vxCreateTensorFromHandle(_context, 1, vx_tensor_dims.data(), VX_TYPE_UINT32, 0,
+                                                          vx_tensor_strides, _roi_random_crop_buf, VX_MEMORY_TYPE_HOST);
+}
+
+void MasterGraph::update_roi_random_crop(int *crop_shape_batch, int *roi_begin_batch, int *roi_end_batch) {
+    void *roi_random_crop_buf = _roi_random_crop_tensor->buffer();
+    int *crop_begin_batch = static_cast<int *>(roi_random_crop_buf);
+    uint seed = std::time(0);
+    int *roi_batch = reinterpret_cast<int *>(_internal_tensor_list[0]->get_roi());
+
+    BatchRNGUniform _rng = {seed, static_cast<int>(_user_batch_size)};
+    for(uint i = 0; i < _user_batch_size; i++) {
+        int sample_idx = i * _input_dims;
+        int *crop_shape = &crop_shape_batch[sample_idx];
+        int *roi_begin = &roi_begin_batch[sample_idx];
+        int *input_shape = &roi_batch[sample_idx * 2 + _input_dims];
+        int *roi_end = &roi_end_batch[sample_idx];
+        int *crop_begin = &crop_begin_batch[sample_idx];
+
+        for(uint j = 0; j < _input_dims; j++) {
+            // check if crop_shape, roi_end is greater than input_shape
+            if(crop_shape[j] > input_shape[j])
+                THROW("crop shape cannot be greater than input shape");
+            if (roi_end[j] > input_shape[j])
+                THROW("ROI shape cannot be greater than input shape");
+
+            int roi_length = roi_end[j] - roi_begin[j];
+            int crop_length = crop_shape[j];
+            if (roi_length == crop_length) {
+                crop_begin[j] = roi_begin[j];
+            } else {
+                int64_t start_range[2] = {roi_begin[j], roi_end[j] - crop_length};
+
+                // swap range values if start_range[0] > start_range[1]
+                if (start_range[0] > start_range[1]) {
+                    int64_t temp = start_range[0];
+                    start_range[0] = start_range[1];
+                    start_range[1] = temp;
+                }
+
+                // check if range is within the bounds of input
+                start_range[0] = std::max<int64_t>(0, start_range[0]);
+                start_range[1] = std::min<int64_t>(input_shape[j] - crop_length, start_range[1]);
+
+                auto dist = std::uniform_int_distribution<int64_t>(start_range[0], start_range[1]);
+                crop_begin[j] = dist(_rng[i]);
+            }
+        }
+    }
 }
 
 void MasterGraph::notify_user_thread()
