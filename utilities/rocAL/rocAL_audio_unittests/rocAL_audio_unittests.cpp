@@ -90,7 +90,7 @@ int main(int argc, const char **argv)
 
 int test(int test_case, const char *path, float sample_rate, int downmix, unsigned max_frames, unsigned max_channels, int gpu)
 {
-    int inputBatchSize = 1;
+    int inputBatchSize = 3;
     std::cout << ">>> test case " << test_case << std::endl;
     std::cout << ">>> Running on " << (gpu ? "GPU" : "CPU") << std::endl;
 

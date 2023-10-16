@@ -1579,8 +1579,7 @@ class BatchRNGUniform {
 void MasterGraph::roi_random_crop(Tensor *input, int *crop_shape)
 {
     _is_roi_random_crop = true;
-    _input_dims = input->num_of_dims() - 2;
-    std::cerr<<"input->num_of_dims(): "<< input->num_of_dims()<<std::endl;
+    _input_dims = input->num_of_dims() - 1; // TO be changed later when generic roi changes are added
     _crop_shape_batch = new int[_input_dims * _user_batch_size]; // TODO handle this case later when different crop_shape is given for each tensor
 
     // replicate crop_shape values for all samples in a batch
@@ -1591,20 +1590,13 @@ void MasterGraph::roi_random_crop(Tensor *input, int *crop_shape)
     }
 
     // create new instance of tensor class
-    std::vector<size_t> dims = {1};
+    std::vector<size_t> dims = {_user_batch_size, _input_dims};
     auto info = TensorInfo(std::move(dims), RocalMemType::HOST, RocalTensorDataType::INT32);
-    info.set_metadata();
     _roi_random_crop_tensor = new Tensor(info);
 
     // allocate memory for the raw buffer pointer in tensor object
     _roi_random_crop_buf = new int[_user_batch_size * _input_dims];
-    _roi_random_crop_tensor->set_mem_handle(_roi_random_crop_buf);
-
-    // compute vx_tensor dims and strides and create vx_tensor
-    std::vector<size_t> vx_tensor_dims = {_user_batch_size * _input_dims};
-    vx_size vx_tensor_strides[1] = {sizeof(vx_uint32)};
-    _roi_random_crop_vx_tensor = vxCreateTensorFromHandle(_context, 1, vx_tensor_dims.data(), VX_TYPE_UINT32, 0,
-                                                          vx_tensor_strides, _roi_random_crop_buf, VX_MEMORY_TYPE_HOST);
+    _roi_random_crop_tensor->create_from_handle_new(_context, _roi_random_crop_buf);
 }
 
 void MasterGraph::update_roi_random_crop(int *crop_shape_batch, int *roi_begin_batch, int *roi_end_batch) {

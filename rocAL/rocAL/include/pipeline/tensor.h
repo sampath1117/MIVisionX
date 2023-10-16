@@ -105,7 +105,7 @@ public:
             dims_mapping = {0, 1, 3, 4, 2};
         } else {
             THROW("Invalid layout conversion")
-        }   
+        }
         for(unsigned i = 0; i < _num_of_dims; i++)
             new_dims[i] = _dims.at(dims_mapping[i]);
     }
@@ -169,7 +169,7 @@ public:
             case RocalTensorlayout::NFHWC: {
                 _max_shape[1] = _dims[2] = height;
                 _max_shape[0] = _dims[3] = width;
-                break;   
+                break;
             }
             case RocalTensorlayout::NFCHW: {
                 _max_shape[1] = _dims[3] = height;
@@ -294,6 +294,7 @@ public:
     // create_from_handle() no internal memory allocation is done here since
     // tensor's handle should be swapped with external buffers before usage
     int create_from_handle(vx_context context);
+    int create_from_handle_new(vx_context context, void *ptr);
     int create_virtual(vx_context context, vx_graph graph);
     bool is_handle_set() { return (_vx_handle != 0); }
     void set_dims(std::vector<size_t> dims) { _info.set_dims(dims); }
